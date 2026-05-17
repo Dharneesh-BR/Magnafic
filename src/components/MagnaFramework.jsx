@@ -100,7 +100,7 @@ export default function MagnaFramework() {
 
   return (
     <section
-      className="relative overflow-hidden overflow-x-hidden py-20 md:py-24 mb-20"
+      className="relative overflow-hidden overflow-x-hidden py-20 md:py-24"
       style={{
         backgroundColor: '#000047',
         width: '100vw',
@@ -119,8 +119,11 @@ export default function MagnaFramework() {
       <div className="relative z-10 px-6 max-w-6xl mx-auto">
         <div className="text-center mb-14 md:mb-16">
           <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-white tracking-tight">MAGNA Framework</h2>
+          <p className="text-2xl font-semibold text-white/90 mb-4 max-w-3xl mx-auto">
+            New Blueprint for Consumer Brand Growth
+          </p>
           <p className="text-2xl font-semibold mb-8 text-white/90 max-w-3xl mx-auto">
-            A Conscious Growth System for Scaling Consumer Brands
+            “Magna”fication of Consumer Brands Through Insight <span className="text-cyan-400">Magnification</span>, Strategy <span className="text-cyan-300">Simplification</span> & <span className="text-cyan-200">10X Growth Amplification</span>
           </p>
 
         </div>

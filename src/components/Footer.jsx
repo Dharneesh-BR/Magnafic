@@ -6,11 +6,8 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto">
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div>
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-glow-cyan">
-                <Brain className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-extrabold text-white">Mind Magna</span>
+            <div className="mb-4">
+              <img src="/Final Magnafic.png" alt="Magnafic" className="h-12 w-auto" />
             </div>
             <p className="text-gray-300">
               Unlock your mind's full potential with our science-backed mental fitness platform.

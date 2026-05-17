@@ -13,34 +13,31 @@ export default function Hero() {
         <div className="max-w-xl">
           
 
-          <h1 className="max-w-xl text-3xl font-extrabold leading-[1.08] tracking-normal text-white sm:text-4xl py-8 lg:text-[2.75rem]">
-            Welcome to a new era of Consulting 4.0
+          <h1 className="max-w-xl text-3xl font-extrabold leading-[1.08] tracking-normal text-white sm:text-4xl pb-4 pt-2 lg:text-[2.75rem]">
+            Welcome to a new <br/>Era of Consulting 4.0
           </h1>
 
           <p className="mt-3 max-w-xl text-xl font-semibold leading-snug text-cyan sm:text-xl py-2">
             Where Conscious Strategy Meets AI-Powered Growth.
           </p>
 
-          <p className="mt-3 max-w-xl text-xl font-semibold leading-snug text-cyan sm:text-xl py-2">
-           “Magna”fication of Consumer Brands Through Insight Magnification, Strategy Simplification & 10X Growth Amplification
-          </p>
           
-            <p className="text-sm leading-6 text-slate-200 py-2">
-              Say goodbye to generic frameworks, big firm bureaucracy, and bloated pyramid staffing models packed with Junior Analysts.
+          
+            <p className="text-sm font-semibold leading-6 text-slate-200 py-2">
+              Say goodbye to generic frameworks, big firm bureaucracy, and bloated pyramid staffing models packed with Junior Analysts.<br/>
               Modern consumer brands need speed, flexibility, intelligence, and execution.
             </p>
 
-            <p className="text-sm leading-6 text-slate-300 py-2">
-              Magnafic gives brands on-demand access to experienced CPG Leaders, Fractional CXOs & AI systems tailored to their exact stage of growth.
-              <br/>
-              The Modern Consulting Ecosystem for Consumer Brands
+            <p className="text-sm font-semibold leading-6 text-slate-300 py-2">
+              Magnafic gives brands on-demand access to experienced <span className="text-cyan">CPG Leaders</span>, <span className="text-cyan">Fractional CXOs</span> & <span className="text-cyan">AI systems</span> tailored to their exact stage of growth.
+              
             </p>
           
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Link
               to="/experts"
-              className="group inline-flex items-center justify-center gap-2 bg-gradient-primary text-white px-4 py-3 text-sm font-bold"
+              className="group inline-flex text-xl rounded-full items-center justify-center gap-2 bg-gradient-primary text-white px-4 py-3 text-sm font-bold"
             >
               <Target className="h-8 w-8" />
               Find Experts
@@ -48,11 +45,11 @@ export default function Hero() {
             </Link>
             <Link
               to="/contact"
-              className="group inline-flex items-center justify-center gap-2 bg-gradient-primary text-white px-4 py-3 text-sm font-bold"
+              className="group inline-flex text-xl rounded-full items-center justify-center gap-2 bg-gradient-primary text-white px-4 py-3 text-sm font-bold"
             >
               <Zap className="h-8 w-8 text-cyan" />
               Let's Talk
-              <ArrowRight className="h-8 w-8 transition-transform group-hover:translate-x-1" />
+              <ChevronRight className="h-8 w-8 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
 

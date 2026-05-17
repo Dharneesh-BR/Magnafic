@@ -5,7 +5,7 @@ import ValueProp from '../components/ValueProp'
 import MagnaFramework from '../components/MagnaFramework'
 import AboutMagna from '../components/AboutMagna'
 import ExpertiseSection from '../components/ExpertiseSection'
-import Testimonials from '../components/Testimonials'
+
 
 
 export default function Home() {
@@ -16,9 +16,7 @@ export default function Home() {
       <MagnaFramework />
       <AboutMagna />
       <ExpertiseSection />
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <Testimonials />
-      </section>
+      
       
     </div>
   )

@@ -44,15 +44,15 @@ export default function AboutMagna() {
   const [hoveredIndex, setHoveredIndex] = useState(null)
 
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8">
+    <section className="pt-8 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 items-start">
           <div className="md:sticky md:top-8">
-            <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-6">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6">
               A modern consulting ecosystem for scaling consumer brands
             </h2>
-            <p className="text-xl text-gray-700 leading-relaxed">
-              Mind Magna helps consumer brands solve complex business challenges through a conscious growth framework powered by experienced industry leaders, AI-enabled systems, and execution-focused expertise.
+            <p className="text-lg text-gray-700 leading-relaxed">
+              Magnafic helps consumer brands solve complex business challenges through a conscious growth framework powered by experienced industry leaders, AI-enabled systems, and execution-focused expertise.
             </p>
           </div>
 
@@ -63,19 +63,19 @@ export default function AboutMagna() {
               return (
                 <div
                   key={index}
-                  className="bg-white rounded-3xl p-6 border-2 border-gray-200 hover:border-primary hover:shadow-glow-combined transition-all duration-300 cursor-pointer"
+                  className="bg-gradient-primary rounded-3xl p-6 border-2 border-gray-200 hover:border-primary hover:shadow-glow-combined transition-all duration-300 cursor-pointer"
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-glow-cyan flex-shrink-0">
-                      <Icon className="h-7 w-7 text-white" />
+                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-glow-cyan flex-shrink-0">
+                      <Icon className="h-7 w-7 text-[#000047]" />
                     </div>
                     <div className="flex-1">
-                      <div className="text-sm font-bold text-primary uppercase tracking-wider mb-2">
+                      <div className="text-sm font-bold text-white uppercase tracking-wider mb-2">
                         {feature.number}
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">
+                      <h3 className="text-lg font-bold text-white mb-2">
                         {feature.title}
                       </h3>
                     </div>
@@ -86,13 +86,13 @@ export default function AboutMagna() {
                       isHovered ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                     }`}
                   >
-                    <p className="text-gray-600 leading-relaxed text-sm mb-4">
+                    <p className="text-white leading-relaxed text-sm mb-4">
                       {feature.description}
                     </p>
                     <div className="pt-4 border-t border-gray-100">
                       <ul className="space-y-2">
                         {feature.details.map((detail, idx) => (
-                          <li key={idx} className="flex items-center gap-2 text-sm text-gray-700">
+                          <li key={idx} className="flex items-center gap-2 text-sm text-white">
                             <div className="w-1.5 h-1.5 bg-primary rounded-full" />
                             {detail}
                           </li>
