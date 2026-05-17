@@ -9,10 +9,12 @@ import JoinExpertsHub from './pages/JoinExpertsHub'
 import About from './pages/About'
 import Login from './pages/Login'
 import Academy from './pages/Academy'
+import Contact from './pages/Contact'
 
 function App() {
   return (
     <Router>
+      <div className="fixed-gradient-bg"></div>
       <div className="min-h-screen">
         <Header />
         <main>
@@ -25,6 +27,7 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
             <Route path="/academy" element={<Academy />} />
+            <Route path="/contact" element={<Contact />} />
           </Routes>
         </main>
         <Footer />

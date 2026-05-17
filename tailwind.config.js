@@ -45,7 +45,7 @@ export default {
         }
       },
       backgroundImage: {
-        'gradient-primary': 'linear-gradient(to right, #3533cd, #00ffff)',
+        'gradient-primary': 'linear-gradient(135deg, #3533cd, #00ffff)',
         'gradient-secondary': 'linear-gradient(to right, #000080, #1e3a8a, #1e40af)',
         'gradient-magna': 'linear-gradient(to right, #2A1AD8, #4E26E2, #7231EC, #953DF5, #B948FF)',
       },

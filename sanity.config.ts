@@ -1,16 +1,15 @@
 import { defineConfig } from 'sanity'
 import { structureTool } from 'sanity/structure'
-import { visionTool } from '@sanity/vision'
 import { schemaTypes } from './sanity/schemas'
 
 export default defineConfig({
   name: 'default',
   title: 'Mind Magna',
 
-  projectId: 'your-project-id',
+  projectId: 'eu2wjb5o',
   dataset: 'production',
 
-  plugins: [structureTool(), visionTool()],
+  plugins: [structureTool()],
 
   schema: {
     types: schemaTypes,

@@ -13,50 +13,53 @@ export default function Hero() {
         <div className="max-w-xl">
           
 
-          <h1 className="max-w-xl text-3xl font-extrabold leading-[1.08] tracking-normal text-white sm:text-4xl py-2 lg:text-[2.75rem]">
-            Welcome to a New <br/>Era of Consulting
+          <h1 className="max-w-xl text-3xl font-extrabold leading-[1.08] tracking-normal text-white sm:text-4xl py-8 lg:text-[2.75rem]">
+            Welcome to a new era of Consulting 4.0
           </h1>
 
-          <p className="mt-3 max-w-lg text-lg font-semibold leading-snug text-cyan sm:text-xl py-2">
+          <p className="mt-3 max-w-xl text-xl font-semibold leading-snug text-cyan sm:text-xl py-2">
             Where Conscious Strategy Meets AI-Powered Growth.
           </p>
 
+          <p className="mt-3 max-w-xl text-xl font-semibold leading-snug text-cyan sm:text-xl py-2">
+           “Magna”fication of Consumer Brands Through Insight Magnification, Strategy Simplification & 10X Growth Amplification
+          </p>
           
             <p className="text-sm leading-6 text-slate-200 py-2">
               Say goodbye to generic frameworks, big firm bureaucracy, and bloated pyramid staffing models packed with Junior Analysts.
               Modern consumer brands need speed, flexibility, intelligence, and execution.
             </p>
 
-            <p className="mt-3 text-sm leading-6 text-slate-300 py-2">
-              Mind Magna gives brands on-demand access to experienced CPG Leaders, Fractional CXOs & AI systems tailored to their exact stage of growth.
-              From Strategy to AI-powered GTM optimization, we help brands move from ideas to impact.
+            <p className="text-sm leading-6 text-slate-300 py-2">
+              Magnafic gives brands on-demand access to experienced CPG Leaders, Fractional CXOs & AI systems tailored to their exact stage of growth.
+              <br/>
+              The Modern Consulting Ecosystem for Consumer Brands
             </p>
           
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Link
               to="/experts"
-              className="group inline-flex items-center justify-center gap-2 bg-white px-4 py-3 text-sm font-bold text-[#090927] shadow-[0_18px_50px_rgba(0,255,255,0.18)] transition duration-300 hover:-translate-y-0.5 hover:bg-cyan"
+              className="group inline-flex items-center justify-center gap-2 bg-gradient-primary text-white px-4 py-3 text-sm font-bold"
             >
-              <Target className="h-5 w-5" />
+              <Target className="h-8 w-8" />
               Find Experts
-              <ChevronRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+              <ChevronRight className="h-8 w-8 transition-transform group-hover:translate-x-1" />
             </Link>
             <Link
-              to="/"
-              className="group inline-flex items-center justify-center gap-2 border border-white/18 bg-white/[0.06] px-4 py-3 text-sm font-bold text-white transition duration-300 hover:-translate-y-0.5 hover:border-cyan/70 hover:bg-white/[0.1]"
+              to="/contact"
+              className="group inline-flex items-center justify-center gap-2 bg-gradient-primary text-white px-4 py-3 text-sm font-bold"
             >
-              <Zap className="h-5 w-5 text-cyan" />
-              Describe your Problem
-              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+              <Zap className="h-8 w-8 text-cyan" />
+              Let's Talk
+              <ArrowRight className="h-8 w-8 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
 
         </div>
 
         <div className="hero-visual relative mx-auto w-full max-w-[360px] sm:max-w-[400px] lg:max-w-[430px]">
-          <div className="absolute -inset-8 -z-10 bg-[radial-gradient(circle_at_50%_55%,rgba(0,255,255,0.24),transparent_48%)] blur-2xl" />
-          <img src="/Banner.png" alt="Mind Magna Banner" className="hero-visual__image relative z-10 h-auto max-w-[280px] sm:max-w-[320px] lg:max-w-[350px] mx-auto mix-blend-screen mt-12" />
+          <img src="/Banner_1.png" alt="Mind Magna Banner" className="hero-visual__image relative z-10 h-auto max-w-[280px] sm:max-w-[320px] lg:max-w-[350px] mx-auto mt-12" />
           <img src="/icon_1.png" alt="" aria-hidden="true" className="hero-floating-icon hero-floating-icon--one" />
           <img src="/icon_2.png" alt="" aria-hidden="true" className="hero-floating-icon hero-floating-icon--two" />
           <img src="/icon_3.png" alt="" aria-hidden="true" className="hero-floating-icon hero-floating-icon--three" />

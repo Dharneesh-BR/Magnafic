@@ -44,7 +44,7 @@ export default function AboutMagna() {
   const [hoveredIndex, setHoveredIndex] = useState(null)
 
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 to-cyan/5">
+    <section className="py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 items-start">
           <div className="md:sticky md:top-8">
