@@ -14,7 +14,6 @@ import Contact from './pages/Contact'
 function App() {
   return (
     <Router>
-      <div className="fixed-gradient-bg"></div>
       <div className="min-h-screen">
         <Header />
         <main>

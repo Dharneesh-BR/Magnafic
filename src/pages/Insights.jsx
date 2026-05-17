@@ -71,7 +71,7 @@ export default function Insights() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fbfaf9]">
+    <div className="min-h-screen bg-white">
       {/* Video Banner */}
       <div className="relative w-full h-[400px] md:h-[500px] overflow-hidden">
         <video
