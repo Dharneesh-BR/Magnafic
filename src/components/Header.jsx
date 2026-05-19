@@ -10,14 +10,14 @@ export default function Header() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
-            <img src="/Final Magnafic.png" alt="Mind Magna Logo" className="h-10 w-auto brightness-125" />
+            <img src="/Magnafic.png" alt="Mind Magna Logo" className="h-10 w-auto brightness-125" />
           </Link>
           
           <div className="hidden md:flex items-center space-x-6">
             <Link to="/experts" className="text-gray-900 hover:text-primary transition-colors font-medium">Experts</Link>
             <Link to="/insights" className="text-gray-900 hover:text-primary transition-colors font-medium">Insights</Link>
             <Link to="/about" className="text-gray-900 hover:text-primary transition-colors font-medium">About</Link>
-            <Link to="/login" className="bg-gradient-primary text-gray-900 px-6 py-2 rounded-2xl hover:shadow-glow-combined transition-all hover:scale-105 font-semibold">
+            <Link to="/login" className="bg-gradient-primary text-white px-6 py-2 rounded-2xl hover:shadow-glow-combined transition-all hover:scale-105 font-semibold">
               Login
             </Link>
           </div>

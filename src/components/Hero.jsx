@@ -13,25 +13,29 @@ export default function Hero() {
         <div className="max-w-xl">
           
 
-          <h1 className="max-w-xl text-3xl font-extrabold leading-[1.08] tracking-normal text-white sm:text-4xl pb-4 pt-2 lg:text-[2.75rem]">
-            Welcome to a new <br/>Era of Consulting 4.0
+          <h1 className="max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-normal text-white sm:text-5xl pb-4 pt-2 lg:text-[2.75rem]">
+            Top 1% Elite Experts for Consumer Brands
           </h1>
 
-          <p className="mt-3 max-w-xl text-xl font-semibold leading-snug text-cyan sm:text-xl py-2">
-            Where Conscious Strategy Meets AI-Powered Growth.
+          <p className="mt-3 max-w-2xl text-2xl font-semibold leading-snug text-cyan sm:text-2xl py-2">
+            Where Conscious Strategy Meets AI-Powered 10X Growth.
           </p>
 
           
           
-            <p className="text-sm font-semibold leading-6 text-slate-200 py-2">
+            <p className="text-lg font-semibold leading-6 text-slate-200 py-2">
               Say goodbye to generic frameworks, big firm bureaucracy, and bloated pyramid staffing models packed with Junior Analysts.<br/>
               Modern consumer brands need speed, flexibility, intelligence, and execution.
             </p>
 
-            <p className="text-sm font-semibold leading-6 text-slate-300 py-2">
+            <p className="text-lg font-semibold leading-6 text-slate-300 py-2">
               Magnafic gives brands on-demand access to experienced <span className="text-cyan">CPG Leaders</span>, <span className="text-cyan">Fractional CXOs</span> & <span className="text-cyan">AI systems</span> tailored to their exact stage of growth.
               
             </p>
+
+            <p className="mt-3 max-w-2xl text-2xl font-semibold leading-snug text-cyan sm:text-2xl py-2">
+            Welcome to New Era of Consulting 4.0
+          </p>
           
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -39,17 +43,17 @@ export default function Hero() {
               to="/experts"
               className="group inline-flex text-xl rounded-full items-center justify-center gap-2 bg-gradient-primary text-white px-4 py-3 text-sm font-bold"
             >
-              <Target className="h-8 w-8" />
+              <div className="h-5 w-5" />
               Find Experts
-              <ChevronRight className="h-8 w-8 transition-transform group-hover:translate-x-1" />
+              <div className="h-8 w-8 transition-transform group-hover:translate-x-1" />
             </Link>
             <Link
               to="/contact"
               className="group inline-flex text-xl rounded-full items-center justify-center gap-2 bg-gradient-primary text-white px-4 py-3 text-sm font-bold"
             >
-              <Zap className="h-8 w-8 text-cyan" />
+              <div className="h-5 w-5" />
               Let's Talk
-              <ChevronRight className="h-8 w-8 transition-transform group-hover:translate-x-1" />
+              <div className="h-8 w-8 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
 

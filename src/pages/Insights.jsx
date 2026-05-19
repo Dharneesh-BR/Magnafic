@@ -1,6 +1,6 @@
 import { FileText, Lightbulb, Briefcase, Calendar, Clock, Tag } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { client } from '../lib/sanityClient'
+import { blogClient } from '../lib/sanityClient'
 
 export default function Insights() {
   const [activeTab, setActiveTab] = useState('all')
@@ -25,9 +25,9 @@ export default function Insights() {
           category,
           publishedAt,
           readTime,
-          "imageUrl": "main Image".asset->url
+          "imageUrl": mainImage.asset->url
         }`
-        const data = await client.fetch(query)
+        const data = await blogClient.fetch(query)
         setBlogs(data)
       } catch (error) {
         console.error('Error fetching blogs:', error)
