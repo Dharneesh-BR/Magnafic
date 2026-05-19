@@ -14,7 +14,7 @@ export default function Hero() {
           
 
           <h1 className="max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-normal text-white sm:text-5xl pb-4 pt-2 lg:text-[2.75rem]">
-            Top 1% Elite Experts for Consumer Brands
+            Top 1% Elite Experts for Scaling Consumer Brands
           </h1>
 
           <p className="mt-3 max-w-2xl text-2xl font-semibold leading-snug text-cyan sm:text-2xl py-2">
