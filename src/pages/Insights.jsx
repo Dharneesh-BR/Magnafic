@@ -1,5 +1,6 @@
-import { FileText, Lightbulb, Briefcase, Calendar, Clock, Tag } from 'lucide-react'
+import { FileText, Lightbulb, Briefcase, Calendar, Clock } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { blogClient } from '../lib/sanityClient'
 
 export default function Insights() {
@@ -20,6 +21,7 @@ export default function Insights() {
         const query = `*[_type == "blog"] | order(publishedAt desc) {
           _id,
           title,
+          "slug": slug.current,
           excerpt,
           type,
           category,
@@ -39,17 +41,17 @@ export default function Insights() {
     fetchBlogs()
   }, [])
 
-  const filteredContent = activeTab === 'all' 
-    ? blogs 
+  const filteredContent = activeTab === 'all'
+    ? blogs
     : blogs.filter(item => item.type === activeTab)
 
   const formatDate = (dateString) => {
     if (!dateString) return ''
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
     })
   }
 
@@ -72,7 +74,6 @@ export default function Insights() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Video Banner */}
       <div className="relative w-full h-[400px] md:h-[500px] overflow-hidden">
         <video
           autoPlay
@@ -90,89 +91,91 @@ export default function Insights() {
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">Insights</h1>
             <p className="text-lg md:text-xl text-gray-200 max-w-2xl mx-auto">
               Clarity Drives Growth
-           </p>
+            </p>
           </div>
         </div>
       </div>
 
       <div className="pt-12 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-
-        <div className="flex justify-center mb-12">
-          <div className="inline-flex bg-gray-100 rounded-full p-1">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-2 rounded-full font-medium transition-colors ${
-                  activeTab === tab.id 
-                    ? 'bg-white text-primary-600 shadow-sm' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex justify-center mb-12">
+            <div className="inline-flex bg-gray-100 rounded-full p-1 overflow-x-auto max-w-full">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-6 py-2 rounded-full font-medium transition-colors whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'bg-white text-primary-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            <p className="mt-4 text-gray-600">Loading insights...</p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredContent.map((item) => (
-              <article key={item._id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow group">
-                <div className={`h-48 ${getGradientByType(item.type)} flex items-center justify-center`}>
-                  {getImageUrl(item.imageUrl) ? (
-                    <img 
-                      src={getImageUrl(item.imageUrl)} 
-                      alt={item.title} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <>
-                      {item.type === 'research' && <Lightbulb className="h-16 w-16 text-white/80" />}
-                      {item.type === 'article' && <FileText className="h-16 w-16 text-white/80" />}
-                      {item.type === 'case-study' && <Briefcase className="h-16 w-16 text-white/80" />}
-                    </>
-                  )}
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
-                    <span className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {formatDate(item.publishedAt)}
-                    </span>
-                    <span className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1" />
-                      {item.readTime}
-                    </span>
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+              <p className="mt-4 text-gray-600">Loading insights...</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredContent.map((item) => (
+                <article key={item._id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow group">
+                  <div className={`h-48 ${getGradientByType(item.type)} flex items-center justify-center`}>
+                    {getImageUrl(item.imageUrl) ? (
+                      <img
+                        src={getImageUrl(item.imageUrl)}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <>
+                        {item.type === 'research' && <Lightbulb className="h-16 w-16 text-white/80" />}
+                        {item.type === 'article' && <FileText className="h-16 w-16 text-white/80" />}
+                        {item.type === 'case-study' && <Briefcase className="h-16 w-16 text-white/80" />}
+                      </>
+                    )}
                   </div>
-                  <span className="inline-block px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium mb-3">
-                    {item.category}
-                  </span>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">
-                    {item.title}
-                  </h3>
-                  <p className="text-gray-600 mb-4">{item.excerpt}</p>
-                  <button className="text-primary-600 font-semibold group-hover:text-primary-700">
-                    Read More →
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+                  <div className="p-6">
+                    <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
+                      <span className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        {formatDate(item.publishedAt)}
+                      </span>
+                      <span className="flex items-center">
+                        <Clock className="h-4 w-4 mr-1" />
+                        {item.readTime}
+                      </span>
+                    </div>
+                    <span className="inline-block px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium mb-3">
+                      {item.category}
+                    </span>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="text-gray-600 mb-4">{item.excerpt}</p>
+                    <Link
+                      to={`/insights/${item.slug || item._id}`}
+                      className="inline-flex items-center text-primary-600 font-semibold group-hover:text-primary-700"
+                    >
+                      Read More →
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
 
-        <div className="text-center mt-12">
-          <button className="bg-primary-600 text-white px-8 py-4 rounded-full font-semibold hover:bg-primary-700 transition-colors">
-            Load More Insights
-          </button>
+          <div className="text-center mt-12">
+            <button className="bg-primary-600 text-white px-8 py-4 rounded-full font-semibold hover:bg-primary-700 transition-colors">
+              Load More Insights
+            </button>
+          </div>
         </div>
-      </div>
       </div>
     </div>
   )

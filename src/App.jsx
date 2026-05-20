@@ -3,8 +3,10 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import Home from './pages/Home'
 import Experts from './pages/Experts'
+import ExpertDetail from './pages/ExpertDetail'
 import DigitalTransformation from './pages/DigitalTransformation'
 import Insights from './pages/Insights'
+import BlogDetail from './pages/BlogDetail'
 import JoinExpertsHub from './pages/JoinExpertsHub'
 import About from './pages/About'
 import Login from './pages/Login'
@@ -20,8 +22,10 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/experts" element={<Experts />} />
+            <Route path="/experts/:slug" element={<ExpertDetail />} />
             <Route path="/digital-transformation" element={<DigitalTransformation />} />
             <Route path="/insights" element={<Insights />} />
+            <Route path="/insights/:slug" element={<BlogDetail />} />
             <Route path="/join-experts-hub" element={<JoinExpertsHub />} />
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
