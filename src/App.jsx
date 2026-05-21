@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import Home from './pages/Home'
@@ -10,13 +11,31 @@ import BlogDetail from './pages/BlogDetail'
 import JoinExpertsHub from './pages/JoinExpertsHub'
 import About from './pages/About'
 import Login from './pages/Login'
+import ClientSignup from './pages/ClientSignup'
 import Academy from './pages/Academy'
 import Contact from './pages/Contact'
+import SEO from './components/SEO'
+import ClientDashboard from './pages/ClientDashboard'
+import ConsultantDashboard from './pages/ConsultantDashboard'
+import DashboardRedirect from './pages/DashboardRedirect'
+import ProtectedRoute from './components/ProtectedRoute'
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+
+  return null
+}
 
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen">
+        <SEO />
         <Header />
         <main>
           <Routes>
@@ -29,6 +48,10 @@ function App() {
             <Route path="/join-experts-hub" element={<JoinExpertsHub />} />
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<ClientSignup />} />
+            <Route path="/dashboard" element={<DashboardRedirect />} />
+            <Route path="/dashboard/client" element={<ProtectedRoute role="client"><ClientDashboard /></ProtectedRoute>} />
+            <Route path="/dashboard/consultant" element={<ProtectedRoute role="consultant"><ConsultantDashboard /></ProtectedRoute>} />
             <Route path="/academy" element={<Academy />} />
             <Route path="/contact" element={<Contact />} />
           </Routes>

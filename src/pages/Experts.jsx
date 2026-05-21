@@ -1,17 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Filter, Star, MapPin, Briefcase, Clock, Award, ArrowRight, Users } from 'lucide-react'
+import { Search, Filter, Star, MapPin, Clock, Award, ArrowRight, Users } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
-
-function initials(name = '') {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .map(part => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-}
+import { getExpertImage } from '../lib/expertImages'
 
 export default function Experts() {
   const [experts, setExperts] = useState([])
@@ -148,39 +139,40 @@ export default function Experts() {
           ) : (
             <div className="grid gap-7 md:grid-cols-2 lg:grid-cols-3">
               {filteredExperts.map((expert) => (
-                <article key={expert._id} className="group overflow-hidden rounded-[2rem] bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/10">
-                  <div className="relative h-28 bg-gradient-to-br from-primary-700 via-primary-600 to-cyan-500">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.24),transparent_28%)]"></div>
+                <article key={expert._id} className="group flex h-full flex-col overflow-hidden rounded-[1.5rem] bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/10">
+                  <div className="relative flex h-52 items-center justify-center overflow-hidden bg-gradient-to-br from-primary-900 via-primary-700 to-cyan-500">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.22),transparent_30%)]"></div>
+                    <div className="relative h-36 w-36 overflow-hidden rounded-full border-4 border-white bg-white shadow-2xl shadow-primary-950/25">
+                      {getExpertImage(expert) ? (
+                        <img
+                          src={getExpertImage(expert)}
+                          alt={expert.fullName}
+                          className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-600 to-cyan-500 text-4xl font-bold text-white">
+                          {expert.fullName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
                     {expert.featured && (
-                      <span className="absolute right-4 top-4 inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-bold text-primary-700 shadow-lg">
+                      <span className="absolute left-4 top-4 inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-bold text-primary-700 shadow-lg">
                         <Award className="mr-1 h-3.5 w-3.5" />
                         Featured
                       </span>
                     )}
+                    <div className="absolute bottom-4 right-4 flex items-center rounded-full bg-white px-3 py-1.5 text-sm font-bold text-gray-900 shadow-lg">
+                      <Star className="mr-1 h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      {expert.rating || 'New'}
+                    </div>
                   </div>
 
-                  <div className="px-6 pb-6">
-                    <div className="-mt-12 mb-5 flex items-end justify-between">
-                      <div className="h-24 w-24 overflow-hidden rounded-3xl bg-gradient-to-br from-primary-500 to-cyan-400 p-1 shadow-xl">
-                        <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-[1.25rem] bg-primary-600 text-2xl font-bold text-white">
-                          {expert.imageUrl ? (
-                            <img src={expert.imageUrl} alt={expert.fullName} className="h-full w-full object-cover" />
-                          ) : (
-                            initials(expert.fullName)
-                          )}
-                        </div>
-                      </div>
-                      <div className="mb-1 flex items-center rounded-full bg-yellow-50 px-3 py-1.5 text-sm font-bold text-gray-900">
-                        <Star className="mr-1 h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        {expert.rating || 'New'}
-                      </div>
-                    </div>
-
+                  <div className="flex flex-1 flex-col p-6">
                     <h3 className="text-2xl font-bold text-gray-950">{expert.fullName}</h3>
                     <p className="mt-1 font-semibold text-primary-600">{expert.designation || 'Expert Mentor'}</p>
                     {expert.company && <p className="mt-1 text-sm font-medium text-gray-500">{expert.company}</p>}
 
-                    <p className="mt-5 line-clamp-3 text-sm leading-6 text-gray-600">{expert.shortBio}</p>
+                    <p className="mt-5 line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-gray-600">{expert.shortBio}</p>
 
                     <div className="mt-5 space-y-2 text-sm text-gray-600">
                       {expert.city && (
@@ -215,7 +207,7 @@ export default function Experts() {
 
                     <Link
                       to={`/experts/${expert.slug || expert._id}`}
-                      className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-primary-600 px-5 py-3 font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700"
+                      className="mt-auto inline-flex w-full items-center justify-center rounded-xl bg-primary-600 px-5 py-3 font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700"
                     >
                       View Profile
                       <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" />

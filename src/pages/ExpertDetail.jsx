@@ -16,6 +16,9 @@ import {
   Users
 } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
+import SEO from '../components/SEO'
+import { absoluteUrl } from '../lib/seo'
+import { getExpertImage } from '../lib/expertImages'
 
 function initials(name = '') {
   return name
@@ -60,6 +63,8 @@ function renderBlockText(block) {
 }
 
 function renderBio(blocks = []) {
+  if (!Array.isArray(blocks)) return []
+
   const rendered = []
 
   for (let index = 0; index < blocks.length; index += 1) {
@@ -113,6 +118,25 @@ function renderBio(blocks = []) {
   return rendered
 }
 
+function toText(value) {
+  if (value === undefined || value === null) return ''
+  if (typeof value === 'string' || typeof value === 'number') return String(value)
+  if (typeof value === 'object') {
+    return value.title || value.name || value.label || value.value || value.text || ''
+  }
+
+  return ''
+}
+
+function toTextList(items) {
+  if (!Array.isArray(items)) return []
+
+  return items
+    .map(toText)
+    .map(item => item.trim())
+    .filter(Boolean)
+}
+
 function Stat({ icon: Icon, label, value }) {
   if (value === undefined || value === null || value === '') return null
 
@@ -128,13 +152,15 @@ function Stat({ icon: Icon, label, value }) {
 }
 
 function PillList({ title, items = [] }) {
-  if (!items.length) return null
+  const normalizedItems = toTextList(items)
+
+  if (!normalizedItems.length) return null
 
   return (
     <section className="rounded-[1.5rem] bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
       <h2 className="mb-4 text-xl font-bold text-gray-950">{title}</h2>
       <div className="flex flex-wrap gap-2">
-        {items.map(item => (
+        {normalizedItems.map(item => (
           <span key={item} className="rounded-full bg-primary-50 px-3 py-1.5 text-sm font-semibold text-primary-700">
             {item}
           </span>
@@ -145,7 +171,9 @@ function PillList({ title, items = [] }) {
 }
 
 function TextList({ title, items = [], icon: Icon }) {
-  if (!items.length) return null
+  const normalizedItems = toTextList(items)
+
+  if (!normalizedItems.length) return null
 
   return (
     <section className="rounded-[1.5rem] bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
@@ -158,7 +186,7 @@ function TextList({ title, items = [], icon: Icon }) {
         {title}
       </h2>
       <ul className="space-y-3 text-gray-700">
-        {items.map(item => (
+        {normalizedItems.map(item => (
           <li key={item} className="flex gap-3 border-b border-gray-100 pb-3 last:border-0 last:pb-0">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary-500" />
             <span>{item}</span>
@@ -248,15 +276,35 @@ export default function ExpertDetail() {
     )
   }
 
+  const expertImage = getExpertImage(expert)
+
   return (
     <div className="min-h-screen bg-[#f7f9ff]">
+      <SEO
+        title={`${expert.fullName} - ${expert.designation || 'Expert Consultant'}`}
+        description={expert.shortBio}
+        path={`/experts/${expert.slug || expert._id}`}
+        image={expertImage || undefined}
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Person',
+          name: expert.fullName,
+          description: expert.shortBio,
+          image: expert.imageUrl,
+          jobTitle: expert.designation,
+          worksFor: expert.company
+            ? {
+                '@type': 'Organization',
+                name: expert.company,
+              }
+            : undefined,
+          url: absoluteUrl(`/experts/${expert.slug || expert._id}`),
+          knowsAbout: [...toTextList(expert.expertiseAreas), ...toTextList(expert.skills)],
+        }}
+      />
       <section className="relative overflow-hidden bg-primary-900 px-4 pt-28 pb-24 text-white sm:px-6 lg:px-8">
-        {expert.imageUrl && (
-          <>
-            <img src={expert.imageUrl} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover opacity-15" />
-            <div className="absolute inset-0 bg-gradient-to-br from-primary-900 via-primary-900/95 to-cyan-900/80"></div>
-          </>
-        )}
+        {expertImage && <img src={expertImage} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover opacity-15" />}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-900 via-primary-900/95 to-cyan-900/80"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_22%,rgba(0,255,255,0.18),transparent_30%),radial-gradient(circle_at_82%_14%,rgba(255,255,255,0.12),transparent_26%)]"></div>
 
         <div className="relative mx-auto max-w-7xl">
@@ -268,10 +316,10 @@ export default function ExpertDetail() {
           <div className="grid gap-10 lg:grid-cols-[260px_1fr_340px] lg:items-end">
             <div className="h-56 w-56 overflow-hidden rounded-[2rem] bg-gradient-to-br from-primary-400 to-cyan-400 p-1 shadow-2xl shadow-primary-950/30">
               <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-[1.75rem] bg-primary-700 text-6xl font-bold">
-                {expert.imageUrl ? (
-                  <img src={expert.imageUrl} alt={expert.fullName} className="h-full w-full object-cover" />
+                {expertImage ? (
+                  <img src={expertImage} alt={expert.fullName} className="h-full w-full object-cover" />
                 ) : (
-                  initials(expert.fullName)
+                  <span className="text-white">{initials(expert.fullName)}</span>
                 )}
               </div>
             </div>
@@ -326,7 +374,7 @@ export default function ExpertDetail() {
                     <Sparkles className="mr-2 h-4 w-4 text-cyan-200" />
                     Focus
                   </span>
-                  <span className="text-right font-semibold">{expert.expertiseAreas?.[0] || expert.industry || 'Expertise'}</span>
+                  <span className="text-right font-semibold">{toTextList(expert.expertiseAreas)[0] || expert.industry || 'Expertise'}</span>
                 </div>
                 {expert.totalSessions && (
                   <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">

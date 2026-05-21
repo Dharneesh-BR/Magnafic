@@ -1,9 +1,28 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Brain, Menu, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
+import { clearAuthUser, getAuthUser } from '../lib/auth'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [authUser, setAuthUserState] = useState(() => getAuthUser())
+
+  useEffect(() => {
+    const syncAuth = () => setAuthUserState(getAuthUser())
+
+    window.addEventListener('magnafic-auth-change', syncAuth)
+    window.addEventListener('storage', syncAuth)
+
+    return () => {
+      window.removeEventListener('magnafic-auth-change', syncAuth)
+      window.removeEventListener('storage', syncAuth)
+    }
+  }, [])
+
+  const handleLogout = () => {
+    clearAuthUser()
+    setIsMenuOpen(false)
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white z-50 border-b border-gray-200 shadow-sm">
@@ -17,9 +36,18 @@ export default function Header() {
             <Link to="/experts" className="text-gray-900 hover:text-primary transition-colors font-medium">Experts</Link>
             <Link to="/insights" className="text-gray-900 hover:text-primary transition-colors font-medium">Insights</Link>
             <Link to="/about" className="text-gray-900 hover:text-primary transition-colors font-medium">About</Link>
-            <Link to="/login" className="bg-gradient-primary text-white px-6 py-2 rounded-2xl hover:shadow-glow-combined transition-all hover:scale-105 font-semibold">
-              Login
-            </Link>
+            {authUser ? (
+              <>
+                <Link to="/dashboard" className="text-gray-900 hover:text-primary transition-colors font-medium">Dashboard</Link>
+                <button onClick={handleLogout} className="bg-gradient-primary text-white px-6 py-2 rounded-2xl hover:shadow-glow-combined transition-all hover:scale-105 font-semibold">
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link to="/login" className="bg-gradient-primary text-white px-6 py-2 rounded-2xl hover:shadow-glow-combined transition-all hover:scale-105 font-semibold">
+                Login
+              </Link>
+            )}
           </div>
 
           <button
@@ -35,9 +63,18 @@ export default function Header() {
             <Link to="/experts" className="block text-gray-900 hover:text-primary font-medium">Experts</Link>
             <Link to="/insights" className="block text-gray-900 hover:text-primary font-medium">Insights</Link>
             <Link to="/about" className="block text-gray-900 hover:text-primary font-medium">About</Link>
-            <Link to="/login" className="block bg-gradient-primary text-gray-900 px-6 py-2 rounded-2xl hover:shadow-glow-combined text-center font-semibold">
-              Login
-            </Link>
+            {authUser ? (
+              <>
+                <Link to="/dashboard" className="block text-gray-900 hover:text-primary font-medium">Dashboard</Link>
+                <button onClick={handleLogout} className="block w-full bg-gradient-primary text-gray-900 px-6 py-2 rounded-2xl hover:shadow-glow-combined text-center font-semibold">
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link to="/login" className="block bg-gradient-primary text-gray-900 px-6 py-2 rounded-2xl hover:shadow-glow-combined text-center font-semibold">
+                Login
+              </Link>
+            )}
           </div>
         )}
       </nav>

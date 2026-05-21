@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Calendar, Clock, FileText, Sparkles, Tag } from 'lucide-react'
 import { blogClient } from '../lib/sanityClient'
+import SEO from '../components/SEO'
+import { absoluteUrl } from '../lib/seo'
 
 function formatDate(dateString) {
   if (!dateString) return ''
@@ -230,6 +232,30 @@ export default function BlogDetail() {
 
   return (
     <article className="min-h-screen bg-[#f7f9ff]">
+      <SEO
+        title={blog.title}
+        description={blog.excerpt}
+        path={`/insights/${blog.slug || blog._id}`}
+        image={blog.imageUrl}
+        type="article"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: blog.title,
+          description: blog.excerpt,
+          image: blog.imageUrl,
+          datePublished: blog.publishedAt,
+          mainEntityOfPage: absoluteUrl(`/insights/${blog.slug || blog._id}`),
+          publisher: {
+            '@type': 'Organization',
+            name: 'Magnafic',
+            logo: {
+              '@type': 'ImageObject',
+              url: absoluteUrl('/Magnafic.png'),
+            },
+          },
+        }}
+      />
       <section className="relative overflow-hidden bg-primary-900 px-4 pt-28 pb-20 text-white sm:px-6 lg:px-8">
         {blog.imageUrl && (
           <>

@@ -1,0 +1,17 @@
+{
+  "name": "Magnafic",
+  "short_name": "Magnafic",
+  "description": "Top expert consultants, fractional CXOs, and AI-enabled growth systems for consumer brands.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000047",
+  "icons": [
+    {
+      "src": "/Magnafic.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
