@@ -11,7 +11,7 @@ export default function ConsultantDashboard() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary-600">Consultant Dashboard</p>
-          <h1 className="mt-3 text-4xl font-bold text-gray-950">Welcome{user?.email ? `, ${user.email}` : ''}</h1>
+          <h1 className="mt-3 break-words text-3xl font-bold text-gray-950 sm:text-4xl">Welcome{user?.email ? `, ${user.email}` : ''}</h1>
           <p className="mt-3 max-w-2xl text-gray-600">Review assigned opportunities, sessions, and expert profile activity.</p>
         </div>
 
@@ -30,7 +30,7 @@ export default function ConsultantDashboard() {
           ))}
         </div>
 
-        <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
+        <section className="mt-8 rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
           <h2 className="text-2xl font-bold text-gray-950">Backend-managed consultant access</h2>
           <p className="mt-3 max-w-3xl text-gray-600">Consultant signup is intentionally not exposed here. Once backend authentication is connected, approved consultants can land on this dashboard after login.</p>
         </section>

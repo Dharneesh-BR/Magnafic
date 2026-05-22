@@ -302,7 +302,7 @@ export default function ExpertDetail() {
           knowsAbout: [...toTextList(expert.expertiseAreas), ...toTextList(expert.skills)],
         }}
       />
-      <section className="relative overflow-hidden bg-primary-900 px-4 pt-28 pb-24 text-white sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden bg-primary-900 px-4 pt-24 pb-20 text-white sm:px-6 lg:px-8">
         {expertImage && <img src={expertImage} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover opacity-15" />}
         <div className="absolute inset-0 bg-gradient-to-br from-primary-900 via-primary-900/95 to-cyan-900/80"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_22%,rgba(0,255,255,0.18),transparent_30%),radial-gradient(circle_at_82%_14%,rgba(255,255,255,0.12),transparent_26%)]"></div>
@@ -313,8 +313,8 @@ export default function ExpertDetail() {
             Back to Experts
           </Link>
 
-          <div className="grid gap-10 lg:grid-cols-[260px_1fr_340px] lg:items-end">
-            <div className="h-56 w-56 overflow-hidden rounded-[2rem] bg-gradient-to-br from-primary-400 to-cyan-400 p-1 shadow-2xl shadow-primary-950/30">
+          <div className="grid gap-8 lg:grid-cols-[260px_1fr_340px] lg:items-end">
+            <div className="h-44 w-44 overflow-hidden rounded-3xl bg-gradient-to-br from-primary-400 to-cyan-400 p-1 shadow-2xl shadow-primary-950/30 sm:h-56 sm:w-56">
               <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-[1.75rem] bg-primary-700 text-6xl font-bold">
                 {expertImage ? (
                   <img src={expertImage} alt={expert.fullName} className="h-full w-full object-cover" />
@@ -340,8 +340,8 @@ export default function ExpertDetail() {
                 )}
               </div>
 
-              <h1 className="text-4xl font-bold leading-tight md:text-6xl">{expert.fullName}</h1>
-              <p className="mt-4 text-xl text-cyan-100">{expert.designation || 'Expert Mentor'}</p>
+              <h1 className="text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">{expert.fullName}</h1>
+              <p className="mt-4 text-lg text-cyan-100 sm:text-xl">{expert.designation || 'Expert Mentor'}</p>
               {expert.company && <p className="mt-2 text-lg text-gray-200">{expert.company}</p>}
 
               <div className="mt-6 flex flex-wrap gap-5 text-sm text-gray-200">
@@ -366,7 +366,7 @@ export default function ExpertDetail() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/15 bg-white/10 p-5 shadow-2xl shadow-primary-950/20 backdrop-blur">
+            <div className="rounded-3xl border border-white/15 bg-white/10 p-5 shadow-2xl shadow-primary-950/20 backdrop-blur">
               <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-cyan-100">Profile Brief</p>
               <div className="space-y-4 text-sm text-gray-100">
                 <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
@@ -409,12 +409,12 @@ export default function ExpertDetail() {
 
           <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
             <div className="space-y-8">
-              <section className="rounded-[2rem] bg-white p-8 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
+              <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
                 <div className="mb-6 flex items-center gap-3">
                   <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
                     <UserRound className="h-6 w-6" />
                   </span>
-                  <h2 className="text-3xl font-bold text-gray-950">About</h2>
+                  <h2 className="text-2xl font-bold text-gray-950 sm:text-3xl">About</h2>
                 </div>
                 {bio.length > 0 ? (
                   <div>{bio}</div>

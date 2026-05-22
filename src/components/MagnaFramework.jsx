@@ -100,7 +100,7 @@ export default function MagnaFramework() {
 
   return (
     <section
-      className="relative overflow-hidden overflow-x-hidden py-20 md:py-24"
+      className="relative overflow-hidden overflow-x-hidden py-14 md:py-24"
       style={{
         backgroundColor: '#000047',
         width: '100vw',
@@ -116,13 +116,13 @@ export default function MagnaFramework() {
       <motion.div
         variants={itemVariants}
       >
-      <div className="relative z-10 px-6 max-w-6xl mx-auto">
+      <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6">
         <div className="text-center mb-14 md:mb-16">
-          <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-white tracking-tight">MAGNA Framework</h2>
-          <p className="text-2xl font-semibold text-white/90 mb-4 max-w-3xl mx-auto">
+          <h2 className="mb-4 text-3xl font-extrabold tracking-tight text-white md:text-5xl">MAGNA Framework</h2>
+          <p className="mx-auto mb-4 max-w-3xl text-xl font-semibold text-white/90 md:text-2xl">
             New Blueprint for Consumer Brand Growth
           </p>
-          <p className="text-2xl font-semibold mb-8 text-white/90 max-w-3xl mx-auto">
+          <p className="mx-auto mb-8 max-w-3xl text-lg font-semibold text-white/90 md:text-2xl">
             “Magna”fication of Consumer Brands Through Insight <span className="text-cyan-400">Magnification</span>, Strategy <span className="text-cyan-300">Simplification</span> & <span className="text-cyan-200">10X Growth Amplification</span>
           </p>
 
@@ -146,14 +146,15 @@ export default function MagnaFramework() {
                   transition={{ duration: 0.55, delay: index * 0.08, ease: "easeOut" }}
                   onMouseEnter={() => handleMouseEnter(index)}
                   onMouseLeave={handleMouseLeave}
+                  onClick={() => setExpandedIndex(isExpanded ? null : index)}
                 >
                   <motion.div
-                    className={`grid grid-cols-[76px_1fr] md:grid-cols-[128px_1fr] gap-4 md:gap-8 items-center rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm px-3 py-4 md:px-5 md:py-5 shadow-[0_10px_30px_rgba(0,0,0,0.18)]`}
+                    className={`grid grid-cols-[56px_1fr] items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-4 shadow-[0_10px_30px_rgba(0,0,0,0.18)] backdrop-blur-sm md:grid-cols-[128px_1fr] md:gap-8 md:px-5 md:py-5`}
                     whileHover={{ x: 6 }}
                   >
                     <div className="flex justify-center md:justify-center shrink-0">
                       <motion.div
-                        className="w-[76px] h-[76px] md:w-[128px] md:h-[128px] rounded-full flex items-center justify-center shadow-lg"
+                        className="flex h-14 w-14 items-center justify-center rounded-full shadow-lg md:h-[128px] md:w-[128px]"
                         style={{
                           backgroundColor: '#FFFFFF',
                           boxShadow: '0 0 0 2px rgba(0, 255, 255, 0.35), 0 0 20px rgba(0, 255, 255, 0.55), 0 10px 24px rgba(0, 0, 0, 0.25)'
@@ -165,7 +166,7 @@ export default function MagnaFramework() {
                         whileHover={{ scale: 1.05, rotate: -2 }}
                       >
                         <span
-                          className="text-5xl md:text-7xl font-extrabold leading-none tracking-tight"
+                          className="text-4xl font-extrabold leading-none tracking-tight md:text-7xl"
                           style={{ color: textColor }}
                         >
                           {framework.number}
@@ -175,7 +176,7 @@ export default function MagnaFramework() {
 
                     <div className="min-w-0 md:pl-0">
                       <motion.h3
-                        className="text-xl lg:text-2xl font-extrabold tracking-tight uppercase mb-2 text-[#E6E9FF] transition-all duration-300 group-hover:text-[#F2F4FF] drop-shadow-[0_0_10px_rgba(0,255,255,0.25)] group-hover:drop-shadow-[0_0_16px_rgba(0,255,255,0.45)]"
+                        className="mb-2 text-base font-extrabold uppercase tracking-tight text-[#E6E9FF] drop-shadow-[0_0_10px_rgba(0,255,255,0.25)] transition-all duration-300 group-hover:text-[#F2F4FF] group-hover:drop-shadow-[0_0_16px_rgba(0,255,255,0.45)] sm:text-lg lg:text-2xl"
                         initial={{ opacity: 0, y: 10 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: false, amount: 0.5 }}
@@ -204,7 +205,7 @@ export default function MagnaFramework() {
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="mt-4 ml-[76px] md:ml-[128px] p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                    <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:ml-[128px]">
                       <p className="text-white/90 mb-4 leading-relaxed">{framework.description}</p>
 
                       <div className="mb-4">
@@ -239,7 +240,7 @@ export default function MagnaFramework() {
           viewport={{ once: false, amount: 0.6 }}
           transition={{ duration: 0.5, delay: 0.35, ease: "easeOut" }}
         >
-          <div className="rounded-2xl border border-cyan-300/30 bg-white/5 backdrop-blur-sm p-6 shadow-[0_12px_34px_rgba(0,0,0,0.25)]">
+          <div className="rounded-2xl border border-cyan-300/30 bg-white/5 p-4 shadow-[0_12px_34px_rgba(0,0,0,0.25)] backdrop-blur-sm sm:p-6">
             <svg viewBox="0 0 320 260" className="w-full h-auto max-w-md" role="img" aria-label="Growth chart animation">
               <line x1="24" y1="22" x2="24" y2="232" stroke="#2A1AD8" strokeWidth="5" strokeLinecap="round" />
               <line x1="24" y1="232" x2="300" y2="232" stroke="#2A1AD8" strokeWidth="5" strokeLinecap="round" />

@@ -46,7 +46,7 @@ export default function AboutMagna() {
   return (
     <section className="pt-8 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="grid md:grid-cols-2 gap-12 items-start">
+        <div className="grid gap-8 md:grid-cols-2 md:gap-12 items-start">
           <div className="md:sticky md:top-8">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6">
               A modern consulting ecosystem for scaling consumer brands
@@ -56,20 +56,20 @@ export default function AboutMagna() {
             </p>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {features.map((feature, index) => {
               const Icon = feature.icon
               const isHovered = hoveredIndex === index
               return (
                 <div
                   key={index}
-                  className="bg-gradient-primary rounded-3xl p-6 border-2 border-gray-200 hover:border-primary hover:shadow-glow-combined transition-all duration-300 cursor-pointer"
+                  className="bg-gradient-primary rounded-2xl p-4 sm:p-5 border-2 border-gray-200 hover:border-primary hover:shadow-glow-combined transition-all duration-300 cursor-pointer"
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-glow-cyan flex-shrink-0">
-                      <Icon className="h-7 w-7 text-[#000047]" />
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-glow-cyan flex-shrink-0 sm:h-11 sm:w-11">
+                      <Icon className="h-5 w-5 text-[#000047] sm:h-5 sm:w-5" />
                     </div>
                     <div className="flex-1">
                       <div className="text-sm font-bold text-white uppercase tracking-wider mb-2">
@@ -83,7 +83,7 @@ export default function AboutMagna() {
 
                   <div
                     className={`mt-4 overflow-hidden transition-all duration-300 ${
-                      isHovered ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                      isHovered ? 'md:max-h-96 md:opacity-100' : 'md:max-h-0 md:opacity-0'
                     }`}
                   >
                     <p className="text-white leading-relaxed text-sm mb-4">

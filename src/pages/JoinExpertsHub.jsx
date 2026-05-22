@@ -58,11 +58,11 @@ export default function JoinExpertsHub() {
   ]
 
   return (
-    <div className="pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+    <div className="px-4 pt-24 pb-16 sm:px-6 sm:pb-20 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Join Our Experts Hub</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <h1 className="mb-4 text-3xl font-bold text-gray-900 sm:text-4xl">Join Our Experts Hub</h1>
+          <p className="mx-auto max-w-3xl text-lg text-gray-600 sm:text-xl">
             Become part of our elite network of consultants and experts. Connect with businesses, 
             work on exciting projects, and grow your professional career.
           </p>
@@ -80,12 +80,12 @@ export default function JoinExpertsHub() {
           ))}
         </div>
 
-        <div className="bg-gradient-to-br from-gray-50 to-primary-50 rounded-3xl p-12 mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center">How It Works</h2>
-          <div className="grid md:grid-cols-4 gap-8">
+        <div className="mb-16 rounded-3xl bg-gradient-to-br from-gray-50 to-primary-50 p-6 sm:p-12">
+          <h2 className="mb-10 text-center text-2xl font-bold text-gray-900 sm:mb-12 sm:text-3xl">How It Works</h2>
+          <div className="grid gap-8 md:grid-cols-4">
             {steps.map((step, index) => (
               <div key={index} className="relative">
-                <div className="text-5xl font-bold text-primary-200 mb-4">{step.number}</div>
+                <div className="mb-4 text-4xl font-bold text-primary-200 sm:text-5xl">{step.number}</div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{step.title}</h3>
                 <p className="text-gray-600">{step.description}</p>
                 {index < steps.length - 1 && (
@@ -96,8 +96,8 @@ export default function JoinExpertsHub() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="grid gap-8 md:grid-cols-2">
+          <div className="rounded-2xl bg-white p-5 shadow-lg sm:p-8">
             <h3 className="text-2xl font-bold text-gray-900 mb-6">Expert Requirements</h3>
             <ul className="space-y-4">
               {[
@@ -116,7 +116,7 @@ export default function JoinExpertsHub() {
             </ul>
           </div>
 
-          <div className="bg-primary-600 rounded-2xl shadow-lg p-8 text-white">
+          <div className="rounded-2xl bg-primary-600 p-5 text-white shadow-lg sm:p-8">
             <h3 className="text-2xl font-bold mb-6">Ready to Join?</h3>
             <p className="text-white/90 mb-6">
               Start your application today and become part of our growing network of expert consultants.

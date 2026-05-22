@@ -51,27 +51,29 @@ export default function Header() {
           </div>
 
           <button
-            className="md:hidden text-white"
+            className="rounded-lg p-2 text-gray-900 transition hover:bg-gray-100 md:hidden"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={isMenuOpen}
           >
             {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
         {isMenuOpen && (
-          <div className="md:hidden py-4 space-y-3 bg-white">
-            <Link to="/experts" className="block text-gray-900 hover:text-primary font-medium">Experts</Link>
-            <Link to="/insights" className="block text-gray-900 hover:text-primary font-medium">Insights</Link>
-            <Link to="/about" className="block text-gray-900 hover:text-primary font-medium">About</Link>
+          <div className="space-y-3 border-t border-gray-100 bg-white py-4 md:hidden">
+            <Link onClick={() => setIsMenuOpen(false)} to="/experts" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Experts</Link>
+            <Link onClick={() => setIsMenuOpen(false)} to="/insights" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Insights</Link>
+            <Link onClick={() => setIsMenuOpen(false)} to="/about" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">About</Link>
             {authUser ? (
               <>
-                <Link to="/dashboard" className="block text-gray-900 hover:text-primary font-medium">Dashboard</Link>
-                <button onClick={handleLogout} className="block w-full bg-gradient-primary text-gray-900 px-6 py-2 rounded-2xl hover:shadow-glow-combined text-center font-semibold">
+                <Link onClick={() => setIsMenuOpen(false)} to="/dashboard" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Dashboard</Link>
+                <button onClick={handleLogout} className="block w-full rounded-2xl bg-gradient-primary px-6 py-3 text-center font-semibold text-white hover:shadow-glow-combined">
                   Logout
                 </button>
               </>
             ) : (
-              <Link to="/login" className="block bg-gradient-primary text-gray-900 px-6 py-2 rounded-2xl hover:shadow-glow-combined text-center font-semibold">
+              <Link onClick={() => setIsMenuOpen(false)} to="/login" className="block rounded-2xl bg-gradient-primary px-6 py-3 text-center font-semibold text-white hover:shadow-glow-combined">
                 Login
               </Link>
             )}

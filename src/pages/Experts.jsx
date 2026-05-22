@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Filter, Star, MapPin, Clock, Award, ArrowRight, Users } from 'lucide-react'
+import { Search, Filter, Star, MapPin, Clock, Award, ArrowRight, Users, Briefcase } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import { getExpertImage } from '../lib/expertImages'
 
@@ -70,7 +70,7 @@ export default function Experts() {
 
   return (
     <div className="min-h-screen bg-[#f7f9ff]">
-      <section className="relative overflow-hidden bg-primary-900 px-4 pt-28 pb-24 text-white sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden bg-primary-900 px-4 pt-24 pb-20 text-white sm:px-6 lg:px-8">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(0,255,255,0.18),transparent_30%),radial-gradient(circle_at_82%_12%,rgba(255,255,255,0.12),transparent_26%)]"></div>
         <div className="relative mx-auto max-w-7xl">
           <div className="grid gap-10 lg:grid-cols-[1fr_380px] lg:items-end">
@@ -79,15 +79,15 @@ export default function Experts() {
                 <Award className="mr-2 h-4 w-4" />
                 Expert Network
               </span>
-              <h1 className="max-w-4xl text-4xl font-bold leading-tight md:text-6xl">
+              <h1 className="max-w-4xl text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">
                 Find Expert Consultants
               </h1>
-              <p className="mt-6 max-w-3xl text-lg leading-8 text-gray-200 md:text-xl">
+              <p className="mt-5 max-w-3xl text-base leading-7 text-gray-200 md:text-xl md:leading-8">
                 Connect with verified experts across strategy, growth, technology, operations, and consumer brand transformation.
               </p>
             </div>
 
-            <div className="rounded-[2rem] border border-white/15 bg-white/10 p-5 shadow-2xl shadow-primary-950/20 backdrop-blur">
+            <div className="rounded-3xl border border-white/15 bg-white/10 p-5 shadow-2xl shadow-primary-950/20 backdrop-blur">
               <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-cyan-100">Directory</p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
@@ -106,7 +106,7 @@ export default function Experts() {
 
       <section className="px-4 pb-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="relative z-10 -mt-12 mb-10 rounded-[2rem] bg-white p-4 shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100 sm:p-6">
+          <div className="relative z-10 -mt-10 mb-10 rounded-3xl bg-white p-4 shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100 sm:p-6">
             <div className="flex flex-col gap-4 md:flex-row">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary-400" />
@@ -115,7 +115,7 @@ export default function Experts() {
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Search by name, expertise, company, city, or skills..."
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-4 pl-12 pr-4 text-gray-900 outline-none transition focus:border-primary-300 focus:bg-white focus:ring-4 focus:ring-primary-100"
+                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-4 pl-12 pr-4 text-sm text-gray-900 outline-none transition focus:border-primary-300 focus:bg-white focus:ring-4 focus:ring-primary-100 sm:text-base"
                 />
               </div>
               <button className="flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-6 py-4 font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700">
@@ -126,12 +126,12 @@ export default function Experts() {
           </div>
 
           {loading ? (
-            <div className="rounded-[2rem] bg-white p-16 text-center shadow-xl shadow-primary-900/5">
+            <div className="rounded-3xl bg-white p-8 text-center shadow-xl shadow-primary-900/5 sm:p-16">
               <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-primary-600"></div>
               <p className="mt-4 text-gray-600">Loading experts...</p>
             </div>
           ) : filteredExperts.length === 0 ? (
-            <div className="rounded-[2rem] bg-white p-12 text-center shadow-xl shadow-primary-900/5">
+            <div className="rounded-3xl bg-white p-8 text-center shadow-xl shadow-primary-900/5 sm:p-12">
               <Briefcase className="mx-auto mb-4 h-12 w-12 text-primary-500" />
               <h2 className="mb-2 text-2xl font-semibold text-gray-900">No experts found</h2>
               <p className="text-gray-600">Try searching for a different name, skill, or industry.</p>
@@ -167,8 +167,8 @@ export default function Experts() {
                     </div>
                   </div>
 
-                  <div className="flex flex-1 flex-col p-6">
-                    <h3 className="text-2xl font-bold text-gray-950">{expert.fullName}</h3>
+                  <div className="flex flex-1 flex-col p-5 sm:p-6">
+                    <h3 className="text-xl font-bold text-gray-950 sm:text-2xl">{expert.fullName}</h3>
                     <p className="mt-1 font-semibold text-primary-600">{expert.designation || 'Expert Mentor'}</p>
                     {expert.company && <p className="mt-1 text-sm font-medium text-gray-500">{expert.company}</p>}
 

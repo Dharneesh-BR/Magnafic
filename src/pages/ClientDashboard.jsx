@@ -11,7 +11,7 @@ export default function ClientDashboard() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary-600">Client Dashboard</p>
-          <h1 className="mt-3 text-4xl font-bold text-gray-950">Welcome{user?.name ? `, ${user.name}` : ''}</h1>
+          <h1 className="mt-3 break-words text-3xl font-bold text-gray-950 sm:text-4xl">Welcome{user?.name ? `, ${user.name}` : ''}</h1>
           <p className="mt-3 max-w-2xl text-gray-600">Track briefs, discover experts, and manage active consulting workspaces.</p>
         </div>
 
@@ -30,7 +30,7 @@ export default function ClientDashboard() {
           ))}
         </div>
 
-        <section className="mt-8 rounded-[2rem] bg-white p-8 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
+        <section className="mt-8 rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
           <h2 className="text-2xl font-bold text-gray-950">Start a new expert brief</h2>
           <p className="mt-3 max-w-3xl text-gray-600">Create a project brief for growth, digital transformation, GTM, operations, AI systems, or category strategy. The matching workflow can connect to your backend when ready.</p>
           <button className="mt-6 rounded-xl bg-primary-600 px-6 py-3 font-semibold text-white transition hover:bg-primary-700">

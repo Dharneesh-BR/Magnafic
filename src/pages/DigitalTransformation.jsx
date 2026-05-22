@@ -41,11 +41,11 @@ export default function DigitalTransformation() {
   ]
 
   return (
-    <div className="pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+    <div className="px-4 pt-24 pb-16 sm:px-6 sm:pb-20 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Digital Transformation Products & Services</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <h1 className="mb-4 text-3xl font-bold text-gray-900 sm:text-4xl">Digital Transformation Products & Services</h1>
+          <p className="mx-auto max-w-3xl text-lg text-gray-600 sm:text-xl">
             Accelerate your digital journey with our comprehensive suite of transformation services and cutting-edge products
           </p>
         </div>
@@ -74,10 +74,10 @@ export default function DigitalTransformation() {
           ))}
         </div>
 
-        <div className="bg-gradient-to-r from-primary-600 to-purple-600 rounded-3xl p-12 text-white">
+        <div className="rounded-3xl bg-gradient-to-r from-primary-600 to-purple-600 p-6 text-white sm:p-12">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
-              <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Business?</h2>
+              <h2 className="mb-4 text-2xl font-bold sm:text-3xl">Ready to Transform Your Business?</h2>
               <p className="text-lg text-white/90 mb-6">
                 Our team of experts will guide you through every step of your digital transformation journey
               </p>
@@ -85,21 +85,21 @@ export default function DigitalTransformation() {
                 Schedule a Consultation
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-white/10 rounded-xl p-6 text-center">
-                <div className="text-4xl font-bold mb-2">500+</div>
+            <div className="grid grid-cols-2 gap-4 sm:gap-6">
+              <div className="rounded-xl bg-white/10 p-4 text-center sm:p-6">
+                <div className="mb-2 text-3xl font-bold sm:text-4xl">500+</div>
                 <div className="text-white/80">Projects Delivered</div>
               </div>
-              <div className="bg-white/10 rounded-xl p-6 text-center">
-                <div className="text-4xl font-bold mb-2">98%</div>
+              <div className="rounded-xl bg-white/10 p-4 text-center sm:p-6">
+                <div className="mb-2 text-3xl font-bold sm:text-4xl">98%</div>
                 <div className="text-white/80">Client Satisfaction</div>
               </div>
-              <div className="bg-white/10 rounded-xl p-6 text-center">
-                <div className="text-4xl font-bold mb-2">15+</div>
+              <div className="rounded-xl bg-white/10 p-4 text-center sm:p-6">
+                <div className="mb-2 text-3xl font-bold sm:text-4xl">15+</div>
                 <div className="text-white/80">Industries Served</div>
               </div>
-              <div className="bg-white/10 rounded-xl p-6 text-center">
-                <div className="text-4xl font-bold mb-2">24/7</div>
+              <div className="rounded-xl bg-white/10 p-4 text-center sm:p-6">
+                <div className="mb-2 text-3xl font-bold sm:text-4xl">24/7</div>
                 <div className="text-white/80">Support Available</div>
               </div>
             </div>

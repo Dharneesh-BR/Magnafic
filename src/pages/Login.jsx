@@ -33,7 +33,7 @@ export default function Login() {
           <p className="text-gray-600">Login with your professional ID</p>
         </div>
 
-        <div className="rounded-[2rem] bg-white p-8 shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100">
+        <div className="rounded-3xl bg-white p-5 shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100 sm:p-8">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">Login as</label>

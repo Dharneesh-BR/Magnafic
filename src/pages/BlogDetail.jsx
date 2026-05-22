@@ -256,7 +256,7 @@ export default function BlogDetail() {
           },
         }}
       />
-      <section className="relative overflow-hidden bg-primary-900 px-4 pt-28 pb-20 text-white sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden bg-primary-900 px-4 pt-24 pb-20 text-white sm:px-6 lg:px-8">
         {blog.imageUrl && (
           <>
             <img
@@ -291,18 +291,18 @@ export default function BlogDetail() {
                 </span>
               </div>
 
-              <h1 className="max-w-5xl text-4xl font-bold leading-tight md:text-6xl">
+              <h1 className="max-w-5xl text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">
                 {blog.title}
               </h1>
 
               {blog.excerpt && (
-                <p className="mt-6 max-w-3xl text-lg leading-8 text-gray-200 md:text-xl">
+                <p className="mt-5 max-w-3xl text-base leading-7 text-gray-200 md:text-xl md:leading-8">
                   {blog.excerpt}
                 </p>
               )}
             </div>
 
-            <div className="rounded-[2rem] border border-white/15 bg-white/10 p-5 shadow-2xl shadow-primary-950/20 backdrop-blur">
+            <div className="rounded-3xl border border-white/15 bg-white/10 p-5 shadow-2xl shadow-primary-950/20 backdrop-blur">
               <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-cyan-100">Reading Brief</p>
               <div className="space-y-4 text-sm text-gray-100">
                 {blog.publishedAt && (
@@ -342,7 +342,7 @@ export default function BlogDetail() {
             <img
               src={blog.imageUrl}
               alt={blog.title}
-              className="h-[300px] w-full rounded-[2rem] object-cover shadow-2xl shadow-primary-900/20 ring-1 ring-white md:h-[500px]"
+              className="h-[220px] w-full rounded-3xl object-cover shadow-2xl shadow-primary-900/20 ring-1 ring-white sm:h-[300px] md:h-[500px]"
             />
           </div>
         </div>
@@ -363,7 +363,7 @@ export default function BlogDetail() {
             </div>
           </aside>
 
-          <div className="rounded-[2rem] bg-white px-6 py-10 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:px-10 lg:px-14">
+          <div className="rounded-3xl bg-white px-5 py-8 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:px-10 sm:py-10 lg:px-14">
             <div className="mx-auto max-w-3xl">
               {content.length > 0 ? (
                 content

@@ -45,7 +45,7 @@ export default function ClientSignup() {
           <span className="mb-5 inline-flex rounded-full bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700">
             Client access
           </span>
-          <h1 className="max-w-3xl text-4xl font-bold leading-tight text-gray-950 md:text-6xl">
+          <h1 className="max-w-3xl text-3xl font-bold leading-tight text-gray-950 sm:text-4xl md:text-6xl">
             Create your client account with a verified professional ID
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-gray-600">
@@ -53,7 +53,7 @@ export default function ClientSignup() {
           </p>
         </section>
 
-        <section className="rounded-[2rem] bg-white p-8 shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100">
+        <section className="rounded-3xl bg-white p-5 shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100 sm:p-8">
           <h2 className="mb-2 text-2xl font-bold text-gray-950">Client signup</h2>
           <p className="mb-8 text-sm text-gray-500">Consultant access is managed by the Magnafic backend team.</p>
 

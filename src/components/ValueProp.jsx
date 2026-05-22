@@ -3,7 +3,7 @@ export default function ValueProp() {
   return (
     <section className="pt-10 pb-0 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Gradient Strip */}
-      <div className="mt-8 mb-12 py-12 px-4 sm:px-6 lg:px-8 rounded-3xl" style={{ background: 'linear-gradient(135deg, #3533cd 0%, #00ffff 100%)' }}>
+      <div className="mb-10 mt-4 rounded-2xl px-4 py-8 sm:mb-12 sm:mt-8 sm:px-6 sm:py-12 lg:px-8" style={{ background: 'linear-gradient(135deg, #3533cd 0%, #00ffff 100%)' }}>
         <div className="max-w-7xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-4 leading-tight">
             Leverage the Top 1% of Best-in-Class CPG Industry Experts
@@ -18,9 +18,9 @@ export default function ValueProp() {
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
 
       <div className="max-w-7xl mx-auto relative">
-        <div className="flex flex-col lg:flex-row items-end gap-8">
+        <div className="flex flex-col items-center gap-8 lg:flex-row lg:items-end">
           {/* Left - Content */}
-          <div className="relative flex-1">
+          <div className="relative flex-1 text-center lg:text-left">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 leading-tight">
               Big consulting is too big to evolve. <br/>Consumer brands can't afford to wait.
             </h2>
@@ -48,7 +48,7 @@ export default function ValueProp() {
           <img 
             src="/Image.png" 
             alt="Magnafic Banner" 
-            className="w-auto h-[480px] object-contain ml-auto"
+            className="mx-auto h-auto max-h-[300px] w-full max-w-sm object-contain lg:ml-auto lg:h-[480px] lg:max-h-none lg:w-auto lg:max-w-none"
           />
           
           

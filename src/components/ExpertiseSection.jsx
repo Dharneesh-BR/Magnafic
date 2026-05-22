@@ -6,7 +6,7 @@ export default function ExpertiseSection() {
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Grid - Floating Images */}
-          <div className="relative min-h-[500px] flex items-center justify-center">
+          <div className="relative flex min-h-[360px] items-center justify-center sm:min-h-[440px] lg:min-h-[500px]">
             <style>{`
               @keyframes float {
                 0%, 100% { transform: translateY(0px); }
@@ -26,12 +26,12 @@ export default function ExpertiseSection() {
             
             {/* Profile 1 - Top Left */}
             <div className="absolute top-[10%] left-[10%] float-1">
-              <img src="/Profile Images/1.png" alt="Profile 1" className="w-24 h-24 rounded-full object-cover shadow-lg" />
+              <img src="/Profile Images/1.png" alt="Profile 1" className="h-16 w-16 rounded-full object-cover shadow-lg sm:h-24 sm:w-24" />
             </div>
 
             {/* Profile 2 - Top Right with stars */}
             <div className="absolute top-[5%] right-[15%] float-2">
-              <img src="/Profile Images/2.png" alt="Profile 2" className="w-20 h-20 rounded-full object-cover shadow-lg" />
+              <img src="/Profile Images/2.png" alt="Profile 2" className="h-14 w-14 rounded-full object-cover shadow-lg sm:h-20 sm:w-20" />
               <div className="flex justify-center mt-2">
                 {[...Array(5)].map((_, i) => (
                   <svg key={i} className="w-3 h-3 text-yellow-400 fill-current" viewBox="0 0 24 24">
@@ -43,13 +43,13 @@ export default function ExpertiseSection() {
 
             {/* Profile 3 - Middle Left */}
             <div className="absolute top-[40%] left-[5%] float-3">
-              <img src="/Profile Images/3.png" alt="Profile 3" className="w-28 h-28 rounded-full object-cover shadow-lg" />
+              <img src="/Profile Images/3.png" alt="Profile 3" className="h-20 w-20 rounded-full object-cover shadow-lg sm:h-28 sm:w-28" />
             </div>
 
             {/* Profile 4 - Middle Right with speech bubble and stars */}
             <div className="absolute top-[35%] right-[10%] float-4">
-              <img src="/Profile Images/4.png" alt="Profile 4" className="w-24 h-24 rounded-full object-cover shadow-lg" />
-              <div className="bg-white p-3 rounded-lg shadow-md mt-2 ml-8 w-32">
+              <img src="/Profile Images/4.png" alt="Profile 4" className="h-16 w-16 rounded-full object-cover shadow-lg sm:h-24 sm:w-24" />
+              <div className="ml-4 mt-2 w-24 rounded-lg bg-white p-2 shadow-md sm:ml-8 sm:w-32 sm:p-3">
                 <div className="h-2 bg-gray-300 rounded mb-2"></div>
                 <div className="h-2 bg-gray-300 rounded w-3/4"></div>
               </div>
@@ -64,8 +64,8 @@ export default function ExpertiseSection() {
 
             {/* Profile 5 - Bottom Left with speech bubble */}
             <div className="absolute bottom-[15%] left-[15%] float-5">
-              <img src="/Profile Images/5.png" alt="Profile 5" className="w-24 h-24 rounded-full object-cover shadow-lg" />
-              <div className="bg-white p-3 rounded-lg shadow-md mt-2 w-36">
+              <img src="/Profile Images/5.png" alt="Profile 5" className="h-16 w-16 rounded-full object-cover shadow-lg sm:h-24 sm:w-24" />
+              <div className="mt-2 w-24 rounded-lg bg-white p-2 shadow-md sm:w-36 sm:p-3">
                 <div className="h-2 bg-gray-300 rounded mb-2"></div>
                 <div className="h-2 bg-gray-300 rounded mb-2"></div>
                 <div className="h-2 bg-gray-300 rounded w-2/3"></div>
@@ -74,8 +74,8 @@ export default function ExpertiseSection() {
 
             {/* Profile 6 - Bottom Right with speech bubble */}
             <div className="absolute bottom-[10%] right-[20%] float-6">
-              <img src="/Profile Images/6.png" alt="Profile 6" className="w-20 h-20 rounded-full object-cover shadow-lg" />
-              <div className="bg-white p-3 rounded-lg shadow-md mt-2 ml-4 w-28">
+              <img src="/Profile Images/6.png" alt="Profile 6" className="h-14 w-14 rounded-full object-cover shadow-lg sm:h-20 sm:w-20" />
+              <div className="ml-2 mt-2 w-20 rounded-lg bg-white p-2 shadow-md sm:ml-4 sm:w-28 sm:p-3">
                 <div className="h-2 bg-gray-300 rounded mb-2"></div>
                 <div className="h-2 bg-gray-300 rounded w-1/2"></div>
               </div>
@@ -97,8 +97,8 @@ export default function ExpertiseSection() {
               Expertise that works inside the business, not outside it
             </h3>
 
-            <div className="grid md:grid-cols-3 gap-0">
-              <div className="flex flex-col items-center text-center pr-6 border-r border-gray-400">
+            <div className="grid gap-6 md:grid-cols-3 md:gap-0">
+              <div className="flex flex-col items-center text-center md:border-r md:border-gray-400 md:pr-6">
                 <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-glow-cyan mb-4">
                   <Award className="h-6 w-6 text-white" />
                 </div>
@@ -106,7 +106,7 @@ export default function ExpertiseSection() {
                 <p className="text-gray-700 font-medium">Average years of experience</p>
               </div>
 
-              <div className="flex flex-col items-center text-center px-6 border-r border-gray-400">
+              <div className="flex flex-col items-center text-center md:border-r md:border-gray-400 md:px-6">
                 <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-glow-cyan mb-4">
                   <Users className="h-6 w-6 text-white" />
                 </div>
@@ -114,7 +114,7 @@ export default function ExpertiseSection() {
                 <p className="text-gray-700 font-medium">Leaders who've scaled brands & built systems</p>
               </div>
 
-              <div className="flex flex-col items-center text-center pl-6">
+              <div className="flex flex-col items-center text-center md:pl-6">
                 <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-glow-cyan mb-4">
                   <Zap className="h-6 w-6 text-white" />
                 </div>

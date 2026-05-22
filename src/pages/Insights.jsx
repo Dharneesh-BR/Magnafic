@@ -74,7 +74,7 @@ export default function Insights() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="relative w-full h-[400px] md:h-[500px] overflow-hidden">
+      <div className="relative h-[320px] w-full overflow-hidden md:h-[500px]">
         <video
           autoPlay
           loop
@@ -88,7 +88,7 @@ export default function Insights() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60"></div>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center px-4">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">Insights</h1>
+            <h1 className="mb-4 text-4xl font-bold text-white md:text-6xl">Insights</h1>
             <p className="text-lg md:text-xl text-gray-200 max-w-2xl mx-auto">
               Clarity Drives Growth
             </p>
@@ -99,12 +99,12 @@ export default function Insights() {
       <div className="pt-12 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-center mb-12">
-            <div className="inline-flex bg-gray-100 rounded-full p-1 overflow-x-auto max-w-full">
+            <div className="inline-flex max-w-full overflow-x-auto rounded-full bg-gray-100 p-1">
               {tabs.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-6 py-2 rounded-full font-medium transition-colors whitespace-nowrap ${
+                  className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors sm:px-6 sm:text-base ${
                     activeTab === tab.id
                       ? 'bg-white text-primary-600 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
@@ -141,7 +141,7 @@ export default function Insights() {
                     )}
                   </div>
                   <div className="p-6">
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
+                    <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
                       <span className="flex items-center">
                         <Calendar className="h-4 w-4 mr-1" />
                         {formatDate(item.publishedAt)}

@@ -34,11 +34,11 @@ export default function About() {
   ]
 
   return (
-    <div className="pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+    <div className="px-4 pt-24 pb-16 sm:px-6 sm:pb-20 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">About Mind Magna</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <h1 className="mb-4 text-3xl font-bold text-gray-900 sm:text-4xl">About Mind Magna</h1>
+          <p className="mx-auto max-w-3xl text-lg text-gray-600 sm:text-xl">
             We are on a mission to democratize access to world-class expertise and drive digital transformation across industries.
           </p>
         </div>
@@ -55,11 +55,11 @@ export default function About() {
           ))}
         </div>
 
-        <div className="bg-gradient-to-r from-primary-600 to-purple-600 rounded-3xl p-12 mb-16">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-white text-center">
+        <div className="mb-16 rounded-3xl bg-gradient-to-r from-primary-600 to-purple-600 p-6 sm:p-12">
+          <div className="grid grid-cols-2 gap-6 text-center text-white md:grid-cols-4 md:gap-8">
             {stats.map((stat, index) => (
               <div key={index}>
-                <div className="text-4xl font-bold mb-2">{stat.number}</div>
+                <div className="mb-2 text-3xl font-bold sm:text-4xl">{stat.number}</div>
                 <div className="text-white/80">{stat.label}</div>
               </div>
             ))}
@@ -68,7 +68,7 @@ export default function About() {
 
         <div className="grid md:grid-cols-2 gap-12 mb-16">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Story</h2>
+            <h2 className="mb-6 text-2xl font-bold text-gray-900 sm:text-3xl">Our Story</h2>
             <p className="text-gray-600 mb-4">
               Founded in 2024, Mind Magna was born from a simple observation: businesses of all sizes struggle to find 
               the right expertise at the right time. Traditional consulting firms are expensive and inaccessible to many, 
@@ -84,7 +84,7 @@ export default function About() {
             </p>
           </div>
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">Leadership Team</h2>
+            <h2 className="mb-6 text-2xl font-bold text-gray-900 sm:text-3xl">Leadership Team</h2>
             <div className="space-y-4">
               {team.map((member, index) => (
                 <div key={index} className="flex items-center space-x-4 bg-gray-50 rounded-xl p-4">
@@ -101,8 +101,8 @@ export default function About() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">Why Choose Us?</h2>
+        <div className="rounded-2xl bg-white p-5 shadow-lg sm:p-8">
+          <h2 className="mb-6 text-center text-2xl font-bold text-gray-900 sm:text-3xl">Why Choose Us?</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               'Verified Experts',
