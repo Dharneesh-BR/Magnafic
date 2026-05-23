@@ -10,48 +10,39 @@ export default function Hero() {
       <div className="pointer-events-none absolute bottom-0 left-1/2 z-0 h-px w-[82%] -translate-x-1/2 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
       <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-8 lg:min-h-[calc(100vh-4rem)] lg:grid-cols-[1.04fr_.96fr] lg:gap-8">
-        <div className="max-w-xl">
+        <div className="mx-auto max-w-xl text-center lg:mx-0 lg:text-left">
           
 
-          <h1 className="max-w-2xl pb-3 pt-2 text-3xl font-extrabold leading-[1.08] tracking-normal text-white sm:text-5xl lg:text-[2.75rem]">
-            Top 1% Elite Experts for Scaling Consumer Brands
+          <h1 className="mx-auto max-w-2xl pb-4 pt-12 text-5xl font-extrabold leading-[1.08] tracking-normal text-white lg:mx-0 sm:pt-6 sm:text-5xl lg:text-[2.75rem]">
+            Top 1% <br className="sm:hidden" />
+            <span className="text-cyan">Elite Experts</span>  <br className="sm:hidden" />
+            for Scaling Consumer Brands
           </h1>
 
-          <p className="mt-3 max-w-2xl py-2 text-xl font-semibold leading-snug text-cyan sm:text-2xl">
-            Where Conscious Strategy Meets AI-Powered 10X Growth.
+          <p className="mx-auto mt-4 max-w-2xl py-3 text-3xl font-bold leading-snug text-cyan lg:mx-0 sm:text-3xl">
+            Where <br className="sm:hidden" />Conscious Strategy Meets <br/>AI-Powered <br className="sm:hidden" /><span className="text-cyan">10X Growth</span>.
           </p>
-
-          
-          
-            <p className="py-2 text-base font-semibold leading-7 text-slate-200 sm:text-lg">
-              Say goodbye to generic frameworks, big firm bureaucracy, and bloated pyramid staffing models packed with Junior Analysts.<br/>
-              Modern consumer brands need speed, flexibility, intelligence, and execution.
+            <p className="py-3 text-2xl font-semibold leading-7 text-slate-300 sm:text-lg">
+              Magnafic gives brands <br className="sm:hidden" />on-demand access to experienced <span className="text-cyan">Fractional CXOs</span> and <span className="text-cyan">CPG Consultants</span> tailored to their exact stage of growth.
             </p>
 
-            <p className="py-2 text-base font-semibold leading-7 text-slate-300 sm:text-lg">
-              Magnafic gives brands on-demand access to experienced <span className="text-cyan">CPG Leaders</span>, <span className="text-cyan">Fractional CXOs</span> & <span className="text-cyan">AI systems</span> tailored to their exact stage of growth.
-              
-            </p>
-
-            <p className="mt-3 max-w-2xl py-2 text-xl font-semibold leading-snug text-cyan sm:text-2xl">
+            <p className="mx-auto mt-4 max-w-2xl py-3 text-2xl font-semibold leading-snug text-cyan lg:mx-0 sm:text-2xl">
             Welcome to New Era of Consulting 4.0
           </p>
           
 
-          <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row">
+          <div className="mt-6 flex flex-col items-center gap-3 pb-8 sm:flex-row sm:justify-center sm:pb-0 lg:items-start lg:justify-start">
             <Link
               to="/experts"
-              className="group inline-flex w-auto items-center justify-center gap-2 rounded-full bg-gradient-primary px-4 py-2.5 text-sm font-bold text-white sm:px-5 sm:py-3 sm:text-base"
+              className="group inline-flex w-72 items-center justify-center gap-2 rounded-full bg-gradient-primary px-6 py-3 text-lg font-bold text-white sm:w-48 sm:px-8 sm:py-4 sm:text-lg"
             >
               Find Experts
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 sm:h-5 sm:w-5" />
             </Link>
             <Link
               to="/contact"
-              className="group inline-flex w-auto items-center justify-center gap-2 rounded-full bg-gradient-primary px-4 py-2.5 text-sm font-bold text-white sm:px-5 sm:py-3 sm:text-base"
+              className="group inline-flex w-72 items-center justify-center gap-2 rounded-full bg-gradient-primary px-6 py-3 text-lg font-bold text-white sm:w-48 sm:px-8 sm:py-4 sm:text-lg"
             >
               Let's Talk
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 sm:h-5 sm:w-5" />
             </Link>
           </div>
 

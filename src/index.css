@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@property --hero-border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
 @layer base {
   body {
     @apply bg-white text-gray-900;
@@ -16,8 +22,69 @@
 
 @layer components {
   .premium-hero {
+    --hero-border-angle: 0deg;
     background: #000047;
     border-radius: 1.5rem;
+  }
+
+  .premium-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    padding: 3px;
+    border-radius: inherit;
+    background: conic-gradient(
+      from var(--hero-border-angle),
+      #00ffff,
+      #3534cd,
+      #00ffff,
+      #3534cd,
+      #00ffff
+    );
+    filter: drop-shadow(0 0 16px rgba(0, 255, 255, 0.65)) drop-shadow(0 0 22px rgba(53, 52, 205, 0.58));
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    animation: hero-border-rotate 10s linear infinite;
+  }
+
+  .expertise-running-border {
+    --hero-border-angle: 0deg;
+  }
+
+  .expertise-running-border::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    padding: 1px;
+    border-radius: inherit;
+    background: conic-gradient(
+      from var(--hero-border-angle),
+      #00ffff,
+      #3534cd,
+      #00ffff,
+      #3534cd,
+      #00ffff
+    );
+    filter: drop-shadow(0 0 16px rgba(0, 255, 255, 0.65)) drop-shadow(0 0 22px rgba(53, 52, 205, 0.58));
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    animation: hero-border-rotate 10s linear infinite;
   }
 
   .premium-hero::before {
@@ -29,7 +96,7 @@
     background:
       linear-gradient(90deg, rgba(255, 255, 255, 0.07), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.04)),
       radial-gradient(ellipse at center, transparent 42%, rgba(0, 0, 0, 0.38) 100%);
-    border-radius: 1.5rem;
+    border-radius: inherit;
   }
 
   .premium-hero__texture {
@@ -167,9 +234,23 @@
     }
   }
 
+  @keyframes hero-border-rotate {
+    to {
+      --hero-border-angle: 360deg;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .hero-floating-icon {
+    .hero-floating-icon,
+    .premium-hero::after,
+    .expertise-running-border::after {
       animation: none;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .expertise-running-border::after {
+      display: none;
     }
   }
 }

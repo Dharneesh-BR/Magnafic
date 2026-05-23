@@ -2,17 +2,7 @@
 export default function ValueProp() {
   return (
     <section className="pt-10 pb-0 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Gradient Strip */}
-      <div className="mb-10 mt-4 rounded-2xl px-4 py-8 sm:mb-12 sm:mt-8 sm:px-6 sm:py-12 lg:px-8" style={{ background: 'linear-gradient(135deg, #3533cd 0%, #00ffff 100%)' }}>
-        <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-4 leading-tight">
-            Leverage the Top 1% of Best-in-Class CPG Industry Experts
-          </h2>
-          <p className="text-lg sm:text-xl font-semibold text-white/90 leading-relaxed max-w-4xl mx-auto">
-            Magnafic is India's first, distributed consulting network of CPG industry experts bringing together elite consultants, fractional executives, operators, and technology specialists to solve high-impact growth challenges for consumer brands.
-          </p>
-        </div>
-      </div>
+      
       {/* Decorative background elements */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />

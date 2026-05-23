@@ -3,6 +3,17 @@ import { Award, Users, Zap } from 'lucide-react'
 export default function ExpertiseSection() {
   return (
     <section className="py-20 px-4 sm:px-6 lg:px-8">
+      {/* Gradient Strip */}
+      <div className="mb-10 mt-4 rounded-2xl px-4 py-8 sm:mb-12 sm:mt-8 sm:px-6 sm:py-12 lg:px-8" style={{ background: 'linear-gradient(135deg, #3533cd 0%, #00ffff 100%)' }}>
+        <div className="max-w-7xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-3xl font-extrabold text-white mb-8 sm:mb-6 leading-tight">
+            Leverage the Top 1% of Best-in-Class CPG Industry Experts
+          </h2>
+          <p className="text-2xl sm:text-xl font-bold text-white/80 leading-relaxed max-w-4xl mb-6 mx-auto">
+            Magnafic is India's first, distributed consulting network for bringing together elite consultants, fractional executives, and technology specialists.
+          </p>
+        </div>
+      </div>
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Grid - Floating Images */}
@@ -25,12 +36,12 @@ export default function ExpertiseSection() {
             `}</style>
             
             {/* Profile 1 - Top Left */}
-            <div className="absolute top-[10%] left-[10%] float-1">
+            <div className="absolute top-[8%] left-[5%] float-1">
               <img src="/Profile Images/1.png" alt="Profile 1" className="h-16 w-16 rounded-full object-cover shadow-lg sm:h-24 sm:w-24" />
             </div>
 
             {/* Profile 2 - Top Right with stars */}
-            <div className="absolute top-[5%] right-[15%] float-2">
+            <div className="absolute top-[8%] right-[5%] float-2">
               <img src="/Profile Images/2.png" alt="Profile 2" className="h-14 w-14 rounded-full object-cover shadow-lg sm:h-20 sm:w-20" />
               <div className="flex justify-center mt-2">
                 {[...Array(5)].map((_, i) => (
@@ -42,12 +53,12 @@ export default function ExpertiseSection() {
             </div>
 
             {/* Profile 3 - Middle Left */}
-            <div className="absolute top-[40%] left-[5%] float-3">
+            <div className="absolute top-[25%] left-[3%] float-3">
               <img src="/Profile Images/3.png" alt="Profile 3" className="h-20 w-20 rounded-full object-cover shadow-lg sm:h-28 sm:w-28" />
             </div>
 
             {/* Profile 4 - Middle Right with speech bubble and stars */}
-            <div className="absolute top-[35%] right-[10%] float-4">
+            <div className="absolute top-[25%] right-[3%] float-4">
               <img src="/Profile Images/4.png" alt="Profile 4" className="h-16 w-16 rounded-full object-cover shadow-lg sm:h-24 sm:w-24" />
               <div className="ml-4 mt-2 w-24 rounded-lg bg-white p-2 shadow-md sm:ml-8 sm:w-32 sm:p-3">
                 <div className="h-2 bg-gray-300 rounded mb-2"></div>
@@ -62,18 +73,20 @@ export default function ExpertiseSection() {
               </div>
             </div>
 
-            {/* Profile 5 - Bottom Left with speech bubble */}
-            <div className="absolute bottom-[15%] left-[15%] float-5">
-              <img src="/Profile Images/5.png" alt="Profile 5" className="h-16 w-16 rounded-full object-cover shadow-lg sm:h-24 sm:w-24" />
-              <div className="mt-2 w-24 rounded-lg bg-white p-2 shadow-md sm:w-36 sm:p-3">
-                <div className="h-2 bg-gray-300 rounded mb-2"></div>
-                <div className="h-2 bg-gray-300 rounded mb-2"></div>
-                <div className="h-2 bg-gray-300 rounded w-2/3"></div>
+            {/* Profile 5 - Center with speech bubble */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+              <div className="float-5">
+                <img src="/Profile Images/5.png" alt="Profile 5" className="h-16 w-16 rounded-full object-cover shadow-lg sm:h-24 sm:w-24" />
+                <div className="mt-2 w-24 rounded-lg bg-white p-2 shadow-md sm:w-36 sm:p-3">
+                  <div className="h-2 bg-gray-300 rounded mb-2"></div>
+                  <div className="h-2 bg-gray-300 rounded mb-2"></div>
+                  <div className="h-2 bg-gray-300 rounded w-2/3"></div>
+                </div>
               </div>
             </div>
 
             {/* Profile 6 - Bottom Right with speech bubble */}
-            <div className="absolute bottom-[10%] right-[20%] float-6">
+            <div className="absolute bottom-[8%] right-[8%] float-6">
               <img src="/Profile Images/6.png" alt="Profile 6" className="h-14 w-14 rounded-full object-cover shadow-lg sm:h-20 sm:w-20" />
               <div className="ml-2 mt-2 w-20 rounded-lg bg-white p-2 shadow-md sm:ml-4 sm:w-28 sm:p-3">
                 <div className="h-2 bg-gray-300 rounded mb-2"></div>
@@ -83,43 +96,45 @@ export default function ExpertiseSection() {
           </div>
           
           {/* Right Grid - Content */}
-          <div>
-            <div className="mb-2">
-              <h2 className="text-2xl text-center sm:text-3xl font-extrabold text-gray-900 mb-6">
+          <div className="expertise-running-border relative overflow-hidden rounded-2xl border border-primary-100/80 bg-white px-5 py-7 shadow-xl shadow-primary-900/10 ring-1 ring-cyan/20 sm:px-7 sm:py-8 lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:ring-0">
+            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan to-transparent lg:hidden" />
+            <div className="pointer-events-none absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-transparent via-primary-300 to-transparent lg:hidden" />
+
+            <div className="mb-5 text-center lg:mb-2">
+              
+              <h2 className="mt-6 mb-5 text-3xl font-extrabold leading-tight text-gray-950 sm:mt-0 sm:text-3xl lg:mb-6">
                 Modern business challenges require modern expertise
               </h2>
-              <p className="text-xl text-center text-gray-700 font-medium leading-relaxed">
-                Traditional consulting firms rely on layered teams and generalized frameworks. Magnafic is building a flexible ecosystem of experienced operators, strategic thinkers, and AI-enabled specialists designed for modern consumer businesses.
+              <p className="mx-auto my-8 max-w-2xl text-xl font-semibold leading-7 text-gray-700 sm:text-xl lg:text-2xl">
+                Why hire large consulting teams when you can access focused expertise and AI-enabled execution built around your needs?
               </p>
             </div>
 
-            <h3 className="text-2xl font-extrabold text-gray-900 mb-8 text-center">
-              Expertise that works inside the business, not outside it
-            </h3>
+            
 
-            <div className="grid gap-6 md:grid-cols-3 md:gap-0">
-              <div className="flex flex-col items-center text-center md:border-r md:border-gray-400 md:pr-6">
-                <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-glow-cyan mb-4">
+            <div className="grid gap-4 md:grid-cols-3 md:gap-0 lg:gap-0">
+              <div className="flex flex-col items-center rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-cyan-50/40 p-5 text-center shadow-lg shadow-primary-900/5 md:rounded-none md:border-y-0 md:border-l-0 md:border-r md:border-gray-400 md:bg-transparent md:p-0 md:pr-6 md:shadow-none">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary shadow-glow-cyan">
                   <Award className="h-6 w-6 text-white" />
                 </div>
-                <div className="text-3xl font-extrabold text-primary mb-2">20+</div>
-                <p className="text-gray-700 font-medium">Average years of experience</p>
+                <div className="mb-2 text-3xl font-extrabold text-primary">20+</div>
+                <p className="font-semibold leading-6 text-gray-700">Average years of experience</p>
               </div>
 
-              <div className="flex flex-col items-center text-center md:border-r md:border-gray-400 md:px-6">
-                <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-glow-cyan mb-4">
+              <div className="flex flex-col items-center rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-primary-50/50 p-5 text-center shadow-lg shadow-primary-900/5 md:rounded-none md:border-y-0 md:border-l-0 md:border-r md:border-gray-400 md:bg-transparent md:p-0 md:px-6 md:shadow-none">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary shadow-glow-cyan">
                   <Users className="h-6 w-6 text-white" />
                 </div>
-                <div className="text-2xl font-extrabold text-primary mb-2">Real Operators</div>
-                <p className="text-gray-700 font-medium">Leaders who've scaled brands & built systems</p>
+                <div className="mb-2 text-2xl font-extrabold text-primary">Real Operators</div>
+                <p className="font-semibold leading-6 text-gray-700">Leaders who've scaled brands & built systems</p>
               </div>
 
-              <div className="flex flex-col items-center text-center md:pl-6">
-                <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-glow-cyan mb-4">
+              <div className="flex flex-col items-center rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-cyan-50/40 p-5 text-center shadow-lg shadow-primary-900/5 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:pl-6 md:shadow-none">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary shadow-glow-cyan">
                   <Zap className="h-6 w-6 text-white" />
                 </div>
-                <div className="text-2xl font-extrabold text-primary mb-2">Agile Approach</div>
-                <p className="text-gray-700 font-medium">Access experts, teams, & partnerships</p>
+                <div className="mb-2 text-2xl font-extrabold text-primary">Agile Approach</div>
+                <p className="font-semibold leading-6 text-gray-700">Access experts, teams, & partnerships</p>
               </div>
             </div>
           </div>

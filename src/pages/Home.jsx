@@ -12,10 +12,10 @@ export default function Home() {
   return (
     <div className="pt-16">
       <Hero />
-      <ValueProp />
+      <ExpertiseSection />
       <MagnaFramework />
       <AboutMagna />
-      <ExpertiseSection />
+      <ValueProp />
       
       
     </div>

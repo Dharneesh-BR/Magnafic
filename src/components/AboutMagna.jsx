@@ -1,4 +1,4 @@
-import { Target, Zap, Rocket } from 'lucide-react'
+import { CheckCircle2, Rocket, Target, Zap } from 'lucide-react'
 import { useState } from 'react'
 
 const features = [
@@ -18,7 +18,7 @@ const features = [
     icon: Zap,
     number: '02',
     title: 'Built for modern business, not outdated consulting models',
-    description: "Today's businesses need adaptable systems, measurable execution, and real-world implementation — not generic frameworks and endless presentations. Mind Magna works closely with leadership teams to design and execute scalable growth solutions aligned to business realities.",
+    description: "Today's businesses need adaptable systems, measurable execution, and real-world implementation, not generic frameworks and endless presentations. Mind Magna works closely with leadership teams to design and execute scalable growth solutions aligned to business realities.",
     details: [
       'Adaptive Systems',
       'Measurable Execution',
@@ -44,60 +44,69 @@ export default function AboutMagna() {
   const [hoveredIndex, setHoveredIndex] = useState(null)
 
   return (
-    <section className="pt-8 pb-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid gap-8 md:grid-cols-2 md:gap-12 items-start">
-          <div className="md:sticky md:top-8">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6">
+    <section className="relative overflow-hidden px-4 pb-16 pt-10 sm:px-6 sm:pb-20 lg:px-8">
+      <div className="pointer-events-none absolute inset-x-0 top-4 mx-auto h-36 w-36 rounded-full bg-cyan/15 blur-3xl sm:h-56 sm:w-56" />
+      <div className="relative mx-auto max-w-7xl">
+        <div className="grid gap-6 md:grid-cols-2 md:gap-12 items-start">
+          <div className="rounded-lg border border-primary-100 bg-white/90 p-5 text-center shadow-lg shadow-primary-900/5 sm:p-7 md:sticky md:top-8 md:border-0 md:bg-transparent md:p-0 md:text-left md:shadow-none">
+            <span className="mb-4 inline-flex items-center rounded-full border border-cyan/35 bg-cyan/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-primary-700 md:hidden">
+              About Magna
+            </span>
+            <h2 className="mb-4 text-2xl font-extrabold leading-tight text-gray-950 sm:text-3xl md:mb-6">
               A modern consulting ecosystem for scaling consumer brands
             </h2>
-            <p className="text-lg text-gray-700 leading-relaxed">
+            <p className="hidden mx-auto max-w-xl text-base font-semibold leading-7 text-gray-700 sm:block sm:text-lg md:mx-0">
               Magnafic helps consumer brands solve complex business challenges through a conscious growth framework powered by experienced industry leaders, AI-enabled systems, and execution-focused expertise.
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {features.map((feature, index) => {
               const Icon = feature.icon
               const isHovered = hoveredIndex === index
               return (
                 <div
                   key={index}
-                  className="bg-gradient-primary rounded-2xl p-4 sm:p-5 border-2 border-gray-200 hover:border-primary hover:shadow-glow-combined transition-all duration-300 cursor-pointer"
+                  className="group rounded-lg border border-white/50 bg-gradient-primary p-[1px] shadow-lg shadow-primary-900/10 transition-all duration-300 hover:shadow-glow-combined sm:rounded-2xl"
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
+                  onClick={() => setHoveredIndex(hoveredIndex === index ? null : index)}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-glow-cyan flex-shrink-0 sm:h-11 sm:w-11">
-                      <Icon className="h-5 w-5 text-[#000047] sm:h-5 sm:w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-bold text-white uppercase tracking-wider mb-2">
-                        {feature.number}
+                  <div className="rounded-[15px] bg-white/12 p-5 backdrop-blur-sm">
+                    <div className="flex flex-col items-center">
+                      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-white shadow-glow-cyan mb-4">
+                        <Icon className="h-5 w-5 text-[#000047]" />
                       </div>
-                      <h3 className="text-lg font-bold text-white mb-2">
-                        {feature.title}
-                      </h3>
+                      <div className="text-center">
+                        <div className="mb-2 flex items-baseline justify-center gap-2">
+                          <span className="text-xs font-extrabold uppercase tracking-[0.18em] text-white/75">
+                            {feature.number}
+                          </span>
+                          <h3 className="text-xl font-extrabold leading-snug text-white">
+                            {feature.title}
+                          </h3>
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  <div
-                    className={`mt-4 overflow-hidden transition-all duration-300 ${
-                      isHovered ? 'md:max-h-96 md:opacity-100' : 'md:max-h-0 md:opacity-0'
-                    }`}
-                  >
-                    <p className="text-white leading-relaxed text-sm mb-4">
-                      {feature.description}
-                    </p>
-                    <div className="pt-4 border-t border-gray-100">
-                      <ul className="space-y-2">
-                        {feature.details.map((detail, idx) => (
-                          <li key={idx} className="flex items-center gap-2 text-sm text-white">
-                            <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                            {detail}
-                          </li>
-                        ))}
-                      </ul>
+                    <div
+                      className={`mt-4 overflow-hidden transition-all duration-300 ${
+                        isHovered ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                      }`}
+                    >
+                      <p className="mb-4 text-base font-medium leading-6 text-white/90 sm:text-base">
+                        {feature.description}
+                      </p>
+                      <div className="border-t border-white/20 pt-4">
+                        <ul className="flex flex-wrap gap-2">
+                          {feature.details.map((detail, idx) => (
+                            <li key={idx} className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/12 px-3 py-1.5 text-sm font-bold text-white sm:text-sm">
+                              <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-cyan" />
+                              {detail}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
