@@ -13,9 +13,10 @@ export default function Home() {
     <div className="pt-16">
       <Hero />
       <ExpertiseSection />
-      <MagnaFramework />
       <AboutMagna />
       <ValueProp />
+      <MagnaFramework />
+      
       
       
     </div>

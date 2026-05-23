@@ -34,9 +34,9 @@ export default function Testimonials() {
 
         <div className="grid md:grid-cols-3 gap-8">
           {testimonials.map((testimonial, index) => (
-            <div 
+            <div
               key={index}
-              className="bg-gray-50 p-8 rounded-2xl hover:shadow-xl transition-shadow"
+              className="bg-gray-50 p-8 rounded-2xl shadow-[0_0_20px_rgba(0,255,255,0.2)] hover:shadow-[0_0_30px_rgba(0,255,255,0.3)] transition-shadow"
             >
               <div className="flex items-center space-x-1 mb-4">
                 {[...Array(5)].map((_, i) => (

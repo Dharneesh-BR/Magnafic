@@ -48,9 +48,9 @@ export default function Features() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <div 
+            <div
               key={index}
-              className="group p-8 rounded-2xl bg-gray-50 hover:bg-primary/5 transition-all duration-300 hover:shadow-glow-blue border border-transparent hover:border-primary/20"
+              className="group p-8 rounded-2xl bg-gray-50 hover:bg-primary/5 transition-all duration-300 shadow-[0_0_20px_rgba(53,51,205,0.15)] hover:shadow-glow-blue border border-transparent hover:border-primary/20"
             >
               <div className="w-14 h-14 bg-gradient-primary rounded-xl flex items-center justify-center mb-6 shadow-glow-cyan group-hover:scale-110 transition-transform">
                 <feature.icon className="h-7 w-7 text-white" />

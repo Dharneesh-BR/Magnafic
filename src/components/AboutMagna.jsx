@@ -6,7 +6,7 @@ const features = [
     icon: Target,
     number: '01',
     title: 'Solve growth challenges with the right expertise',
-    description: 'Access seasoned CPG professionals, operators, strategists, and growth specialists who understand the realities of scaling brands across sales, distribution, GTM, retail, operations, and transformation.',
+    description: 'Access seasoned CPG professionals, operators, strategists, and growth specialists who understand the realities of scaling brands across sales, distribution, GTM, D2C, E-commerce, retail, operations, and transformation.',
     details: [
       'CPG Industry Experts',
       'Growth Operators',
@@ -18,7 +18,7 @@ const features = [
     icon: Zap,
     number: '02',
     title: 'Built for modern business, not outdated consulting models',
-    description: "Today's businesses need adaptable systems, measurable execution, and real-world implementation, not generic frameworks and endless presentations. Mind Magna works closely with leadership teams to design and execute scalable growth solutions aligned to business realities.",
+    description: "Today's businesses need adaptable systems, measurable execution, and real-world implementation, not generic frameworks and endless presentations. We work closely with leadership teams to design and execute scalable growth solutions aligned to business realities.",
     details: [
       'Adaptive Systems',
       'Measurable Execution',
@@ -29,10 +29,9 @@ const features = [
   {
     icon: Rocket,
     number: '03',
-    title: 'Move faster with flexible, high-impact capabilities',
-    description: 'Business transformation cannot wait for long consulting cycles. Mind Magna provides agile access to specialized expertise, AI-powered solutions, and execution frameworks that accelerate decision-making and business outcomes.',
+    title: 'Move faster with AI-powered, flexible, high-impact capabilities',
+    description: 'Business transformation cannot wait for long consulting cycles. We provide AI-powered solutions and execution frameworks that accelerate decision-making and business outcomes.',
     details: [
-      'Agile Expertise Access',
       'AI-powered Solutions',
       'Execution Frameworks',
       'Accelerated Outcomes'
@@ -44,18 +43,16 @@ export default function AboutMagna() {
   const [hoveredIndex, setHoveredIndex] = useState(null)
 
   return (
-    <section className="relative overflow-hidden px-4 pb-16 pt-10 sm:px-6 sm:pb-20 lg:px-8">
+    <section className="relative overflow-hidden bg-[#000047] px-4 pb-16 pt-10 sm:px-6 sm:pb-20 lg:px-8">
       <div className="pointer-events-none absolute inset-x-0 top-4 mx-auto h-36 w-36 rounded-full bg-cyan/15 blur-3xl sm:h-56 sm:w-56" />
       <div className="relative mx-auto max-w-7xl">
-        <div className="grid gap-6 md:grid-cols-2 md:gap-12 items-start">
-          <div className="rounded-lg border border-primary-100 bg-white/90 p-5 text-center shadow-lg shadow-primary-900/5 sm:p-7 md:sticky md:top-8 md:border-0 md:bg-transparent md:p-0 md:text-left md:shadow-none">
-            <span className="mb-4 inline-flex items-center rounded-full border border-cyan/35 bg-cyan/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-primary-700 md:hidden">
-              About Magna
-            </span>
-            <h2 className="mb-4 text-2xl font-extrabold leading-tight text-gray-950 sm:text-3xl md:mb-6">
-              A modern consulting ecosystem for scaling consumer brands
+        <div className="rounded-lg border-0 p-5 shadow-lg shadow-primary-900/5 sm:p-7 md:border-0 md:bg-transparent md:p-0 md:grid md:gap-6 md:grid-cols-2 md:gap-12 md:items-start">
+          <div className="text-center md:sticky md:top-8 md:text-left">
+            
+            <h2 className="mb-4 pt-4 pb-4 text-3xl font-extrabold leading-tight text-white sm:text-3xl md:mb-6 md:pt-0 md:pb-0">
+              Fractional consulting ecosystem for scaling consumer brands
             </h2>
-            <p className="hidden mx-auto max-w-xl text-base font-semibold leading-7 text-gray-700 sm:block sm:text-lg md:mx-0">
+            <p className="hidden mx-auto max-w-xl text-base font-semibold leading-7 text-white/90 sm:block sm:text-lg md:mx-0">
               Magnafic helps consumer brands solve complex business challenges through a conscious growth framework powered by experienced industry leaders, AI-enabled systems, and execution-focused expertise.
             </p>
           </div>
@@ -67,7 +64,7 @@ export default function AboutMagna() {
               return (
                 <div
                   key={index}
-                  className="group rounded-lg border border-white/50 bg-gradient-primary p-[1px] shadow-lg shadow-primary-900/10 transition-all duration-300 hover:shadow-glow-combined sm:rounded-2xl"
+                  className="group rounded-lg border border-white/50 bg-gradient-primary p-[1px] shadow-lg shadow-primary-900/10 shadow-[0_0_30px_rgba(0,255,255,0.6)] transition-all duration-300 hover:shadow-glow-combined hover:shadow-[0_0_40px_rgba(0,255,255,0.8)] sm:rounded-2xl"
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
                   onClick={() => setHoveredIndex(hoveredIndex === index ? null : index)}
@@ -78,14 +75,9 @@ export default function AboutMagna() {
                         <Icon className="h-5 w-5 text-[#000047]" />
                       </div>
                       <div className="text-center">
-                        <div className="mb-2 flex items-baseline justify-center gap-2">
-                          <span className="text-xs font-extrabold uppercase tracking-[0.18em] text-white/75">
-                            {feature.number}
-                          </span>
-                          <h3 className="text-xl font-extrabold leading-snug text-white">
-                            {feature.title}
-                          </h3>
-                        </div>
+                        <h3 className="mb-2 text-xl font-extrabold leading-snug text-white">
+                          {feature.title}
+                        </h3>
                       </div>
                     </div>
 
@@ -94,13 +86,13 @@ export default function AboutMagna() {
                         isHovered ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                       }`}
                     >
-                      <p className="mb-4 text-base font-medium leading-6 text-white/90 sm:text-base">
+                      <p className="mb-4 text-center text-base font-medium leading-6 text-white/90 sm:text-base sm:text-left">
                         {feature.description}
                       </p>
                       <div className="border-t border-white/20 pt-4">
-                        <ul className="flex flex-wrap gap-2">
+                        <ul className="flex flex-wrap justify-left gap-2 sm:justify-start">
                           {feature.details.map((detail, idx) => (
-                            <li key={idx} className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/12 px-3 py-1.5 text-sm font-bold text-white sm:text-sm">
+                            <li key={idx} className="inline-flex items-start gap-1.5 rounded-full border border-white/20 bg-white/12 px-3 py-1.5 text-sm font-bold text-white sm:text-sm">
                               <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-cyan" />
                               {detail}
                             </li>

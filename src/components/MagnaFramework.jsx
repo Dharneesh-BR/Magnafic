@@ -149,7 +149,7 @@ export default function MagnaFramework() {
                   onClick={() => setExpandedIndex(isExpanded ? null : index)}
                 >
                   <motion.div
-                    className={`grid grid-cols-[56px_1fr] items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-4 shadow-[0_10px_30px_rgba(0,0,0,0.18)] backdrop-blur-sm md:grid-cols-[128px_1fr] md:gap-8 md:px-5 md:py-5`}
+                    className={`grid grid-cols-[56px_1fr] items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-4 shadow-[0_10px_30px_rgba(0,0,0,0.18)] shadow-[0_0_20px_rgba(0,255,255,0.25)] backdrop-blur-sm md:grid-cols-[128px_1fr] md:gap-8 md:px-5 md:py-5`}
                     whileHover={{ x: 6 }}
                   >
                     <div className="flex justify-center md:justify-center shrink-0">

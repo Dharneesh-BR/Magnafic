@@ -102,7 +102,7 @@ export default function ExpertiseSection() {
 
             <div className="mb-5 text-center lg:mb-2">
               
-              <h2 className="mt-6 mb-5 text-3xl font-extrabold leading-tight text-gray-950 sm:mt-0 sm:text-3xl lg:mb-6">
+              <h2 className="mt-6 mb-5 text-3xl font-extrabold leading-tight text-blue-900 sm:mt-0 sm:text-3xl lg:mb-6">
                 Modern business challenges require modern expertise
               </h2>
               <p className="mx-auto my-8 max-w-2xl text-xl font-semibold leading-7 text-gray-700 sm:text-xl lg:text-2xl">
@@ -113,7 +113,7 @@ export default function ExpertiseSection() {
             
 
             <div className="grid gap-4 md:grid-cols-3 md:gap-0 lg:gap-0">
-              <div className="flex flex-col items-center rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-cyan-50/40 p-5 text-center shadow-lg shadow-primary-900/5 md:rounded-none md:border-y-0 md:border-l-0 md:border-r md:border-gray-400 md:bg-transparent md:p-0 md:pr-6 md:shadow-none">
+              <div className="flex flex-col items-center rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-cyan-50/40 p-5 text-center shadow-lg shadow-primary-900/5 shadow-[0_0_20px_rgba(0,255,255,0.3)] md:rounded-none md:border-y-0 md:border-l-0 md:border-r md:border-gray-400 md:bg-transparent md:p-0 md:pr-6 md:shadow-none md:shadow-[0_0_0px_rgba(0,0,0,0)]">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary shadow-glow-cyan">
                   <Award className="h-6 w-6 text-white" />
                 </div>
@@ -121,7 +121,7 @@ export default function ExpertiseSection() {
                 <p className="font-semibold leading-6 text-gray-700">Average years of experience</p>
               </div>
 
-              <div className="flex flex-col items-center rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-primary-50/50 p-5 text-center shadow-lg shadow-primary-900/5 md:rounded-none md:border-y-0 md:border-l-0 md:border-r md:border-gray-400 md:bg-transparent md:p-0 md:px-6 md:shadow-none">
+              <div className="flex flex-col items-center rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-primary-50/50 p-5 text-center shadow-lg shadow-primary-900/5 shadow-[0_0_20px_rgba(0,255,255,0.3)] md:rounded-none md:border-y-0 md:border-l-0 md:border-r md:border-gray-400 md:bg-transparent md:p-0 md:px-6 md:shadow-none md:shadow-[0_0_0px_rgba(0,0,0,0)]">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary shadow-glow-cyan">
                   <Users className="h-6 w-6 text-white" />
                 </div>
@@ -129,7 +129,7 @@ export default function ExpertiseSection() {
                 <p className="font-semibold leading-6 text-gray-700">Leaders who've scaled brands & built systems</p>
               </div>
 
-              <div className="flex flex-col items-center rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-cyan-50/40 p-5 text-center shadow-lg shadow-primary-900/5 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:pl-6 md:shadow-none">
+              <div className="flex flex-col items-center rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-cyan-50/40 p-5 text-center shadow-lg shadow-primary-900/5 shadow-[0_0_20px_rgba(0,255,255,0.3)] md:rounded-none md:border-0 md:bg-transparent md:p-0 md:pl-6 md:shadow-none md:shadow-[0_0_0px_rgba(0,0,0,0)]">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary shadow-glow-cyan">
                   <Zap className="h-6 w-6 text-white" />
                 </div>
