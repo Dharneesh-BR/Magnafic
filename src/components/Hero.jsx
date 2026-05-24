@@ -13,7 +13,7 @@ export default function Hero() {
         <div className="mx-auto max-w-xl text-center lg:mx-0 lg:text-left">
           
 
-          <h1 className="mx-auto max-w-2xl pb-4 pt-12 text-5xl font-extrabold leading-[1.08] tracking-normal text-white lg:mx-0 sm:pt-6 sm:text-5xl lg:text-[2.75rem]">
+          <h1 className="mx-auto max-w-2xl pb-4 pt-12 text-4xl font-extrabold leading-[1.08] tracking-normal text-white lg:mx-0 sm:pt-6 sm:text-5xl lg:text-[2.75rem]">
             Top 1% <br className="sm:hidden" />
             <span className="text-cyan">Elite Experts</span>  <br className="sm:hidden" />
             for Scaling Consumer Brands
