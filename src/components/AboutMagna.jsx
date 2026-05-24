@@ -1,4 +1,4 @@
-import { CheckCircle2, Rocket, Target, Zap } from 'lucide-react'
+import { CheckCircle2, ChevronDown, Rocket, Target, Zap } from 'lucide-react'
 import { useState } from 'react'
 
 const features = [
@@ -79,6 +79,7 @@ export default function AboutMagna() {
                           {feature.title}
                         </h3>
                       </div>
+                      <ChevronDown className={`mt-3 h-5 w-5 text-gray-800 transition-transform duration-300 ${isHovered ? 'rotate-180' : ''}`} />
                     </div>
 
                     <div
