@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Menu, X } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Menu, X, ChevronDown } from 'lucide-react'
 import { clearAuthUser, getAuthUser } from '../lib/auth'
+import { mentorClient } from '../lib/sanityClient'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isCapabilitiesOpen, setIsCapabilitiesOpen] = useState(false)
   const [authUser, setAuthUserState] = useState(() => getAuthUser())
+  const [capabilities, setCapabilities] = useState([])
+  const navigate = useNavigate()
 
   useEffect(() => {
     const syncAuth = () => setAuthUserState(getAuthUser())
@@ -19,10 +23,47 @@ export default function Header() {
     }
   }, [])
 
+  useEffect(() => {
+    const fetchCapabilities = async () => {
+      try {
+        const query = `*[_type == "capabilities"] | order(title asc) {
+          _id,
+          "slug": slug.current,
+          title,
+          subtitle
+        }`
+        const data = await mentorClient.fetch(query)
+        setCapabilities(data || [])
+      } catch (error) {
+        console.error('Error fetching capabilities:', error)
+      }
+    }
+
+    fetchCapabilities()
+  }, [])
+
   const handleLogout = () => {
     clearAuthUser()
     setIsMenuOpen(false)
   }
+
+  const handleCapabilitySelect = (slug) => {
+    navigate(`/capabilities/${slug}`)
+    setIsCapabilitiesOpen(false)
+    setIsMenuOpen(false)
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isCapabilitiesOpen && !event.target.closest('.capabilities-dropdown')) {
+        setIsCapabilitiesOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isCapabilitiesOpen])
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white z-50 border-b border-gray-200 shadow-sm">
@@ -33,6 +74,37 @@ export default function Header() {
           </Link>
           
           <div className="hidden md:flex items-center space-x-6">
+            <div className="relative capabilities-dropdown">
+              <button
+                onClick={() => setIsCapabilitiesOpen(!isCapabilitiesOpen)}
+                className="flex items-center space-x-1 text-gray-900 hover:text-primary transition-colors font-medium"
+              >
+                <span>Capabilities</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isCapabilitiesOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isCapabilitiesOpen && (
+                <div className="absolute left-0 mt-2 w-64 rounded-2xl bg-white shadow-xl shadow-gray-200/50 ring-1 ring-gray-100 overflow-hidden z-50">
+                  <div className="max-h-96 overflow-y-auto py-2">
+                    {capabilities.map((capability) => (
+                      <button
+                        key={capability._id}
+                        onClick={() => handleCapabilitySelect(capability.slug || capability._id)}
+                        className="w-full px-4 py-3 text-left hover:bg-primary-50 transition-colors"
+                      >
+                        <div className="font-medium text-gray-950">{capability.title}</div>
+                        {capability.subtitle && (
+                          <div className="text-sm text-gray-600 mt-1">{capability.subtitle}</div>
+                        )}
+                      </button>
+                    ))}
+                    {capabilities.length === 0 && (
+                      <div className="px-4 py-3 text-gray-500">No capabilities available</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <Link to="/experts" className="text-gray-900 hover:text-primary transition-colors font-medium">Experts</Link>
             <Link to="/insights" className="text-gray-900 hover:text-primary transition-colors font-medium">Insights</Link>
             <Link to="/about" className="text-gray-900 hover:text-primary transition-colors font-medium">About</Link>
@@ -62,6 +134,35 @@ export default function Header() {
 
         {isMenuOpen && (
           <div className="space-y-3 border-t border-gray-100 bg-white py-4 md:hidden">
+            <div>
+              <button
+                onClick={() => setIsCapabilitiesOpen(!isCapabilitiesOpen)}
+                className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium"
+              >
+                <span>Capabilities</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isCapabilitiesOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isCapabilitiesOpen && (
+                <div className="mt-2 ml-4 space-y-1">
+                  {capabilities.map((capability) => (
+                    <button
+                      key={capability._id}
+                      onClick={() => handleCapabilitySelect(capability.slug || capability._id)}
+                      className="block w-full rounded-lg px-3 py-2 text-left text-sm text-gray-700 hover:bg-primary-50 hover:text-primary"
+                    >
+                      <div className="font-medium">{capability.title}</div>
+                      {capability.subtitle && (
+                        <div className="text-xs text-gray-500 mt-0.5">{capability.subtitle}</div>
+                      )}
+                    </button>
+                  ))}
+                  {capabilities.length === 0 && (
+                    <div className="px-3 py-2 text-sm text-gray-500">No capabilities available</div>
+                  )}
+                </div>
+              )}
+            </div>
             <Link onClick={() => setIsMenuOpen(false)} to="/experts" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Experts</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/insights" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Insights</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/about" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">About</Link>

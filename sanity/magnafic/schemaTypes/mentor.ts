@@ -129,6 +129,12 @@ export const mentorSchema = defineType({
       title: 'City',
       type: 'string',
     }),
+    defineField({
+      name: 'capability',
+      title: 'Capability',
+      type: 'reference',
+      to: [{ type: 'capabilities' }],
+    }),
   ],
   orderings: [
     {
