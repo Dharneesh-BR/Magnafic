@@ -133,12 +133,12 @@ export default function CapabilityDetail() {
             _id,
             "slug": slug.current,
             fullName,
-            profileImage,
+            "imageUrl": profileImage.asset->url,
             designation,
-            company,
             shortBio,
             rating,
-            yearsOfExperience
+            yearsOfExperience,
+            city
           }`
           const mentorsData = await mentorClient.fetch(mentorsQuery, { capabilityId: data._id })
           setMentors(mentorsData || [])
@@ -217,6 +217,119 @@ export default function CapabilityDetail() {
         </section>
       ) : null}
 
+      {/* Services Section */}
+      {services.length > 0 ? (
+        <section className="px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-8 text-center">
+              <h2 className="text-2xl font-bold text-gray-950 sm:text-3xl">Services</h2>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-5">
+              {services.map((service) => (
+                <Link
+                  key={service._id}
+                  to={`/services/${service.slug || service._id}`}
+                  className="group relative flex min-h-36 w-full overflow-hidden rounded-3xl bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/10 sm:w-[calc(50%_-_0.625rem)] lg:w-[calc(33.333333%_-_0.875rem)]"
+                >
+                  <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400"></div>
+                  <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-cyan-100 opacity-60 transition group-hover:scale-110 group-hover:opacity-80"></div>
+
+                  <div className="relative flex w-full items-start justify-between gap-4">
+                    <div>
+                      <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#000047] text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600">
+                        <Layers className="h-6 w-6" />
+                      </span>
+                      <h3 className="text-xl font-bold leading-tight text-gray-950 transition group-hover:text-primary-600">{service.title}</h3>
+                    </div>
+
+                    <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600 transition group-hover:bg-primary-600 group-hover:text-white">
+                      <ArrowRight className="h-5 w-5 transition group-hover:translate-x-0.5" />
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* Mentors Section */}
+      {mentors.length > 0 && (
+        <section className="px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-8 flex items-center gap-3">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
+                <User className="h-6 w-6" />
+              </span>
+              <h2 className="text-2xl font-bold text-center text-gray-950 sm:text-3xl">Connect with Mentors</h2>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {mentors.map((mentor) => (
+                <Link
+                  key={mentor._id}
+                  to={`/experts/${mentor.slug || mentor._id}`}
+                  className="group relative flex h-full flex-col overflow-hidden rounded-3xl bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/10"
+                >
+                  <div className="relative h-36 overflow-visible bg-gradient-to-br from-primary-900 via-primary-700 to-cyan-500 sm:h-40">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.22),transparent_30%)]"></div>
+                    <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,255,255,0.18),transparent_45%,rgba(255,255,255,0.16))]"></div>
+                    <img
+                      src="/favicon.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="absolute right-4 top-4 h-14 w-14 p-1.5"
+                    />
+                    {mentor.imageUrl ? (
+                      <img
+                        src={mentor.imageUrl}
+                        alt={mentor.fullName}
+                        className="absolute left-1/2 bottom-6 h-36 w-36 -translate-x-1/2 translate-y-1/2 rounded-full border-4 border-white bg-white object-cover shadow-xl shadow-primary-900/20 transition duration-300 group-hover:scale-105 sm:h-40 sm:w-40"
+                      />
+                    ) : (
+                      <div className="absolute left-1/2 bottom-6 flex h-36 w-36 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-primary-100 shadow-xl shadow-primary-900/20 sm:h-40 sm:w-40">
+                        <User className="h-16 w-16 text-primary-600" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-1 flex-col p-5 pt-16 pb-7 text-center sm:p-6 sm:pt-20 sm:pb-8">
+                    <h3 className="text-xl font-bold text-gray-950 sm:text-2xl">{mentor.fullName}</h3>
+                    {mentor.designation && (
+                      <p className="mt-1 font-semibold text-primary-600">{mentor.designation}</p>
+                    )}
+                    {mentor.shortBio && (
+                      <p className="mt-4 line-clamp-3 text-sm leading-6 text-gray-600">{mentor.shortBio}</p>
+                    )}
+
+                    <div className="mt-auto flex items-center justify-center gap-4 pt-4 text-sm text-gray-600">
+                      {mentor.rating && (
+                        <div className="flex items-center gap-1">
+                          <span className="font-semibold text-primary-600">{mentor.rating}</span>
+                          <span className="text-gray-500">★</span>
+                        </div>
+                      )}
+                      {mentor.yearsOfExperience && (
+                        <span>{mentor.yearsOfExperience} years exp.</span>
+                      )}
+                      {mentor.city && (
+                        <span>{mentor.city}</span>
+                      )}
+                    </div>
+                    <span className="mx-auto mt-5 inline-flex items-center justify-center rounded-full bg-[#000047] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600 group-hover:shadow-primary-600/30">
+                      View Profile
+                      <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-0.5" />
+                    </span>
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400"></div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Use Cases Section */}
       {capability.useCases || (capability.useCasesList && capability.useCasesList.length > 0) ? (
         <section className="bg-[#000047] px-4 py-12 sm:px-6 lg:px-8">
@@ -271,110 +384,6 @@ export default function CapabilityDetail() {
           </div>
         </section>
       ) : null}
-
-      {/* Services Section */}
-      {services.length > 0 ? (
-        <section className="px-4 py-12 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <div className="mb-8 text-center">
-              <h2 className="text-2xl font-bold text-gray-950 sm:text-3xl">Services</h2>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-5">
-              {services.map((service) => (
-                <Link
-                  key={service._id}
-                  to={`/services/${service.slug || service._id}`}
-                  className="group relative flex min-h-36 w-full overflow-hidden rounded-3xl bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/10 sm:w-[calc(50%_-_0.625rem)] lg:w-[calc(33.333333%_-_0.875rem)]"
-                >
-                  <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400"></div>
-                  <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-cyan-100 opacity-60 transition group-hover:scale-110 group-hover:opacity-80"></div>
-
-                  <div className="relative flex w-full items-start justify-between gap-4">
-                    <div>
-                      <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#000047] text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600">
-                        <Layers className="h-6 w-6" />
-                      </span>
-                      <h3 className="text-xl font-bold leading-tight text-gray-950 transition group-hover:text-primary-600">{service.title}</h3>
-                    </div>
-
-                    <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600 transition group-hover:bg-primary-600 group-hover:text-white">
-                      <ArrowRight className="h-5 w-5 transition group-hover:translate-x-0.5" />
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {/* Mentors Section */}
-      {mentors.length > 0 && (
-        <section className="px-4 py-12 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <div className="mb-8 flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
-                <User className="h-6 w-6" />
-              </span>
-              <h2 className="text-2xl font-bold text-center text-gray-950 sm:text-3xl">Connect with Mentors</h2>
-            </div>
-
-            <div className="grid gap-6 grid-cols-3">
-              {mentors.map((mentor) => (
-                <Link
-                  key={mentor._id}
-                  to={`/experts/${mentor.slug || mentor._id}`}
-                  className="group flex h-full flex-col overflow-hidden rounded-3xl bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/10"
-                >
-                  <div className="relative flex h-32 items-center justify-center overflow-hidden bg-gradient-to-br from-primary-900 via-primary-700 to-cyan-500">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.22),transparent_30%)]"></div>
-                    {mentor.profileImage ? (
-                      <img
-                        src={mentor.profileImage}
-                        alt={mentor.fullName}
-                        className="relative h-24 w-24 rounded-full border-4 border-white object-cover"
-                      />
-                    ) : (
-                      <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-white/20 backdrop-blur">
-                        <User className="h-12 w-12 text-white" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-1 flex-col p-5 sm:p-6">
-                    <h3 className="text-xl font-bold text-gray-950 sm:text-2xl">{mentor.fullName}</h3>
-                    {mentor.designation && (
-                      <p className="mt-1 font-semibold text-primary-600">{mentor.designation}</p>
-                    )}
-                    {mentor.company && (
-                      <p className="mt-1 text-sm text-gray-600">{mentor.company}</p>
-                    )}
-
-                    {mentor.shortBio && (
-                      <p className="mt-4 line-clamp-3 text-sm leading-6 text-gray-600">
-                        {mentor.shortBio}
-                      </p>
-                    )}
-
-                    <div className="mt-auto flex items-center gap-4 pt-4 text-sm text-gray-600">
-                      {mentor.rating && (
-                        <div className="flex items-center gap-1">
-                          <span className="font-semibold text-primary-600">{mentor.rating}</span>
-                          <span className="text-gray-500">★</span>
-                        </div>
-                      )}
-                      {mentor.yearsOfExperience && (
-                        <span>{mentor.yearsOfExperience} years exp.</span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
     </div>
   )
 }

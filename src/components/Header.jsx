@@ -90,12 +90,9 @@ export default function Header() {
                       <button
                         key={capability._id}
                         onClick={() => handleCapabilitySelect(capability.slug || capability._id)}
-                        className="w-full px-4 py-3 text-left hover:bg-primary-50 transition-colors"
+                        className="w-full border-b border-gray-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-primary-50"
                       >
                         <div className="font-medium text-gray-950">{capability.title}</div>
-                        {capability.subtitle && (
-                          <div className="text-sm text-gray-600 mt-1">{capability.subtitle}</div>
-                        )}
                       </button>
                     ))}
                     {capabilities.length === 0 && (
@@ -148,12 +145,9 @@ export default function Header() {
                     <button
                       key={capability._id}
                       onClick={() => handleCapabilitySelect(capability.slug || capability._id)}
-                      className="block w-full rounded-lg px-3 py-2 text-left text-sm text-gray-700 hover:bg-primary-50 hover:text-primary"
+                      className="block w-full border-b border-gray-100 px-3 py-2 text-left text-sm text-gray-700 transition-colors last:border-b-0 hover:bg-primary-50 hover:text-primary"
                     >
                       <div className="font-medium">{capability.title}</div>
-                      {capability.subtitle && (
-                        <div className="text-xs text-gray-500 mt-0.5">{capability.subtitle}</div>
-                      )}
                     </button>
                   ))}
                   {capabilities.length === 0 && (
