@@ -47,7 +47,7 @@ export default function About() {
     <div className="px-2 pt-24 pb-16 sm:px-6 sm:pb-20 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16 pt-8">
-          <h1 className="mb-4 text-3xl font-bold text-gray-900 sm:text-4xl">Redefining how CPG leaders overcome their most important challenges with smarter, modern solutions.</h1>
+          <h1 className="mb-4 text-4xl font-bold text-[#000047] sm:text-4xl">Redefining how <br className="sm:hidden" />CPG leaders overcome their most important challenges with smarter, modern solutions.</h1>
           
         </div>
 
@@ -66,7 +66,7 @@ export default function About() {
                   <value.icon className="h-7 w-7 text-primary-700" />
                 </div>
 
-                <div className="relative mb-3 text-lg font-extrabold uppercase tracking-[0.18em] text-cyan-100">
+                <div className="relative mb-3 text-lg font-extrabold uppercase text-cyan-100">
                   {value.eyebrow}
                 </div>
                 <h3 className="relative mb-3 text-2xl font-extrabold text-white">{value.title}</h3>
@@ -85,7 +85,7 @@ export default function About() {
             <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
           </div>
           <div className="relative">
-            <div className="mb-4 text-2xl font-extrabold uppercase text-center tracking-[0.18em] text-cyan-100">
+            <div className="mb-4 text-2xl font-extrabold uppercase text-center text-cyan-100">
               What Makes Us Different
             </div>
             <h2 className="mb-10 text-2xl text-center font-bold text-white sm:text-3xl">
@@ -111,7 +111,7 @@ export default function About() {
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
           </div>
           <div className="relative">
-            <div className="mb-4 text-5xl font-extrabold text-center text-primary-600">
+            <div className="mb-4 text-3xl font-extrabold text-center text-primary-600">
               What's in a Name
             </div>
             <h2 className="mb-8 text-2xl text-center font-bold text-gray-900 sm:text-3xl">
