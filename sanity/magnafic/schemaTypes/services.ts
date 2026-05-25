@@ -35,8 +35,7 @@ export const servicesSchema = defineType({
     defineField({
       name: 'approach',
       title: 'Approach',
-      type: 'array',
-      of: [{ type: 'string' }],
+      type: 'text',
     }),
     defineField({
       name: 'capability',

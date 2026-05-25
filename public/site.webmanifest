@@ -9,7 +9,7 @@
   "icons": [
     {
       "src": "/Magnafic.png",
-      "sizes": "192x192",
+      "sizes": "320x75",
       "type": "image/png",
       "purpose": "any"
     }

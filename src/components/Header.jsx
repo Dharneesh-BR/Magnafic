@@ -70,7 +70,7 @@ export default function Header() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
-            <img src="/Magnafic.png" alt="Mind Magna Logo" className="h-8 w-auto brightness-125 sm:h-9" />
+            <img src="/Magnafic.png" alt="Mind Magna Logo" className="h-6 w-auto brightness-125 sm:h-7" />
           </Link>
           
           <div className="hidden md:flex items-center space-x-6">
@@ -79,7 +79,7 @@ export default function Header() {
                 onClick={() => setIsCapabilitiesOpen(!isCapabilitiesOpen)}
                 className="flex items-center space-x-1 text-gray-900 hover:text-primary transition-colors font-medium"
               >
-                <span>Capabilities</span>
+                <span>Expert Services</span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isCapabilitiesOpen ? 'rotate-180' : ''}`} />
               </button>
 
@@ -99,13 +99,12 @@ export default function Header() {
                       </button>
                     ))}
                     {capabilities.length === 0 && (
-                      <div className="px-4 py-3 text-gray-500">No capabilities available</div>
+                      <div className="px-4 py-3 text-gray-500">No Expert services available</div>
                     )}
                   </div>
                 </div>
               )}
             </div>
-            <Link to="/experts" className="text-gray-900 hover:text-primary transition-colors font-medium">Experts</Link>
             <Link to="/insights" className="text-gray-900 hover:text-primary transition-colors font-medium">Insights</Link>
             <Link to="/about" className="text-gray-900 hover:text-primary transition-colors font-medium">About</Link>
             {authUser ? (
@@ -139,7 +138,7 @@ export default function Header() {
                 onClick={() => setIsCapabilitiesOpen(!isCapabilitiesOpen)}
                 className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium"
               >
-                <span>Capabilities</span>
+                <span>Expert Services</span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isCapabilitiesOpen ? 'rotate-180' : ''}`} />
               </button>
 
@@ -158,12 +157,11 @@ export default function Header() {
                     </button>
                   ))}
                   {capabilities.length === 0 && (
-                    <div className="px-3 py-2 text-sm text-gray-500">No capabilities available</div>
+                    <div className="px-3 py-2 text-sm text-gray-500">No Expert services available</div>
                   )}
                 </div>
               )}
             </div>
-            <Link onClick={() => setIsMenuOpen(false)} to="/experts" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Experts</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/insights" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Insights</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/about" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">About</Link>
             {authUser ? (

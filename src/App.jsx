@@ -15,6 +15,7 @@ import ClientSignup from './pages/ClientSignup'
 import Academy from './pages/Academy'
 import Contact from './pages/Contact'
 import CapabilityDetail from './pages/CapabilityDetail'
+import ServiceDetail from './pages/ServiceDetail'
 import SEO from './components/SEO'
 import ClientDashboard from './pages/ClientDashboard'
 import ConsultantDashboard from './pages/ConsultantDashboard'
@@ -56,6 +57,7 @@ function App() {
             <Route path="/academy" element={<Academy />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/capabilities/:id" element={<CapabilityDetail />} />
+            <Route path="/services/:id" element={<ServiceDetail />} />
           </Routes>
         </main>
         <Footer />

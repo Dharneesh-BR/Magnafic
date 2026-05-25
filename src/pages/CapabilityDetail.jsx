@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Sparkles, CheckCircle2, Lightbulb, User } from 'lucide-react'
+import { ArrowRight, ChevronDown, Lightbulb, Layers, Sparkles, User } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
 import { absoluteUrl } from '../lib/seo'
@@ -87,6 +87,7 @@ export default function CapabilityDetail() {
   const { id } = useParams()
   const [capability, setCapability] = useState(null)
   const [mentors, setMentors] = useState([])
+  const [services, setServices] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [openUseCase, setOpenUseCase] = useState(null)
@@ -115,6 +116,19 @@ export default function CapabilityDetail() {
 
         // Fetch mentors tagged to this capability
         if (data?._id) {
+          const servicesQuery = `*[_type == "services" && capability._ref == $capabilityId] | order(title asc) {
+            _id,
+            "slug": slug.current,
+            title,
+            description,
+            capability->{
+              title,
+              "slug": slug.current
+            }
+          }`
+          const servicesData = await mentorClient.fetch(servicesQuery, { capabilityId: data._id })
+          setServices(servicesData || [])
+
           const mentorsQuery = `*[_type == "mentor" && capability._ref == $capabilityId] {
             _id,
             "slug": slug.current,
@@ -224,25 +238,73 @@ export default function CapabilityDetail() {
             {capability.useCasesList && capability.useCasesList.length > 0 && (
               <div className="flex flex-wrap justify-center gap-6">
                 {capability.useCasesList.map((useCase, index) => (
-                  <div key={index} className="w-full rounded-3xl bg-white shadow-xl transition hover:-translate-y-1 hover:shadow-2xl sm:w-[calc(50%_-_0.75rem)] lg:w-[calc(33.333333%_-_1rem)]">
+                  <div key={index} className="group relative w-full overflow-hidden rounded-3xl bg-white shadow-xl shadow-primary-950/10 ring-1 ring-white/20 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/10 sm:w-[calc(50%_-_0.75rem)] lg:w-[calc(33.333333%_-_1rem)]">
+                    <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-cyan-300 via-white to-primary-400"></div>
+                    <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-cyan-100/80 transition duration-300 group-hover:scale-110"></div>
+                    <div className="absolute bottom-0 left-0 h-20 w-20 rounded-tr-full bg-primary-50"></div>
+
                     <button
                       onClick={() => setOpenUseCase(openUseCase === index ? null : index)}
-                      className="flex w-full items-center justify-between p-6 text-left transition hover:bg-gray-50"
+                      className="relative flex min-h-32 w-full items-start justify-between gap-4 p-6 text-left"
                     >
-                      <h3 className="text-lg font-bold text-gray-950">{useCase.title}</h3>
-                      <span className={`text-gray-950 transition-transform duration-300 ${openUseCase === index ? 'rotate-180' : ''}`}>
-                        ▼
+                      <div>
+                        <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#000047] text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600">
+                          <Sparkles className="h-5 w-5" />
+                        </span>
+                        <h3 className="text-xl font-bold leading-tight text-gray-950 transition group-hover:text-primary-600">{useCase.title}</h3>
+                      </div>
+                      <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600 transition group-hover:bg-primary-600 group-hover:text-white">
+                        <ChevronDown className={`h-5 w-5 transition-transform duration-300 ${openUseCase === index ? 'rotate-180' : ''}`} />
                       </span>
                     </button>
                     {openUseCase === index && useCase.description && (
-                      <div className="px-6 pb-6">
-                        <p className="text-gray-700">{useCase.description}</p>
+                      <div className="relative px-6 pb-6">
+                        <div className="border-t border-gray-100 pt-5">
+                          <p className="text-base leading-7 text-gray-700">{useCase.description}</p>
+                        </div>
                       </div>
                     )}
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Services Section */}
+      {services.length > 0 ? (
+        <section className="px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-8 text-center">
+              <h2 className="text-2xl font-bold text-gray-950 sm:text-3xl">Services</h2>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-5">
+              {services.map((service) => (
+                <Link
+                  key={service._id}
+                  to={`/services/${service.slug || service._id}`}
+                  className="group relative flex min-h-36 w-full overflow-hidden rounded-3xl bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/10 sm:w-[calc(50%_-_0.625rem)] lg:w-[calc(33.333333%_-_0.875rem)]"
+                >
+                  <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400"></div>
+                  <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-cyan-100 opacity-60 transition group-hover:scale-110 group-hover:opacity-80"></div>
+
+                  <div className="relative flex w-full items-start justify-between gap-4">
+                    <div>
+                      <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#000047] text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600">
+                        <Layers className="h-6 w-6" />
+                      </span>
+                      <h3 className="text-xl font-bold leading-tight text-gray-950 transition group-hover:text-primary-600">{service.title}</h3>
+                    </div>
+
+                    <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600 transition group-hover:bg-primary-600 group-hover:text-white">
+                      <ArrowRight className="h-5 w-5 transition group-hover:translate-x-0.5" />
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
       ) : null}
