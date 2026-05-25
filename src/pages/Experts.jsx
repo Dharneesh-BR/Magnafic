@@ -86,20 +86,6 @@ export default function Experts() {
                 Connect with verified experts across strategy, growth, technology, operations, and consumer brand transformation.
               </p>
             </div>
-
-            <div className="rounded-3xl border border-white/15 bg-white/10 p-5 shadow-2xl shadow-primary-950/20 backdrop-blur">
-              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-cyan-100">Directory</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
-                  <p className="text-3xl font-bold">{experts.length}</p>
-                  <p className="text-sm text-gray-300">Experts</p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
-                  <p className="text-3xl font-bold">{filteredExperts.length}</p>
-                  <p className="text-sm text-gray-300">Matches</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>

@@ -19,10 +19,10 @@ export default function Hero() {
             for Scaling Consumer Brands
           </h1>
 
-          <p className="mx-auto mt-4 max-w-2xl py-3 text-3xl font-bold leading-snug text-cyan lg:mx-0 sm:text-3xl">
-            Where <br className="sm:hidden" />Conscious Strategy Meets <br/>AI-Powered <br className="sm:hidden" /><span className="text-cyan">10X Growth</span>.
+          <p className="mx-auto mt-4 max-w-2xl py-3 text-2xl font-bold leading-snug text-cyan lg:mx-0 sm:text-3xl">
+            Where <br className="sm:hidden" />Conscious Strategy <br/>meets AI-Powered <br className="sm:hidden" /><span className="text-cyan">10X Growth</span>.
           </p>
-            <p className="py-3 text-2xl font-semibold leading-7 text-slate-300 sm:text-lg">
+            <p className="py-3 text-2xl font-bold leading-7 text-slate-300 sm:text-lg">
               Magnafic gives brands <br className="sm:hidden" />on-demand access to experienced <span className="text-cyan">Fractional CXOs</span> and <span className="text-cyan">CPG Consultants</span> tailored to their exact stage of growth.
             </p>
 
