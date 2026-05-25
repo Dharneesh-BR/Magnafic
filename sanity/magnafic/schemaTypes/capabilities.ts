@@ -41,7 +41,41 @@ export const capabilitiesSchema = defineType({
       name: 'useCasesList',
       title: 'Use Cases List',
       type: 'array',
-      of: [{ type: 'string' }],
+      of: [
+        {
+          type: 'object',
+          fields: [
+            defineField({
+              name: 'title',
+              title: 'Title',
+              type: 'string',
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'description',
+              title: 'Description',
+              type: 'text',
+            }),
+          ],
+          preview: {
+            select: {
+              title: 'title',
+              description: 'description',
+            },
+          },
+        },
+      ],
+      validation: (Rule) =>
+        Rule.custom((items) => {
+          if (!items) return true
+          const invalidItems = items.filter(
+            (item) => !item || typeof item !== 'object' || Array.isArray(item) || !(item as any).title
+          )
+          if (invalidItems.length > 0) {
+            return 'All items must be objects with a title field'
+          }
+          return true
+        }),
     }),
   ],
   preview: {

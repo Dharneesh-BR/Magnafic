@@ -7,7 +7,7 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div>
             <div className="mb-4">
-              <img src="/Magnafic.png" alt="Magnafic" className="h-12 w-auto" />
+              <img src="/Magnafic.png" alt="Magnafic" className="h-8 w-auto sm:h-9" />
             </div>
             <p className="text-gray-600">
               Top 1% Elite Experts for Consumer Brands

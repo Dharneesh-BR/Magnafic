@@ -17,7 +17,10 @@ export default function Capabilities() {
           subtitle,
           aboutCapabilities,
           useCases,
-          useCasesList
+          useCasesList[]{
+            title,
+            description
+          }
         }`
 
         const data = await mentorClient.fetch(query)
@@ -95,7 +98,7 @@ export default function Capabilities() {
                         {capability.useCasesList.slice(0, 3).map((useCase, index) => (
                           <div key={index} className="flex items-start gap-2 text-sm text-gray-600">
                             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary-500" />
-                            <span className="line-clamp-1">{useCase}</span>
+                            <span className="line-clamp-1">{useCase.title}</span>
                           </div>
                         ))}
                       </div>

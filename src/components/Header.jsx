@@ -70,7 +70,7 @@ export default function Header() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
-            <img src="/Magnafic.png" alt="Mind Magna Logo" className="h-10 w-auto brightness-125" />
+            <img src="/Magnafic.png" alt="Mind Magna Logo" className="h-8 w-auto brightness-125 sm:h-9" />
           </Link>
           
           <div className="hidden md:flex items-center space-x-6">
@@ -123,7 +123,7 @@ export default function Header() {
           </div>
 
           <button
-            className="rounded-lg p-2 text-gray-900 transition hover:bg-gray-100 md:hidden"
+            className="rounded-xl border border-[#000047] bg-[#000047] p-2 text-white shadow-sm transition hover:border-primary-700 hover:bg-primary-700 md:hidden"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isMenuOpen}
@@ -134,7 +134,7 @@ export default function Header() {
 
         {isMenuOpen && (
           <div className="space-y-3 border-t border-gray-100 bg-white py-4 md:hidden">
-            <div>
+            <div className="capabilities-dropdown">
               <button
                 onClick={() => setIsCapabilitiesOpen(!isCapabilitiesOpen)}
                 className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium"

@@ -54,7 +54,7 @@ function renderBio(blocks = []) {
       const ListTag = listType
 
       rendered.push(
-        <ListTag key={block._key} className={`mb-8 ml-6 space-y-3 text-lg leading-8 text-gray-700 marker:font-bold marker:text-primary-600 ${listType === 'ol' ? 'list-decimal' : 'list-disc'}`}>
+        <ListTag key={block._key} className={`mb-8 ml-6 space-y-3 text-lg leading-8 text-white marker:font-bold marker:text-cyan-200 ${listType === 'ol' ? 'list-decimal' : 'list-disc'}`}>
           {items.map(item => <li key={item._key}>{renderBlockText(item)}</li>)}
         </ListTag>
       )
@@ -63,20 +63,20 @@ function renderBio(blocks = []) {
 
     switch (block.style) {
       case 'h2':
-        rendered.push(<h2 key={block._key} className="mt-10 mb-4 text-3xl font-bold leading-tight text-gray-950">{renderBlockText(block)}</h2>)
+        rendered.push(<h2 key={block._key} className="mt-10 mb-4 text-3xl font-bold leading-tight text-white">{renderBlockText(block)}</h2>)
         break
       case 'h3':
-        rendered.push(<h3 key={block._key} className="mt-8 mb-3 text-2xl font-semibold leading-tight text-gray-950">{renderBlockText(block)}</h3>)
+        rendered.push(<h3 key={block._key} className="mt-8 mb-3 text-2xl font-semibold leading-tight text-white">{renderBlockText(block)}</h3>)
         break
       case 'blockquote':
         rendered.push(
-          <blockquote key={block._key} className="my-8 rounded-r-[2rem] border-l-4 border-cyan-400 bg-primary-50/80 px-7 py-6 text-xl font-semibold italic leading-9 text-primary-900">
+          <blockquote key={block._key} className="my-8 rounded-r-[2rem] border-l-4 border-cyan-400 bg-white/20 px-7 py-6 text-xl font-semibold italic leading-9 text-white">
             {renderBlockText(block)}
           </blockquote>
         )
         break
       default:
-        rendered.push(<p key={block._key} className="mb-6 text-lg leading-9 text-gray-700">{renderBlockText(block)}</p>)
+        rendered.push(<p key={block._key} className="mb-6 text-lg leading-9 text-white">{renderBlockText(block)}</p>)
     }
   }
 
@@ -89,6 +89,7 @@ export default function CapabilityDetail() {
   const [mentors, setMentors] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [openUseCase, setOpenUseCase] = useState(null)
 
   useEffect(() => {
     const fetchCapability = async () => {
@@ -103,7 +104,10 @@ export default function CapabilityDetail() {
           subtitle,
           aboutCapabilities,
           useCases,
-          useCasesList
+          useCasesList[]{
+            title,
+            description
+          }
         }`
 
         const data = await mentorClient.fetch(query, { id })
@@ -173,17 +177,17 @@ export default function CapabilityDetail() {
       />
 
       {/* Hero Section with Banner Background */}
-      <section className="relative overflow-hidden px-4 pt-24 pb-20 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(/Banner.png)' }}>
+      <section className="relative mx-auto mb-8 max-w-7xl px-4 pt-24 sm:px-6 lg:px-8">
+        <div className="relative overflow-hidden rounded-3xl bg-cover bg-center shadow-2xl" style={{ backgroundImage: 'url(/Magna-globe.jpg)' }}>
           <div className="absolute inset-0 bg-primary-900/70"></div>
-        </div>
 
-        <div className="relative mx-auto max-w-7xl">
-          <div className="max-w-3xl">
-            <h1 className="text-3xl font-bold leading-tight text-white sm:text-4xl md:text-6xl">{capability.title}</h1>
-            {capability.subtitle && (
-              <p className="mt-4 text-lg text-cyan-100 sm:text-xl">{capability.subtitle}</p>
-            )}
+          <div className="relative px-8 py-32 sm:px-12 sm:py-40 md:px-16 md:py-48">
+            <div className="mx-auto max-w-4xl text-center">
+              <h1 className="text-4xl font-bold leading-tight text-white sm:text-4xl md:text-6xl">{capability.title}</h1>
+              {capability.subtitle && (
+                <p className="mt-4 text-xl text-cyan-100 sm:text-xl">{capability.subtitle}</p>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -192,53 +196,53 @@ export default function CapabilityDetail() {
       {capability.aboutCapabilities && capability.aboutCapabilities.length > 0 ? (
         <section className="px-4 py-12 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
-            <div className="rounded-3xl bg-white p-5 text-center shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
-              <div>{aboutContent}</div>
+            <div className="rounded-3xl bg-gradient-to-r from-primary-600 to-cyan-500 p-5 text-center shadow-xl sm:p-8">
+              <div className="text-white text-3xl font-bold">{aboutContent}</div>
             </div>
           </div>
         </section>
       ) : null}
 
-      {/* Use Cases Section with 3 Grids */}
+      {/* Use Cases Section */}
       {capability.useCases || (capability.useCasesList && capability.useCasesList.length > 0) ? (
-        <section className="sticky top-0 z-10 px-4 py-12 sm:px-6 lg:px-8 bg-[#f7f9ff]">
+        <section className="bg-[#000047] px-4 py-12 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-[40%_30%_30%]">
-              {/* First Grid: Use Cases Content */}
-              {capability.useCases && (
-                <div className="rounded-3xl bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
-                  <div className="mb-4 flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
-                      <Sparkles className="h-5 w-5" />
-                    </span>
-                    <h3 className="text-xl font-bold text-gray-950">Use Cases</h3>
-                  </div>
-                  <p className="text-lg leading-8 text-gray-700">{capability.useCases}</p>
-                </div>
-              )}
-
-              {/* Second Grid: Use Cases List (Part 1) */}
-              {capability.useCasesList && capability.useCasesList.length > 0 && (
-                <div className="flex max-h-[500px] flex-col gap-4 overflow-y-auto pr-2 scrollbar-hide">
-                  {capability.useCasesList.slice(0, Math.ceil(capability.useCasesList.length / 2)).map((useCase, index) => (
-                    <div key={index} className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
-                      <span className="text-gray-700">{useCase}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Third Grid: Use Cases List (Part 2) */}
-              {capability.useCasesList && capability.useCasesList.length > 0 && (
-                <div className="flex max-h-[500px] flex-col gap-4 overflow-y-auto pr-2 scrollbar-hide">
-                  {capability.useCasesList.slice(Math.ceil(capability.useCasesList.length / 2)).map((useCase, index) => (
-                    <div key={index} className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
-                      <span className="text-gray-700">{useCase}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+            {/* Section Heading */}
+            <div className="mb-8 flex items-center justify-center gap-3">
+              
+              <h2 className="text-2xl font-bold text-center text-white sm:text-3xl">Use Cases</h2>
             </div>
+
+            {/* Use Cases Description */}
+            {capability.useCases && (
+              <div className="mb-8 rounded-3xl bg-white/10 p-6 shadow-xl backdrop-blur-sm">
+                <p className="text-lg leading-8 text-white">{capability.useCases}</p>
+              </div>
+            )}
+
+            {/* Use Cases Cards Grid */}
+            {capability.useCasesList && capability.useCasesList.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-6">
+                {capability.useCasesList.map((useCase, index) => (
+                  <div key={index} className="w-full rounded-3xl bg-white shadow-xl transition hover:-translate-y-1 hover:shadow-2xl sm:w-[calc(50%_-_0.75rem)] lg:w-[calc(33.333333%_-_1rem)]">
+                    <button
+                      onClick={() => setOpenUseCase(openUseCase === index ? null : index)}
+                      className="flex w-full items-center justify-between p-6 text-left transition hover:bg-gray-50"
+                    >
+                      <h3 className="text-lg font-bold text-gray-950">{useCase.title}</h3>
+                      <span className={`text-gray-950 transition-transform duration-300 ${openUseCase === index ? 'rotate-180' : ''}`}>
+                        ▼
+                      </span>
+                    </button>
+                    {openUseCase === index && useCase.description && (
+                      <div className="px-6 pb-6">
+                        <p className="text-gray-700">{useCase.description}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       ) : null}
@@ -251,10 +255,10 @@ export default function CapabilityDetail() {
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
                 <User className="h-6 w-6" />
               </span>
-              <h2 className="text-2xl font-bold text-gray-950 sm:text-3xl">Connect with Mentors</h2>
+              <h2 className="text-2xl font-bold text-center text-gray-950 sm:text-3xl">Connect with Mentors</h2>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 grid-cols-3">
               {mentors.map((mentor) => (
                 <Link
                   key={mentor._id}
