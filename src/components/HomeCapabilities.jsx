@@ -51,24 +51,25 @@ export default function HomeCapabilities() {
           </h2>
         </div>
 
-        <div className="grid gap-7 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {capabilities.map((capability) => (
-            <article key={capability._id} className="group relative flex min-h-[11rem] flex-col overflow-hidden rounded-3xl bg-gradient-to-br from-magna-m via-blue-500 to-cyan-500 p-4 pb-6 text-white shadow-2xl shadow-primary-900/20 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/25 sm:min-h-[22rem] sm:p-8 sm:pb-10">
+            <Link
+              key={capability._id}
+              to={`/capabilities/${capability.slug || capability._id}`}
+              className="group relative flex min-h-[9rem] flex-col overflow-hidden rounded-2xl bg-gradient-to-br from-magna-m via-blue-500 to-cyan-500 p-4 text-white shadow-xl shadow-primary-900/15 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/20 sm:min-h-[14rem] sm:p-6"
+            >
               <div>
-                <h3 className="text-xl font-extrabold leading-tight sm:text-4xl">{capability.title}</h3>
+                <h3 className="text-lg font-extrabold leading-tight sm:text-2xl">{capability.title}</h3>
                 {capability.subtitle && (
-                  <p className="mt-3 line-clamp-2 text-sm font-medium leading-5 text-white sm:mt-5 sm:line-clamp-none sm:text-xl sm:leading-8">{capability.subtitle}</p>
+                  <p className="mt-2 line-clamp-2 text-sm font-medium leading-5 text-white sm:mt-3 sm:text-base sm:leading-6">{capability.subtitle}</p>
                 )}
               </div>
 
-              <Link
-                to={`/capabilities/${capability.slug || capability._id}`}
-                className="mt-auto inline-flex w-fit max-w-full items-center text-sm font-extrabold leading-tight text-white underline decoration-white decoration-2 underline-offset-4 transition group-hover:translate-x-1 sm:text-xl"
-              >
-                Explore {capability.title}
-                <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1 sm:h-5 sm:w-5" />
-              </Link>
-            </article>
+              <span className="mt-auto inline-flex w-fit max-w-full items-center text-sm font-extrabold leading-tight text-white underline decoration-white decoration-2 underline-offset-4 transition group-hover:translate-x-1 sm:text-base">
+                Explore 
+                <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" />
+              </span>
+            </Link>
           ))}
         </div>
       </div>

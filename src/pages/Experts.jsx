@@ -29,7 +29,17 @@ export default function Experts() {
           workshopCount,
           courseCount,
           city,
-          featured
+          featured,
+          capability->{
+            _id,
+            title,
+            "slug": slug.current
+          },
+          capabilities[]->{
+            _id,
+            title,
+            "slug": slug.current
+          }
         }`
 
         const data = await mentorClient.fetch(query)
@@ -57,8 +67,10 @@ export default function Experts() {
         expert.shortBio,
         expert.industry,
         expert.city,
+        expert.capability?.title,
         ...(expert.expertiseAreas || []),
-        ...(expert.skills || [])
+        ...(expert.skills || []),
+        ...(expert.capabilities || []).map(capability => capability.title)
       ]
         .filter(Boolean)
         .join(' ')
@@ -188,6 +200,29 @@ export default function Experts() {
                             {area}
                           </span>
                         ))}
+                      </div>
+                    ) : null}
+
+                    {expert.capabilities?.length ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {expert.capabilities.slice(0, 2).map(capability => (
+                          <Link
+                            key={capability._id}
+                            to={`/capabilities/${capability.slug || capability._id}`}
+                            className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:bg-primary-50 hover:text-primary-700"
+                          >
+                            {capability.title}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : expert.capability ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Link
+                          to={`/capabilities/${expert.capability.slug || expert.capability._id}`}
+                          className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:bg-primary-50 hover:text-primary-700"
+                        >
+                          {expert.capability.title}
+                        </Link>
                       </div>
                     ) : null}
 

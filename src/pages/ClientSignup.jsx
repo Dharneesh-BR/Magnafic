@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Building2, Lock, Mail, User, Eye, EyeOff } from 'lucide-react'
 import SEO from '../components/SEO'
-import { isProfessionalEmail, setAuthUser } from '../lib/auth'
+import { isProfessionalEmail, signupClient } from '../lib/auth'
 
 export default function ClientSignup() {
   const navigate = useNavigate()
@@ -14,27 +14,33 @@ export default function ClientSignup() {
     password: '',
   })
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const updateField = (field, value) => {
     setForm(current => ({ ...current, [field]: value }))
     setError('')
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
+    setSubmitting(true)
+    setError('')
 
     if (!isProfessionalEmail(form.email)) {
       setError('Please use your professional company email. Personal email IDs are not allowed for client signup.')
+      setSubmitting(false)
       return
     }
 
-    setAuthUser({
-      role: 'client',
-      name: form.name,
-      company: form.company,
-      email: form.email,
-    })
-    navigate('/')
+    try {
+      await signupClient(form)
+      navigate('/')
+    } catch (signupError) {
+      console.error('Firebase signup failed:', signupError)
+      setError('Unable to create your account. Please try again with a different email or password.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -122,8 +128,8 @@ export default function ClientSignup() {
 
             {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
 
-            <button type="submit" className="flex w-full items-center justify-center rounded-xl bg-primary-600 py-3 font-semibold text-white transition hover:bg-primary-700">
-              Create client account
+            <button type="submit" disabled={submitting} className="flex w-full items-center justify-center rounded-xl bg-primary-600 py-3 font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-70">
+              {submitting ? 'Creating account...' : 'Create client account'}
               <ArrowRight className="ml-2 h-5 w-5" />
             </button>
           </form>

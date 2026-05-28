@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Briefcase, ChevronDown, Eye, EyeOff, Lock, Mail, User } from 'lucide-react'
 import SEO from '../components/SEO'
-import { isProfessionalEmail, setAuthUser } from '../lib/auth'
+import { isProfessionalEmail, loginUser } from '../lib/auth'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -11,17 +11,28 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
+    setSubmitting(true)
+    setError('')
 
     if (!isProfessionalEmail(email)) {
       setError('Please login with your professional email ID. Personal email IDs are not allowed.')
+      setSubmitting(false)
       return
     }
 
-    setAuthUser({ role, email })
-    navigate('/')
+    try {
+      await loginUser({ email, password, fallbackRole: role })
+      navigate('/')
+    } catch (loginError) {
+      console.error('Firebase login failed:', loginError)
+      setError('Unable to login. Please check your email and password.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -102,8 +113,8 @@ export default function Login() {
 
             {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
 
-            <button type="submit" className="flex w-full items-center justify-center rounded-xl bg-primary-600 py-3 font-semibold text-white transition hover:bg-primary-700">
-              Login as {role === 'client' ? 'Client' : 'Consultant'}
+            <button type="submit" disabled={submitting} className="flex w-full items-center justify-center rounded-xl bg-primary-600 py-3 font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-70">
+              {submitting ? 'Logging in...' : `Login as ${role === 'client' ? 'Client' : 'Consultant'}`}
               <ArrowRight className="ml-2 h-5 w-5" />
             </button>
           </form>

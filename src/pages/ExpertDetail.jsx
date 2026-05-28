@@ -141,13 +141,22 @@ function Stat({ icon: Icon, label, value }) {
   if (value === undefined || value === null || value === '') return null
 
   return (
-    <div className="rounded-[1.5rem] bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
-      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
-        <Icon className="h-5 w-5" />
+    <div className="rounded-lg border border-gray-200 bg-white p-4">
+      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-primary-50 text-primary-600">
+        <Icon className="h-4 w-4" />
       </div>
-      <p className="text-3xl font-bold text-gray-950">{value}</p>
-      <p className="mt-1 text-sm font-medium text-gray-500">{label}</p>
+      <p className="text-2xl font-semibold text-gray-950">{value}</p>
+      <p className="mt-1 text-sm text-gray-500">{label}</p>
     </div>
+  )
+}
+
+function ProfileSection({ title, children }) {
+  return (
+    <section className="rounded-lg border border-gray-200 bg-white p-5">
+      <h2 className="mb-4 text-xl font-semibold text-gray-950">{title}</h2>
+      {children}
+    </section>
   )
 }
 
@@ -157,11 +166,11 @@ function PillList({ title, items = [] }) {
   if (!normalizedItems.length) return null
 
   return (
-    <section className="rounded-[1.5rem] bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
-      <h2 className="mb-4 text-xl font-bold text-gray-950">{title}</h2>
+    <section className="rounded-lg border border-gray-200 bg-white p-5">
+      <h2 className="mb-4 text-lg font-semibold text-gray-950">{title}</h2>
       <div className="flex flex-wrap gap-2">
         {normalizedItems.map(item => (
-          <span key={item} className="rounded-full bg-primary-50 px-3 py-1.5 text-sm font-semibold text-primary-700">
+          <span key={item} className="rounded-full bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-700">
             {item}
           </span>
         ))}
@@ -176,11 +185,11 @@ function TextList({ title, items = [], icon: Icon }) {
   if (!normalizedItems.length) return null
 
   return (
-    <section className="rounded-[1.5rem] bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
-      <h2 className="mb-5 flex items-center text-xl font-bold text-gray-950">
+    <section className="rounded-lg border border-gray-200 bg-white p-5">
+      <h2 className="mb-5 flex items-center text-lg font-semibold text-gray-950">
         {Icon && (
-          <span className="mr-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
-            <Icon className="h-5 w-5" />
+          <span className="mr-3 flex h-9 w-9 items-center justify-center rounded-full bg-primary-50 text-primary-600">
+            <Icon className="h-4 w-4" />
           </span>
         )}
         {title}
@@ -188,7 +197,7 @@ function TextList({ title, items = [], icon: Icon }) {
       <ul className="space-y-3 text-gray-700">
         {normalizedItems.map(item => (
           <li key={item} className="flex gap-3 border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary-500" />
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary-600" />
             <span>{item}</span>
           </li>
         ))}
@@ -231,7 +240,17 @@ export default function ExpertDetail() {
           courseCount,
           achievements,
           tags,
-          city
+          city,
+          capability->{
+            _id,
+            title,
+            "slug": slug.current
+          },
+          capabilities[]->{
+            _id,
+            title,
+            "slug": slug.current
+          }
         }`
 
         const data = await mentorClient.fetch(query, { slug })
@@ -267,9 +286,9 @@ export default function ExpertDetail() {
           <UserRound className="mx-auto mb-6 h-14 w-14 text-primary-500" />
           <h1 className="mb-4 text-3xl font-bold text-gray-950">Expert not found</h1>
           <p className="mb-8 text-gray-600">{error || 'The expert profile you are looking for is not available.'}</p>
-          <Link to="/experts" className="inline-flex items-center rounded-full bg-primary-600 px-6 py-3 font-semibold text-white hover:bg-primary-700">
+          <Link to="/capabilities" className="inline-flex items-center rounded-full bg-primary-600 px-6 py-3 font-semibold text-white hover:bg-primary-700">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Experts
+            Back to Capabilities
           </Link>
         </div>
       </div>
@@ -277,9 +296,18 @@ export default function ExpertDetail() {
   }
 
   const expertImage = getExpertImage(expert)
+  const assignedCapabilities = [
+    ...(expert.capabilities || []),
+    ...(expert.capability ? [expert.capability] : []),
+  ].filter((capability, index, capabilities) => (
+    capability?._id && capabilities.findIndex(item => item?._id === capability._id) === index
+  ))
+  const primaryCapability = assignedCapabilities[0]
+  const capabilityPath = primaryCapability ? `/capabilities/${primaryCapability.slug || primaryCapability._id}` : '/capabilities'
+  const backLabel = primaryCapability?.title ? `Back to ${primaryCapability.title}` : 'Back to Capabilities'
 
   return (
-    <div className="min-h-screen bg-[#f7f9ff]">
+    <div className="min-h-screen bg-[#f3f2ef] px-4 pt-24 pb-12 sm:px-6 lg:px-8">
       <SEO
         title={`${expert.fullName} - ${expert.designation || 'Expert Consultant'}`}
         description={expert.shortBio}
@@ -302,144 +330,154 @@ export default function ExpertDetail() {
           knowsAbout: [...toTextList(expert.expertiseAreas), ...toTextList(expert.skills)],
         }}
       />
-      <section className="relative overflow-hidden bg-primary-900 px-4 pt-24 pb-20 text-white sm:px-6 lg:px-8">
-        {expertImage && <img src={expertImage} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover opacity-15" />}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-900 via-primary-900/95 to-cyan-900/80"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_22%,rgba(0,255,255,0.18),transparent_30%),radial-gradient(circle_at_82%_14%,rgba(255,255,255,0.12),transparent_26%)]"></div>
+      <div className="mx-auto max-w-6xl">
+        <Link to={capabilityPath} className="mb-4 inline-flex items-center text-sm font-semibold text-primary-700 transition hover:text-primary-900">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          {backLabel}
+        </Link>
 
-        <div className="relative mx-auto max-w-7xl">
-          <Link to="/experts" className="mb-10 inline-flex items-center rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-cyan-100 ring-1 ring-white/15 transition hover:bg-white/15 hover:text-white">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Experts
-          </Link>
+        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+          <div className="relative h-32 bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-500 sm:h-44">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_22%,rgba(255,255,255,0.18),transparent_26%),radial-gradient(circle_at_82%_10%,rgba(255,255,255,0.16),transparent_28%)]"></div>
+            <div className="absolute -bottom-20 right-8 h-44 w-44 rounded-full border border-white/20 sm:right-24 sm:h-56 sm:w-56"></div>
+            <div className="absolute -bottom-28 right-20 h-56 w-56 rounded-full border border-cyan-100/20 sm:right-44 sm:h-72 sm:w-72"></div>
+          </div>
 
-          <div className="grid gap-8 lg:grid-cols-[260px_1fr_340px] lg:items-end">
-            <div className="h-44 w-44 overflow-hidden rounded-3xl bg-gradient-to-br from-primary-400 to-cyan-400 p-1 shadow-2xl shadow-primary-950/30 sm:h-56 sm:w-56">
-              <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-[1.75rem] bg-primary-700 text-6xl font-bold">
-                {expertImage ? (
-                  <img src={expertImage} alt={expert.fullName} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-white">{initials(expert.fullName)}</span>
-                )}
+          <div className="px-4 pb-6 sm:px-6">
+            <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="-mt-14 h-32 w-32 shrink-0 overflow-hidden rounded-full border-4 border-white bg-primary-700 text-4xl font-bold shadow-lg sm:-mt-16 sm:h-40 sm:w-40 sm:text-5xl">
+                <div className="flex h-full w-full items-center justify-center">
+                  {expertImage ? (
+                    <img src={expertImage} alt={expert.fullName} className="h-full w-full object-cover object-top" />
+                  ) : (
+                    <span className="text-white">{initials(expert.fullName)}</span>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div>
-              <div className="mb-5 flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2 sm:pt-5">
+                <span className="inline-flex items-center rounded-full border border-primary-600 px-4 py-2 text-sm font-semibold text-primary-700">
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Available
+                </span>
                 {expert.featured && (
-                  <span className="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-bold text-primary-700 shadow-lg shadow-primary-950/10">
+                  <span className="inline-flex items-center rounded-full bg-primary-600 px-4 py-2 text-sm font-semibold text-white">
                     <Award className="mr-2 h-4 w-4" />
                     Featured Expert
                   </span>
                 )}
-                {expert.industry && (
-                  <span className="inline-flex items-center rounded-full bg-cyan-400/15 px-4 py-2 text-sm font-semibold text-cyan-100 ring-1 ring-cyan-200/20">
-                    <Tags className="mr-2 h-4 w-4" />
-                    {expert.industry}
-                  </span>
-                )}
               </div>
+            </div>
 
-              <h1 className="text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">{expert.fullName}</h1>
-              <p className="mt-4 text-lg text-cyan-100 sm:text-xl">{expert.designation || 'Expert Mentor'}</p>
-              {expert.company && <p className="mt-2 text-lg text-gray-200">{expert.company}</p>}
+            <div className="mt-4 max-w-4xl">
+              <h1 className="text-3xl font-semibold leading-tight text-gray-950 sm:text-4xl">{expert.fullName}</h1>
+              <p className="mt-2 text-lg leading-7 text-gray-800">{expert.designation || 'Expert Mentor'}</p>
+              {expert.company && <p className="mt-1 text-base font-medium text-gray-700">{expert.company}</p>}
 
-              <div className="mt-6 flex flex-wrap gap-5 text-sm text-gray-200">
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600">
                 {expert.city && (
                   <span className="inline-flex items-center">
-                    <MapPin className="mr-2 h-4 w-4 text-cyan-200" />
+                    <MapPin className="mr-1.5 h-4 w-4 text-gray-500" />
                     {expert.city}
-                  </span>
-                )}
-                {expert.rating && (
-                  <span className="inline-flex items-center">
-                    <Star className="mr-2 h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    {expert.rating} rating
                   </span>
                 )}
                 {expert.yearsOfExperience && (
                   <span className="inline-flex items-center">
-                    <Briefcase className="mr-2 h-4 w-4 text-cyan-200" />
+                    <Briefcase className="mr-1.5 h-4 w-4 text-gray-500" />
                     {expert.yearsOfExperience}+ years experience
                   </span>
                 )}
+                {expert.rating && (
+                  <span className="inline-flex items-center">
+                    <Star className="mr-1.5 h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    {expert.rating} rating
+                  </span>
+                )}
+              </div>
+
+              {expert.shortBio && (
+                <p className="mt-4 max-w-3xl text-base leading-7 text-gray-700">{expert.shortBio}</p>
+              )}
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {expert.industry && (
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700">
+                    <Tags className="mr-1.5 h-4 w-4" />
+                    {expert.industry}
+                  </span>
+                )}
+                {assignedCapabilities.map((capability) => (
+                  <Link
+                    key={capability._id}
+                    to={`/capabilities/${capability.slug || capability._id}`}
+                    className="inline-flex items-center rounded-full bg-primary-50 px-3 py-1.5 text-sm font-semibold text-primary-700 hover:bg-primary-100"
+                  >
+                    <Sparkles className="mr-1.5 h-4 w-4" />
+                    {capability.title}
+                  </Link>
+                ))}
               </div>
             </div>
+          </div>
+        </section>
 
-            <div className="rounded-3xl border border-white/15 bg-white/10 p-5 shadow-2xl shadow-primary-950/20 backdrop-blur">
-              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-cyan-100">Profile Brief</p>
-              <div className="space-y-4 text-sm text-gray-100">
-                <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
-                  <span className="inline-flex items-center text-gray-300">
-                    <Sparkles className="mr-2 h-4 w-4 text-cyan-200" />
-                    Focus
-                  </span>
-                  <span className="text-right font-semibold">{toTextList(expert.expertiseAreas)[0] || expert.industry || 'Expertise'}</span>
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <main className="space-y-4">
+            <ProfileSection title="About">
+              {bio.length > 0 ? (
+                <div className="[&_p]:mb-4 [&_p]:text-base [&_p]:leading-7 [&_p]:text-gray-700 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:text-xl [&_h3]:font-semibold [&_ul]:text-base [&_ol]:text-base">
+                  {bio}
                 </div>
-                {expert.totalSessions && (
-                  <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
-                    <span className="inline-flex items-center text-gray-300">
-                      <Users className="mr-2 h-4 w-4 text-cyan-200" />
-                      Sessions
-                    </span>
-                    <span className="text-right font-semibold">{expert.totalSessions}</span>
+              ) : (
+                <p className="text-base leading-7 text-gray-700">{expert.shortBio}</p>
+              )}
+            </ProfileSection>
+
+            <ProfileSection title="Activity and impact">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Stat icon={Star} label="Rating" value={expert.rating} />
+                <Stat icon={Users} label="Sessions" value={expert.totalSessions} />
+                <Stat icon={BookOpen} label="Workshops" value={expert.workshopCount} />
+                <Stat icon={GraduationCap} label="Courses" value={expert.courseCount} />
+              </div>
+            </ProfileSection>
+
+            <TextList title="Achievements" items={expert.achievements} icon={Award} />
+            <TextList title="Certifications" items={expert.certifications} icon={GraduationCap} />
+          </main>
+
+          <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+            <section className="rounded-lg border border-gray-200 bg-white p-5">
+              <h2 className="text-lg font-semibold text-gray-950">Profile details</h2>
+              <div className="mt-4 space-y-4 text-sm">
+                <div className="flex justify-between gap-4 border-b border-gray-100 pb-3">
+                  <span className="text-gray-500">Focus</span>
+                  <span className="text-right font-semibold text-gray-900">{toTextList(expert.expertiseAreas)[0] || expert.industry || 'Expertise'}</span>
+                </div>
+                {expert.company && (
+                  <div className="flex justify-between gap-4 border-b border-gray-100 pb-3">
+                    <span className="text-gray-500">Company</span>
+                    <span className="text-right font-semibold text-gray-900">{expert.company}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between gap-4">
-                  <span className="inline-flex items-center text-gray-300">
-                    <CheckCircle2 className="mr-2 h-4 w-4 text-cyan-200" />
-                    Status
-                  </span>
-                  <span className="text-right font-semibold">Available</span>
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-500">Status</span>
+                  <span className="text-right font-semibold text-primary-700">Available</span>
                 </div>
               </div>
-            </div>
-          </div>
+            </section>
+
+            <PillList title="Expertise Areas" items={expert.expertiseAreas} />
+            <PillList title="Skills" items={expert.skills} />
+            <PillList title="Tags" items={expert.tags} />
+            <TextList title="Languages" items={expert.languages} icon={Languages} />
+            <Link to={capabilityPath} className="inline-flex w-full items-center justify-center rounded-full bg-primary-600 px-6 py-3 font-semibold text-white transition hover:bg-primary-700">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              {backLabel}
+            </Link>
+          </aside>
         </div>
-      </section>
-
-      <section className="px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Stat icon={Star} label="Rating" value={expert.rating} />
-            <Stat icon={Users} label="Total Sessions" value={expert.totalSessions} />
-            <Stat icon={BookOpen} label="Workshops" value={expert.workshopCount} />
-            <Stat icon={GraduationCap} label="Courses" value={expert.courseCount} />
-          </div>
-
-          <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-            <div className="space-y-8">
-              <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
-                <div className="mb-6 flex items-center gap-3">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
-                    <UserRound className="h-6 w-6" />
-                  </span>
-                  <h2 className="text-2xl font-bold text-gray-950 sm:text-3xl">About</h2>
-                </div>
-                {bio.length > 0 ? (
-                  <div>{bio}</div>
-                ) : (
-                  <p className="text-lg leading-9 text-gray-700">{expert.shortBio}</p>
-                )}
-              </section>
-
-              <TextList title="Achievements" items={expert.achievements} icon={Award} />
-              <TextList title="Certifications" items={expert.certifications} icon={GraduationCap} />
-            </div>
-
-            <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-              <PillList title="Expertise Areas" items={expert.expertiseAreas} />
-              <PillList title="Skills" items={expert.skills} />
-              <PillList title="Tags" items={expert.tags} />
-              <TextList title="Languages" items={expert.languages} icon={Languages} />
-              <Link to="/experts" className="inline-flex w-full items-center justify-center rounded-2xl bg-primary-600 px-6 py-4 font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Experts
-              </Link>
-            </aside>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   )
 }

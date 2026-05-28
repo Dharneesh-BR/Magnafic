@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, ChevronDown, Lightbulb, Layers, Sparkles, User } from 'lucide-react'
+import { ArrowRight, ChevronDown, Lightbulb, Sparkles, User } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
 import { absoluteUrl } from '../lib/seo'
@@ -129,7 +129,7 @@ export default function CapabilityDetail() {
           const servicesData = await mentorClient.fetch(servicesQuery, { capabilityId: data._id })
           setServices(servicesData || [])
 
-          const mentorsQuery = `*[_type == "mentor" && capability._ref == $capabilityId] {
+          const mentorsQuery = `*[_type == "mentor" && (capability._ref == $capabilityId || $capabilityId in capabilities[]._ref)] {
             _id,
             "slug": slug.current,
             fullName,
@@ -237,10 +237,10 @@ export default function CapabilityDetail() {
 
                   <div className="relative flex w-full items-start justify-between gap-4">
                     <div>
-                      <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#000047] text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600">
-                        <Layers className="h-6 w-6" />
-                      </span>
-                      <h3 className="text-xl font-bold leading-tight text-gray-950 transition group-hover:text-primary-600">{service.title}</h3>
+                      <h3 className="flex items-center gap-3 text-xl font-bold leading-tight text-gray-950 transition group-hover:text-primary-600">
+                        <span className="h-3 w-3 shrink-0 rounded-full bg-primary-600 transition group-hover:bg-cyan-500"></span>
+                        <span>{service.title}</span>
+                      </h3>
                     </div>
 
                     <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600 transition group-hover:bg-primary-600 group-hover:text-white">
@@ -262,7 +262,7 @@ export default function CapabilityDetail() {
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
                 <User className="h-6 w-6" />
               </span>
-              <h2 className="text-2xl font-bold text-center text-gray-950 sm:text-3xl">Connect with Mentors</h2>
+              <h2 className="text-2xl font-bold text-center text-gray-950 sm:text-3xl">Explore Experts</h2>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

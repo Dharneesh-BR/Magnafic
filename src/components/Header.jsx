@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Menu, X, ChevronDown } from 'lucide-react'
 import { clearAuthUser, getAuthUser } from '../lib/auth'
 import { mentorClient } from '../lib/sanityClient'
@@ -10,6 +10,8 @@ export default function Header() {
   const [authUser, setAuthUserState] = useState(() => getAuthUser())
   const [capabilities, setCapabilities] = useState([])
   const navigate = useNavigate()
+  const location = useLocation()
+  const showHomeLink = location.pathname !== '/'
 
   useEffect(() => {
     const syncAuth = () => setAuthUserState(getAuthUser())
@@ -42,8 +44,8 @@ export default function Header() {
     fetchCapabilities()
   }, [])
 
-  const handleLogout = () => {
-    clearAuthUser()
+  const handleLogout = async () => {
+    await clearAuthUser()
     setIsMenuOpen(false)
   }
 
@@ -74,6 +76,9 @@ export default function Header() {
           </Link>
           
           <div className="hidden md:flex items-center space-x-6">
+            {showHomeLink && (
+              <Link to="/" className="text-gray-900 hover:text-primary transition-colors font-medium">Home</Link>
+            )}
             <div className="relative capabilities-dropdown">
               <button
                 onClick={() => setIsCapabilitiesOpen(!isCapabilitiesOpen)}
@@ -130,6 +135,9 @@ export default function Header() {
 
         {isMenuOpen && (
           <div className="space-y-3 border-t border-gray-100 bg-white py-4 md:hidden">
+            {showHomeLink && (
+              <Link onClick={() => setIsMenuOpen(false)} to="/" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Home</Link>
+            )}
             <div className="capabilities-dropdown">
               <button
                 onClick={() => setIsCapabilitiesOpen(!isCapabilitiesOpen)}
