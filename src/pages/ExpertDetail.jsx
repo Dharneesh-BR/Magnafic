@@ -3,17 +3,16 @@ import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Award,
-  BookOpen,
-  Briefcase,
+  BriefcaseBusiness,
+  CalendarDays,
   CheckCircle2,
+  ExternalLink,
+  FileText,
   GraduationCap,
-  Languages,
+  ImageIcon,
   MapPin,
-  Sparkles,
-  Star,
-  Tags,
-  UserRound,
-  Users
+  PlayCircle,
+  UserRound
 } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
@@ -63,7 +62,7 @@ function renderBlockText(block) {
   ))
 }
 
-function renderBio(blocks = []) {
+function renderPortableText(blocks = [], compact = false) {
   if (!Array.isArray(blocks)) return []
 
   const rendered = []
@@ -90,7 +89,7 @@ function renderBio(blocks = []) {
       const ListTag = listType
 
       rendered.push(
-        <ListTag key={block._key} className={`mb-8 ml-6 space-y-3 text-lg leading-8 text-gray-700 marker:font-bold marker:text-primary-600 ${listType === 'ol' ? 'list-decimal' : 'list-disc'}`}>
+        <ListTag key={block._key} className={`ml-5 space-y-2 text-gray-700 marker:font-semibold marker:text-gray-500 ${listType === 'ol' ? 'list-decimal' : 'list-disc'}`}>
           {items.map(item => <li key={item._key}>{renderBlockText(item)}</li>)}
         </ListTag>
       )
@@ -99,20 +98,20 @@ function renderBio(blocks = []) {
 
     switch (block.style) {
       case 'h2':
-        rendered.push(<h2 key={block._key} className="mt-10 mb-4 text-3xl font-bold leading-tight text-gray-950">{renderBlockText(block)}</h2>)
+        rendered.push(<h3 key={block._key} className="mt-6 text-xl font-semibold text-gray-950">{renderBlockText(block)}</h3>)
         break
       case 'h3':
-        rendered.push(<h3 key={block._key} className="mt-8 mb-3 text-2xl font-semibold leading-tight text-gray-950">{renderBlockText(block)}</h3>)
+        rendered.push(<h4 key={block._key} className="mt-5 text-lg font-semibold text-gray-950">{renderBlockText(block)}</h4>)
         break
       case 'blockquote':
         rendered.push(
-          <blockquote key={block._key} className="my-8 rounded-r-[2rem] border-l-4 border-cyan-400 bg-primary-50/80 px-7 py-6 text-xl font-semibold italic leading-9 text-primary-900">
+          <blockquote key={block._key} className="border-l-4 border-primary-500 pl-4 font-medium italic text-gray-700">
             {renderBlockText(block)}
           </blockquote>
         )
         break
       default:
-        rendered.push(<p key={block._key} className="mb-6 text-lg leading-9 text-gray-700">{renderBlockText(block)}</p>)
+        rendered.push(<p key={block._key} className={`${compact ? 'text-sm leading-6' : 'text-base leading-7'} text-gray-700`}>{renderBlockText(block)}</p>)
     }
   }
 
@@ -138,21 +137,32 @@ function toTextList(items) {
     .filter(Boolean)
 }
 
-function Stat({ icon: Icon, label, value }) {
-  if (value === undefined || value === null || value === '') return null
+function formatDate(value) {
+  if (!value) return ''
 
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-primary-50 text-primary-600">
-        <Icon className="h-4 w-4" />
-      </div>
-      <p className="text-2xl font-semibold text-gray-950">{value}</p>
-      <p className="mt-1 text-sm text-gray-500">{label}</p>
-    </div>
-  )
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value))
 }
 
-function ProfileSection({ title, children }) {
+function formatRange(startDate, endDate, current = false) {
+  const start = formatDate(startDate)
+  const end = current ? 'Present' : formatDate(endDate)
+
+  if (start && end) return `${start} - ${end}`
+  return start || end
+}
+
+function availabilityLabel(status) {
+  if (status === 'limited') return 'Limited availability'
+  if (status === 'unavailable') return 'Unavailable'
+  return 'Available'
+}
+
+function Section({ title, children }) {
+  if (!children) return null
+
   return (
     <section className="rounded-lg border border-gray-200 bg-white p-5">
       <h2 className="mb-4 text-xl font-semibold text-gray-950">{title}</h2>
@@ -161,50 +171,39 @@ function ProfileSection({ title, children }) {
   )
 }
 
-function PillList({ title, items = [] }) {
-  const normalizedItems = toTextList(items)
+function LogoFrame({ src, alt, fallback: Fallback = BriefcaseBusiness }) {
+  return (
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded bg-gray-100 text-gray-500">
+      {src ? (
+        <img src={src} alt={alt} className="h-full w-full object-cover" />
+      ) : (
+        <Fallback className="h-6 w-6" />
+      )}
+    </div>
+  )
+}
 
-  if (!normalizedItems.length) return null
+function SkillPills({ title, items = [] }) {
+  const normalized = toTextList(items)
+  if (!normalized.length) return null
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-5">
-      <h2 className="mb-4 text-lg font-semibold text-gray-950">{title}</h2>
+    <Section title={title}>
       <div className="flex flex-wrap gap-2">
-        {normalizedItems.map(item => (
-          <span key={item} className="rounded-full bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-700">
+        {normalized.map(item => (
+          <span key={item} className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700">
             {item}
           </span>
         ))}
       </div>
-    </section>
+    </Section>
   )
 }
 
-function TextList({ title, items = [], icon: Icon }) {
-  const normalizedItems = toTextList(items)
-
-  if (!normalizedItems.length) return null
-
-  return (
-    <section className="rounded-lg border border-gray-200 bg-white p-5">
-      <h2 className="mb-5 flex items-center text-lg font-semibold text-gray-950">
-        {Icon && (
-          <span className="mr-3 flex h-9 w-9 items-center justify-center rounded-full bg-primary-50 text-primary-600">
-            <Icon className="h-4 w-4" />
-          </span>
-        )}
-        {title}
-      </h2>
-      <ul className="space-y-3 text-gray-700">
-        {normalizedItems.map(item => (
-          <li key={item} className="flex gap-3 border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary-600" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
+function FeaturedIcon({ type }) {
+  if (type === 'video') return PlayCircle
+  if (type === 'document') return FileText
+  return ExternalLink
 }
 
 export default function ExpertDetail() {
@@ -223,24 +222,82 @@ export default function ExpertDetail() {
           _id,
           fullName,
           "slug": slug.current,
+          headline,
           "imageUrl": profileImage.asset->url,
+          "bannerImageUrl": bannerImage.asset->url,
+          currentDesignation,
+          currentCompany,
+          location,
+          availabilityStatus,
+          shortBio,
+          profileIntro,
+          about,
+          experience[]{
+            roleTitle,
+            companyName,
+            "companyLogoUrl": companyLogo.asset->url,
+            employmentType,
+            location,
+            startDate,
+            endDate,
+            currentlyWorkingHere,
+            description,
+            skillsUsed
+          },
+          education[]{
+            schoolName,
+            "schoolLogoUrl": schoolLogo.asset->url,
+            degree,
+            fieldOfStudy,
+            startDate,
+            endDate,
+            description
+          },
+          certifications[]{
+            certificationName,
+            issuingOrganization,
+            "organizationLogoUrl": organizationLogo.asset->url,
+            issueDate,
+            expirationDate,
+            credentialId,
+            credentialUrl
+          },
+          skills,
+          topSkills,
+          featuredItems[]{
+            title,
+            description,
+            "thumbnailImageUrl": thumbnailImage.asset->url,
+            link,
+            type
+          },
+          projects[]{
+            projectTitle,
+            "projectImageUrl": projectImage.asset->url,
+            clientOrCompany,
+            startDate,
+            endDate,
+            description,
+            projectUrl,
+            associatedCapabilities[]->{
+              _id,
+              title,
+              "slug": slug.current
+            }
+          },
+          recommendations[]{
+            name,
+            designation,
+            company,
+            "profileImageUrl": profileImage.asset->url,
+            testimonial,
+            relationship
+          },
           designation,
           company,
-          shortBio,
           detailedBio,
           expertiseAreas,
-          yearsOfExperience,
           industry,
-          skills,
-          certifications,
-          languages,
-          featured,
-          rating,
-          totalSessions,
-          workshopCount,
-          courseCount,
-          achievements,
-          tags,
           city,
           capability->{
             _id,
@@ -267,11 +324,14 @@ export default function ExpertDetail() {
     fetchExpert()
   }, [slug])
 
-  const bio = useMemo(() => renderBio(expert?.detailedBio), [expert?.detailedBio])
+  const aboutBlocks = useMemo(
+    () => renderPortableText(expert?.about?.length ? expert.about : expert?.detailedBio),
+    [expert?.about, expert?.detailedBio]
+  )
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f7f9ff] px-4 pt-32 pb-20">
+      <div className="min-h-screen bg-[#f3f2ef] px-4 pt-32 pb-20">
         <MagnaLoader message="Loading expert profile..." className="mx-auto max-w-4xl" />
       </div>
     )
@@ -303,29 +363,37 @@ export default function ExpertDetail() {
   const primaryCapability = assignedCapabilities[0]
   const capabilityPath = primaryCapability ? `/capabilities/${primaryCapability.slug || primaryCapability._id}` : '/capabilities'
   const backLabel = primaryCapability?.title ? `Back to ${primaryCapability.title}` : 'Back to Capabilities'
+  const headline = expert.headline || expert.currentDesignation || expert.designation || 'Expert Mentor'
+  const company = expert.currentCompany || expert.company
+  const location = expert.location || expert.city
+  const intro = expert.profileIntro || expert.shortBio
+  const topSkills = toTextList(expert.topSkills)
+  const skillSet = new Set(topSkills.map(skill => skill.toLowerCase()))
+  const remainingSkills = toTextList(expert.skills).filter(skill => !skillSet.has(skill.toLowerCase()))
+  const aboutContent = aboutBlocks.length ? aboutBlocks : <p className="text-base leading-7 text-gray-700">{expert.shortBio}</p>
 
   return (
     <div className="min-h-screen bg-[#f3f2ef] px-4 pt-24 pb-12 sm:px-6 lg:px-8">
       <SEO
-        title={`${expert.fullName} - ${expert.designation || 'Expert Consultant'}`}
-        description={expert.shortBio}
+        title={`${expert.fullName} - ${headline}`}
+        description={expert.shortBio || intro}
         path={`/experts/${expert.slug || expert._id}`}
-        image={expertImage || undefined}
+        image={expertImage || expert.bannerImageUrl || undefined}
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'Person',
           name: expert.fullName,
-          description: expert.shortBio,
-          image: expert.imageUrl,
-          jobTitle: expert.designation,
-          worksFor: expert.company
+          description: expert.shortBio || intro,
+          image: expertImage,
+          jobTitle: headline,
+          worksFor: company
             ? {
                 '@type': 'Organization',
-                name: expert.company,
+                name: company,
               }
             : undefined,
           url: absoluteUrl(`/experts/${expert.slug || expert._id}`),
-          knowsAbout: [...toTextList(expert.expertiseAreas), ...toTextList(expert.skills)],
+          knowsAbout: [...toTextList(expert.skills), ...toTextList(expert.expertiseAreas)],
         }}
       />
       <div className="mx-auto max-w-6xl">
@@ -334,141 +402,263 @@ export default function ExpertDetail() {
           {backLabel}
         </Link>
 
-        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <div className="relative h-32 bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-500 sm:h-44">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_22%,rgba(255,255,255,0.18),transparent_26%),radial-gradient(circle_at_82%_10%,rgba(255,255,255,0.16),transparent_28%)]"></div>
-            <div className="absolute -bottom-20 right-8 h-44 w-44 rounded-full border border-white/20 sm:right-24 sm:h-56 sm:w-56"></div>
-            <div className="absolute -bottom-28 right-20 h-56 w-56 rounded-full border border-cyan-100/20 sm:right-44 sm:h-72 sm:w-72"></div>
+        <section className="rounded-lg border border-gray-200 bg-white">
+          <div className="relative h-28 overflow-hidden rounded-t-lg bg-[#000047] sm:h-40 lg:h-44">
+            {expert.bannerImageUrl ? (
+              <img src={expert.bannerImageUrl} alt="" className="h-full w-full object-cover object-center" />
+            ) : (
+              <div className="h-full w-full bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-500" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#000047]/45 via-[#000047]/20 to-cyan-400/20" />
           </div>
 
-          <div className="px-4 pb-6 sm:px-6">
-            <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="-mt-14 h-32 w-32 shrink-0 overflow-hidden rounded-full border-4 border-white bg-primary-700 text-4xl font-bold shadow-lg sm:-mt-16 sm:h-40 sm:w-40 sm:text-5xl">
+          <div className="relative px-4 pb-6 sm:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="relative z-20 -mt-14 h-28 w-28 shrink-0 overflow-hidden rounded-full border-4 border-white bg-primary-700 text-3xl font-bold shadow-md sm:-mt-16 sm:h-36 sm:w-36 sm:text-5xl">
                 <div className="flex h-full w-full items-center justify-center">
                   {expertImage ? (
-                    <img src={expertImage} alt={expert.fullName} className="h-full w-full object-cover object-top" />
+                    <img src={expertImage} alt={expert.fullName} className="h-full w-full object-cover object-center" />
                   ) : (
                     <span className="text-white">{initials(expert.fullName)}</span>
                   )}
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 sm:pt-5">
-                <span className="inline-flex items-center rounded-full border border-primary-600 px-4 py-2 text-sm font-semibold text-primary-700">
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Available
-                </span>
-                {expert.featured && (
-                  <span className="inline-flex items-center rounded-full bg-primary-600 px-4 py-2 text-sm font-semibold text-white">
-                    <Award className="mr-2 h-4 w-4" />
-                    Featured Expert
-                  </span>
-                )}
-              </div>
+              <span className="mt-4 inline-flex w-fit items-center rounded-full border border-primary-600 px-4 py-2 text-sm font-semibold text-primary-700 sm:mt-8">
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                {availabilityLabel(expert.availabilityStatus)}
+              </span>
             </div>
 
-            <div className="mt-4 max-w-4xl">
-              <h1 className="text-3xl font-semibold leading-tight text-gray-950 sm:text-4xl">{expert.fullName}</h1>
-              <p className="mt-2 text-lg leading-7 text-gray-800">{expert.designation || 'Expert Mentor'}</p>
-              {expert.company && <p className="mt-1 text-base font-medium text-gray-700">{expert.company}</p>}
+            <div className="mt-3 grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+              <div>
+                <h1 className="text-3xl font-semibold leading-tight text-gray-950 sm:text-4xl">{expert.fullName}</h1>
+                <p className="mt-2 text-lg leading-7 text-gray-800">{headline}</p>
+                {company && <p className="mt-1 text-base font-medium text-gray-700">{company}</p>}
 
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600">
-                {expert.city && (
-                  <span className="inline-flex items-center">
-                    <MapPin className="mr-1.5 h-4 w-4 text-gray-500" />
-                    {expert.city}
-                  </span>
-                )}
-                {expert.yearsOfExperience && (
-                  <span className="inline-flex items-center">
-                    <Briefcase className="mr-1.5 h-4 w-4 text-gray-500" />
-                    {expert.yearsOfExperience}+ years experience
-                  </span>
-                )}
-                {expert.rating && (
-                  <span className="inline-flex items-center">
-                    <Star className="mr-1.5 h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    {expert.rating} rating
-                  </span>
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600">
+                  {location && (
+                    <span className="inline-flex items-center">
+                      <MapPin className="mr-1.5 h-4 w-4 text-gray-500" />
+                      {location}
+                    </span>
+                  )}
+                </div>
+
+                {intro && (
+                  <p className="mt-4 max-w-3xl text-base leading-7 text-gray-700">{intro}</p>
                 )}
               </div>
 
-              {expert.shortBio && (
-                <p className="mt-4 max-w-3xl text-base leading-7 text-gray-700">{expert.shortBio}</p>
+              {company && (
+                <aside className="space-y-3 text-sm">
+                  <div className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+                    <LogoFrame alt={company} />
+                    <div>
+                      <p className="font-semibold text-gray-950">{company}</p>
+                      <p className="text-gray-500">Current company</p>
+                    </div>
+                  </div>
+                </aside>
               )}
-
-              <div className="mt-5 flex flex-wrap gap-2">
-                {expert.industry && (
-                  <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700">
-                    <Tags className="mr-1.5 h-4 w-4" />
-                    {expert.industry}
-                  </span>
-                )}
-                {assignedCapabilities.map((capability) => (
-                  <Link
-                    key={capability._id}
-                    to={`/capabilities/${capability.slug || capability._id}`}
-                    className="inline-flex items-center rounded-full bg-primary-50 px-3 py-1.5 text-sm font-semibold text-primary-700 hover:bg-primary-100"
-                  >
-                    <Sparkles className="mr-1.5 h-4 w-4" />
-                    {capability.title}
-                  </Link>
-                ))}
-              </div>
             </div>
           </div>
         </section>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <main className="space-y-4">
-            <ProfileSection title="About">
-              {bio.length > 0 ? (
-                <div className="[&_p]:mb-4 [&_p]:text-base [&_p]:leading-7 [&_p]:text-gray-700 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:text-xl [&_h3]:font-semibold [&_ul]:text-base [&_ol]:text-base">
-                  {bio}
+            <Section title="About">
+              <div className="space-y-4">{aboutContent}</div>
+            </Section>
+
+            {Array.isArray(expert.featuredItems) && expert.featuredItems.length > 0 && (
+              <Section title="Featured">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {expert.featuredItems.map((item, index) => {
+                    const Icon = FeaturedIcon(item.type)
+                    const CardTag = item.link ? 'a' : 'div'
+
+                    return (
+                      <CardTag
+                        key={`${item.title}-${index}`}
+                        href={item.link || undefined}
+                        target={item.link ? '_blank' : undefined}
+                        rel={item.link ? 'noreferrer' : undefined}
+                        className="overflow-hidden rounded-lg border border-gray-200 bg-white transition hover:border-primary-200 hover:shadow-sm"
+                      >
+                        <div className="flex aspect-[16/9] items-center justify-center bg-gray-100 text-gray-400">
+                          {item.thumbnailImageUrl ? (
+                            <img src={item.thumbnailImageUrl} alt={item.title} className="h-full w-full object-cover" />
+                          ) : (
+                            <ImageIcon className="h-8 w-8" />
+                          )}
+                        </div>
+                        <div className="p-4">
+                          <p className="flex items-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            <Icon className="mr-1.5 h-4 w-4" />
+                            {item.type || 'Featured'}
+                          </p>
+                          <h3 className="mt-2 line-clamp-2 font-semibold text-gray-950">{item.title}</h3>
+                          {item.description && <p className="mt-2 line-clamp-3 text-sm leading-6 text-gray-600">{item.description}</p>}
+                        </div>
+                      </CardTag>
+                    )
+                  })}
                 </div>
-              ) : (
-                <p className="text-base leading-7 text-gray-700">{expert.shortBio}</p>
-              )}
-            </ProfileSection>
+              </Section>
+            )}
 
-            <ProfileSection title="Activity and impact">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Stat icon={Star} label="Rating" value={expert.rating} />
-                <Stat icon={Users} label="Sessions" value={expert.totalSessions} />
-                <Stat icon={BookOpen} label="Workshops" value={expert.workshopCount} />
-                <Stat icon={GraduationCap} label="Courses" value={expert.courseCount} />
-              </div>
-            </ProfileSection>
+            {Array.isArray(expert.experience) && expert.experience.length > 0 && (
+              <Section title="Experience">
+                <div className="space-y-6">
+                  {expert.experience.map((item, index) => (
+                    <article key={`${item.roleTitle}-${index}`} className="flex gap-4 border-b border-gray-100 pb-6 last:border-0 last:pb-0">
+                      <LogoFrame src={item.companyLogoUrl} alt={item.companyName || item.roleTitle} />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-gray-950">{item.roleTitle}</h3>
+                        <p className="mt-1 text-sm text-gray-700">
+                          {[item.companyName, item.employmentType].filter(Boolean).join(' · ')}
+                        </p>
+                        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
+                          {formatRange(item.startDate, item.endDate, item.currentlyWorkingHere) && (
+                            <span className="inline-flex items-center">
+                              <CalendarDays className="mr-1.5 h-4 w-4" />
+                              {formatRange(item.startDate, item.endDate, item.currentlyWorkingHere)}
+                            </span>
+                          )}
+                          {item.location && <span>{item.location}</span>}
+                        </p>
+                        {item.description?.length > 0 && (
+                          <div className="mt-3 space-y-3">{renderPortableText(item.description, true)}</div>
+                        )}
+                        {toTextList(item.skillsUsed).length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {toTextList(item.skillsUsed).map(skill => (
+                              <span key={skill} className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">{skill}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </Section>
+            )}
 
-            <TextList title="Achievements" items={expert.achievements} icon={Award} />
-            <TextList title="Certifications" items={expert.certifications} icon={GraduationCap} />
+            {Array.isArray(expert.education) && expert.education.length > 0 && (
+              <Section title="Education">
+                <div className="space-y-6">
+                  {expert.education.map((item, index) => (
+                    <article key={`${item.schoolName}-${index}`} className="flex gap-4 border-b border-gray-100 pb-6 last:border-0 last:pb-0">
+                      <LogoFrame src={item.schoolLogoUrl} alt={item.schoolName} fallback={GraduationCap} />
+                      <div>
+                        <h3 className="font-semibold text-gray-950">{item.schoolName}</h3>
+                        <p className="mt-1 text-sm text-gray-700">{[item.degree, item.fieldOfStudy].filter(Boolean).join(', ')}</p>
+                        {formatRange(item.startDate, item.endDate) && <p className="mt-1 text-sm text-gray-500">{formatRange(item.startDate, item.endDate)}</p>}
+                        {item.description && <p className="mt-3 text-sm leading-6 text-gray-600">{item.description}</p>}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {Array.isArray(expert.certifications) && expert.certifications.length > 0 && (
+              <Section title="Licenses & Certifications">
+                <div className="space-y-6">
+                  {expert.certifications.map((item, index) => (
+                    <article key={`${item.certificationName}-${index}`} className="flex gap-4 border-b border-gray-100 pb-6 last:border-0 last:pb-0">
+                      <LogoFrame src={item.organizationLogoUrl} alt={item.issuingOrganization} fallback={Award} />
+                      <div>
+                        <h3 className="font-semibold text-gray-950">{item.certificationName}</h3>
+                        {item.issuingOrganization && <p className="mt-1 text-sm text-gray-700">{item.issuingOrganization}</p>}
+                        <p className="mt-1 text-sm text-gray-500">
+                          {[item.issueDate && `Issued ${formatDate(item.issueDate)}`, item.expirationDate && `Expires ${formatDate(item.expirationDate)}`].filter(Boolean).join(' · ')}
+                        </p>
+                        {item.credentialId && <p className="mt-1 text-sm text-gray-500">Credential ID {item.credentialId}</p>}
+                        {item.credentialUrl && (
+                          <a href={item.credentialUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center text-sm font-semibold text-primary-700 hover:text-primary-900">
+                            Show credential
+                            <ExternalLink className="ml-1.5 h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {Array.isArray(expert.projects) && expert.projects.length > 0 && (
+              <Section title="Projects / Case Studies">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {expert.projects.map((item, index) => (
+                    <article key={`${item.projectTitle}-${index}`} className="overflow-hidden rounded-lg border border-gray-200">
+                      <div className="flex aspect-[16/9] items-center justify-center bg-gray-100 text-gray-400">
+                        {item.projectImageUrl ? (
+                          <img src={item.projectImageUrl} alt={item.projectTitle} className="h-full w-full object-cover" />
+                        ) : (
+                          <ImageIcon className="h-8 w-8" />
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-semibold text-gray-950">{item.projectTitle}</h3>
+                        {item.clientOrCompany && <p className="mt-1 text-sm text-gray-600">{item.clientOrCompany}</p>}
+                        {formatRange(item.startDate, item.endDate) && <p className="mt-1 text-sm text-gray-500">{formatRange(item.startDate, item.endDate)}</p>}
+                        {item.description?.length > 0 && <div className="mt-3 space-y-3">{renderPortableText(item.description, true)}</div>}
+                        {item.projectUrl && (
+                          <a href={item.projectUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center text-sm font-semibold text-primary-700 hover:text-primary-900">
+                            View project
+                            <ExternalLink className="ml-1.5 h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {Array.isArray(expert.recommendations) && expert.recommendations.length > 0 && (
+              <Section title="Recommendations">
+                <div className="space-y-5">
+                  {expert.recommendations.map((item, index) => (
+                    <article key={`${item.name}-${index}`} className="border-b border-gray-100 pb-5 last:border-0 last:pb-0">
+                      <div className="flex gap-3">
+                        <LogoFrame src={item.profileImageUrl} alt={item.name} fallback={UserRound} />
+                        <div>
+                          <h3 className="font-semibold text-gray-950">{item.name}</h3>
+                          <p className="text-sm text-gray-600">{[item.designation, item.company].filter(Boolean).join(' · ')}</p>
+                          {item.relationship && <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-gray-500">{item.relationship}</p>}
+                        </div>
+                      </div>
+                      {item.testimonial && <p className="mt-3 text-sm leading-6 text-gray-700">{item.testimonial}</p>}
+                    </article>
+                  ))}
+                </div>
+              </Section>
+            )}
           </main>
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-            <section className="rounded-lg border border-gray-200 bg-white p-5">
-              <h2 className="text-lg font-semibold text-gray-950">Profile details</h2>
-              <div className="mt-4 space-y-4 text-sm">
-                <div className="flex justify-between gap-4 border-b border-gray-100 pb-3">
-                  <span className="text-gray-500">Focus</span>
-                  <span className="text-right font-semibold text-gray-900">{toTextList(expert.expertiseAreas)[0] || expert.industry || 'Expertise'}</span>
-                </div>
-                {expert.company && (
-                  <div className="flex justify-between gap-4 border-b border-gray-100 pb-3">
-                    <span className="text-gray-500">Company</span>
-                    <span className="text-right font-semibold text-gray-900">{expert.company}</span>
-                  </div>
+            <SkillPills title="Top skills" items={topSkills.slice(0, 8)} />
+            <SkillPills title="Skills" items={remainingSkills.length ? remainingSkills : expert.skills} />
+            <Section title="Capabilities">
+              <div className="space-y-2">
+                {assignedCapabilities.length > 0 ? assignedCapabilities.map(capability => (
+                  <Link
+                    key={capability._id}
+                    to={`/capabilities/${capability.slug || capability._id}`}
+                    className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-800 hover:border-primary-200 hover:bg-primary-50"
+                  >
+                    {capability.title}
+                    <ArrowLeft className="h-4 w-4 rotate-180 text-primary-600" />
+                  </Link>
+                )) : (
+                  <p className="text-sm text-gray-600">No capabilities assigned yet.</p>
                 )}
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-500">Status</span>
-                  <span className="text-right font-semibold text-primary-700">Available</span>
-                </div>
               </div>
-            </section>
-
-            <PillList title="Expertise Areas" items={expert.expertiseAreas} />
-            <PillList title="Skills" items={expert.skills} />
-            <PillList title="Tags" items={expert.tags} />
-            <TextList title="Languages" items={expert.languages} icon={Languages} />
+            </Section>
             <Link to={capabilityPath} className="inline-flex w-full items-center justify-center rounded-full bg-primary-600 px-6 py-3 font-semibold text-white transition hover:bg-primary-700">
               <ArrowLeft className="mr-2 h-4 w-4" />
               {backLabel}
