@@ -14,16 +14,16 @@ export default function Hero() {
           
 
           <h1 className="mx-auto max-w-2xl pb-4 pt-12 text-4xl font-extrabold leading-[1.08] tracking-normal text-white lg:mx-0 sm:pt-6 sm:text-5xl lg:text-[2.75rem]">
-            Top 1% <br className="sm:hidden" />
-            <span className="text-cyan">Elite Experts</span>  <br className="sm:hidden" />
-            for Scaling Consumer Brands
+            Top 1% <br/>
+            <span className="text-cyan">Elite Consultants</span>  <br className="sm:hidden" />
+            for Scaling <br className="sm:hidden" /> FMCG & Consumer Business
           </h1>
 
           <p className="mx-auto mt-4 max-w-2xl py-3 text-2xl font-bold leading-snug text-cyan lg:mx-0 sm:text-3xl">
             Where <br className="sm:hidden" />Conscious Strategy <br/>meets AI-Powered <br className="sm:hidden" /><span className="text-cyan">10X Growth</span>.
           </p>
             <p className="py-3 text-2xl font-bold leading-7 text-slate-300 sm:text-lg">
-              Magnafic gives brands <br className="sm:hidden" />on-demand access to experienced <span className="text-cyan">Fractional CXOs</span> and <span className="text-cyan">CPG Consultants</span> tailored to their exact stage of growth.
+              Magnafic gives brands <br className="sm:hidden" />on-demand access to experienced <span className="text-cyan">Fractional CXOs</span> and <span className="text-cyan">Consultants</span> tailored to their exact stage of growth.
             </p>
 
             <p className="mx-auto mt-4 max-w-2xl py-3 text-2xl font-semibold leading-snug text-cyan lg:mx-0 sm:text-2xl">

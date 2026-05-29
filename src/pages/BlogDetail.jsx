@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar, Clock, FileText, Sparkles, Tag } from 'lucide-reac
 import { blogClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
 import { absoluteUrl } from '../lib/seo'
+import MagnaLoader from '../components/MagnaLoader'
 
 function formatDate(dateString) {
   if (!dateString) return ''
@@ -206,10 +207,7 @@ export default function BlogDetail() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white px-4 pt-32 pb-20">
-        <div className="mx-auto max-w-4xl text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-primary-600"></div>
-          <p className="mt-4 text-gray-600">Loading insight...</p>
-        </div>
+        <MagnaLoader message="Loading insight..." className="mx-auto max-w-4xl" />
       </div>
     )
   }

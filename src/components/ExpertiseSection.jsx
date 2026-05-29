@@ -7,11 +7,9 @@ export default function ExpertiseSection() {
       <div className="mb-10 mt-4 rounded-2xl px-4 py-8 sm:mb-12 sm:mt-8 sm:px-6 sm:py-12 lg:px-8" style={{ background: 'linear-gradient(135deg, #3533cd 0%, #00ffff 100%)' }}>
         <div className="max-w-7xl mx-auto text-center">
           <h2 className="text-3xl sm:text-3xl font-extrabold text-white mb-8 sm:mb-6 leading-tight">
-            Leverage the Top 1% of Best-in-Class CPG Industry Experts
+            Magnafic is India's first, end-to-end consulting platform <br/>built exclusively for FMCG Business, from Brand strategy to market scale.
           </h2>
-          <p className="text-2xl sm:text-xl font-bold text-white/80 leading-relaxed max-w-4xl mb-6 mx-auto">
-            Magnafic is India's first, distributed consulting network for bringing together elite consultants, fractional executives, and technology specialists.
-          </p>
+          
         </div>
       </div>
       <div className="max-w-7xl mx-auto">

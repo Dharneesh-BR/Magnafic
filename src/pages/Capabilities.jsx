@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
+import MagnaLoader from '../components/MagnaLoader'
 
 export default function Capabilities() {
   const [capabilities, setCapabilities] = useState([])
@@ -60,10 +61,7 @@ export default function Capabilities() {
       <section className="px-4 pb-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           {loading ? (
-            <div className="rounded-3xl bg-white p-8 text-center shadow-xl shadow-primary-900/5 sm:p-16">
-              <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-primary-600"></div>
-              <p className="mt-4 text-gray-600">Loading capabilities...</p>
-            </div>
+            <MagnaLoader message="Loading capabilities..." />
           ) : capabilities.length === 0 ? (
             <div className="rounded-3xl bg-white p-8 text-center shadow-xl shadow-primary-900/5 sm:p-12">
               <Sparkles className="mx-auto mb-4 h-12 w-12 text-primary-500" />

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Search, Filter, Star, MapPin, Clock, Award, ArrowRight, Users, Briefcase } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import { getExpertImage } from '../lib/expertImages'
+import MagnaLoader from '../components/MagnaLoader'
 
 export default function Experts() {
   const [experts, setExperts] = useState([])
@@ -124,10 +125,7 @@ export default function Experts() {
           </div>
 
           {loading ? (
-            <div className="rounded-3xl bg-white p-8 text-center shadow-xl shadow-primary-900/5 sm:p-16">
-              <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-primary-600"></div>
-              <p className="mt-4 text-gray-600">Loading experts...</p>
-            </div>
+            <MagnaLoader message="Loading experts..." />
           ) : filteredExperts.length === 0 ? (
             <div className="rounded-3xl bg-white p-8 text-center shadow-xl shadow-primary-900/5 sm:p-12">
               <Briefcase className="mx-auto mb-4 h-12 w-12 text-primary-500" />

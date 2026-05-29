@@ -4,6 +4,7 @@ import { ArrowRight, ChevronDown, Lightbulb, Sparkles, User } from 'lucide-react
 import { mentorClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
 import { absoluteUrl } from '../lib/seo'
+import MagnaLoader from '../components/MagnaLoader'
 
 function renderBlockText(block) {
   return block.children?.map(child => {
@@ -159,10 +160,7 @@ export default function CapabilityDetail() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f7f9ff] px-4 pt-32 pb-20">
-        <div className="mx-auto max-w-4xl rounded-[2rem] bg-white p-12 text-center shadow-xl shadow-primary-900/5">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-primary-600"></div>
-          <p className="mt-4 text-gray-600">Loading capability...</p>
-        </div>
+        <MagnaLoader message="Loading capability..." className="mx-auto max-w-4xl" />
       </div>
     )
   }

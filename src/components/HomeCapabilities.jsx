@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
+import MagnaLoader from './MagnaLoader'
 
 export default function HomeCapabilities() {
   const [capabilities, setCapabilities] = useState([])
@@ -32,10 +33,7 @@ export default function HomeCapabilities() {
   if (loading) {
     return (
       <section className="bg-[#f7f9ff] px-4 py-14 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl rounded-3xl bg-white p-8 text-center shadow-xl shadow-primary-900/5">
-          <div className="inline-block h-10 w-10 animate-spin rounded-full border-b-2 border-primary-600"></div>
-          <p className="mt-4 text-gray-600">Loading capabilities...</p>
-        </div>
+        <MagnaLoader message="Loading capabilities..." className="mx-auto max-w-3xl" />
       </section>
     )
   }
@@ -51,7 +49,7 @@ export default function HomeCapabilities() {
           </h2>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {capabilities.map((capability) => (
             <Link
               key={capability._id}

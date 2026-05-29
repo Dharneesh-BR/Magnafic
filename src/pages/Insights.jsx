@@ -2,6 +2,7 @@ import { FileText, Lightbulb, Briefcase, Calendar, Clock, Share2, Facebook, Link
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { blogClient, mentorClient } from '../lib/sanityClient'
+import MagnaLoader from '../components/MagnaLoader'
 
 export default function Insights() {
   const [activeTab, setActiveTab] = useState('all')
@@ -176,10 +177,7 @@ export default function Insights() {
           </div>
 
           {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <p className="mt-4 text-gray-600">Loading insights...</p>
-            </div>
+            <MagnaLoader message="Loading insights..." className="mx-auto max-w-3xl" />
           ) : (
             <>
               {/* Blog Posts Section */}
