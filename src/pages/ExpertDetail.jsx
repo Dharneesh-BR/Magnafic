@@ -210,6 +210,46 @@ function SkillPills({ title, items = [] }) {
   )
 }
 
+function RoadmapSection({ experienceItems = [] }) {
+  if (!experienceItems.length) return null
+
+  return (
+    <Section title="Roadmap">
+      <div className="relative space-y-4 overflow-hidden py-1">
+        <svg className="absolute left-6 top-6 h-[calc(100%-3rem)] w-12 overflow-visible" viewBox="0 0 48 420" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M20 0 C 2 58, 44 96, 22 154 S 5 260, 27 322 S 20 390, 28 420" fill="none" stroke="#1f2937" strokeWidth="12" strokeLinecap="round" />
+          <path d="M20 0 C 2 58, 44 96, 22 154 S 5 260, 27 322 S 20 390, 28 420" fill="none" stroke="#000047" strokeWidth="6" strokeLinecap="round" />
+          <path d="M23 8 C 8 62, 41 101, 24 156 S 10 260, 30 320 S 22 385, 30 412" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+        {experienceItems.map((item, index) => {
+          const yearLabel = item.startDate ? new Date(item.startDate).getFullYear() : formatYearRange(item.startDate, item.endDate, item.currentlyWorkingHere)
+
+          return (
+            <div key={`${item.companyName || item.roleTitle}-${index}`} className="relative grid grid-cols-[4.75rem_minmax(0,1fr)] items-center gap-3">
+              <div className="relative z-10 ml-1 flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-primary-500 bg-white shadow-lg shadow-primary-900/20">
+                {item.companyLogoUrl ? (
+                  <img src={item.companyLogoUrl} alt={item.companyName || 'Company logo'} className="h-full w-full object-contain p-2" />
+                ) : (
+                  <BriefcaseBusiness className="h-6 w-6 text-primary-600" />
+                )}
+              </div>
+              <div className="min-w-0 rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-lg shadow-gray-200/80">
+                {yearLabel && (
+                  <p className="text-base font-extrabold leading-none text-primary-600">{yearLabel}</p>
+                )}
+                <p className="mt-1 line-clamp-1 text-sm font-extrabold text-[#000047]">{item.companyName || item.roleTitle}</p>
+                {item.roleTitle && item.companyName && (
+                  <p className="mt-1 line-clamp-2 text-sm font-medium leading-5 text-gray-700">{item.roleTitle}</p>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </Section>
+  )
+}
+
 function FeaturedIcon(type) {
   if (type === 'video') return PlayCircle
   if (type === 'document') return FileText
@@ -273,8 +313,7 @@ export default function ExpertDetail() {
             credentialId,
             credentialUrl
           },
-          skills,
-          topSkills,
+          keySkills,
           featuredItems[]{
             title,
             description,
@@ -370,9 +409,7 @@ export default function ExpertDetail() {
   const company = expert.currentCompany || expert.company
   const location = expert.location || expert.city
   const intro = expert.profileIntro || expert.shortBio
-  const topSkills = toTextList(expert.topSkills)
-  const skillSet = new Set(topSkills.map(skill => skill.toLowerCase()))
-  const remainingSkills = toTextList(expert.skills).filter(skill => !skillSet.has(skill.toLowerCase()))
+  const keySkills = toTextList(expert.keySkills)
   const aboutContent = aboutBlocks.length ? aboutBlocks : <p className="text-base leading-7 text-gray-700">{expert.shortBio}</p>
   const featuredItems = (expert.featuredItems || []).filter(Boolean)
   const experienceItems = (expert.experience || []).filter(Boolean)
@@ -405,7 +442,7 @@ export default function ExpertDetail() {
               }
             : undefined,
           url: absoluteUrl(`/experts/${expert.slug || expert._id}`),
-          knowsAbout: [...toTextList(expert.skills), ...toTextList(expert.expertiseAreas)],
+          knowsAbout: [...keySkills, ...toTextList(expert.expertiseAreas)],
         }}
       />
       <div className="mx-auto max-w-6xl">
@@ -507,6 +544,10 @@ export default function ExpertDetail() {
             <Section title="About">
               <div className="space-y-4">{aboutContent}</div>
             </Section>
+
+            <div className="lg:hidden">
+              <RoadmapSection experienceItems={experienceItems} />
+            </div>
 
             {featuredItems.length > 0 && (
               <Section title="Featured">
@@ -678,64 +719,10 @@ export default function ExpertDetail() {
           </main>
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-            <SkillPills title="Top skills" items={topSkills.slice(0, 8)} />
-            <SkillPills title="Skills" items={remainingSkills.length ? remainingSkills : expert.skills} />
-            <Section title="Capabilities" variant="gradient">
-              <div className="space-y-2">
-                {assignedCapabilities.length > 0 ? assignedCapabilities.map(capability => (
-                  <Link
-                    key={capability._id}
-                    to={`/capabilities/${capability.slug || capability._id}`}
-                    className="group flex items-center justify-between rounded-xl border border-white/25 bg-white/14 px-4 py-3 text-sm font-bold text-white shadow-sm shadow-primary-950/10 backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-white/22"
-                  >
-                    {capability.title}
-                    <span className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/18 text-white ring-1 ring-white/25 transition group-hover:bg-white/25">
-                      <ArrowLeft className="h-4 w-4 rotate-180" />
-                    </span>
-                  </Link>
-                )) : (
-                  <p className="text-sm text-white/80">No capabilities assigned yet.</p>
-                )}
-              </div>
-            </Section>
-
-            {experienceItems.length > 0 && (
-              <Section title="Roadmap">
-                <div className="relative space-y-4 overflow-hidden py-1">
-                  <svg className="absolute left-6 top-6 h-[calc(100%-3rem)] w-12 overflow-visible" viewBox="0 0 48 420" preserveAspectRatio="none" aria-hidden="true">
-                    <path d="M20 0 C 2 58, 44 96, 22 154 S 5 260, 27 322 S 20 390, 28 420" fill="none" stroke="#1f2937" strokeWidth="12" strokeLinecap="round" />
-                    <path d="M20 0 C 2 58, 44 96, 22 154 S 5 260, 27 322 S 20 390, 28 420" fill="none" stroke="#000047" strokeWidth="6" strokeLinecap="round" />
-                    <path d="M23 8 C 8 62, 41 101, 24 156 S 10 260, 30 320 S 22 385, 30 412" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                  {experienceItems.map((item, index) => {
-                    const yearLabel = item.startDate ? new Date(item.startDate).getFullYear() : formatYearRange(item.startDate, item.endDate, item.currentlyWorkingHere)
-
-                    return (
-                      <div key={`${item.companyName || item.roleTitle}-${index}`} className="relative grid grid-cols-[4.75rem_minmax(0,1fr)] items-center gap-3">
-                        <div className="relative z-10 ml-1 flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-primary-500 bg-white shadow-lg shadow-primary-900/20">
-                          {item.companyLogoUrl ? (
-                            <img src={item.companyLogoUrl} alt={item.companyName || 'Company logo'} className="h-full w-full object-contain p-2" />
-                          ) : (
-                            <BriefcaseBusiness className="h-6 w-6 text-primary-600" />
-                          )}
-                        </div>
-                        <div className="min-w-0 rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-lg shadow-gray-200/80">
-                          {yearLabel && (
-                            <p className="text-base font-extrabold leading-none text-primary-600">
-                              {yearLabel}
-                            </p>
-                          )}
-                          <p className="mt-1 line-clamp-1 text-sm font-extrabold text-[#000047]">{item.companyName || item.roleTitle}</p>
-                          {item.roleTitle && item.companyName && (
-                            <p className="mt-1 line-clamp-2 text-sm font-medium leading-5 text-gray-700">{item.roleTitle}</p>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </Section>
-            )}
+            <SkillPills title="Key skills" items={keySkills} />
+            <div className="hidden lg:block">
+              <RoadmapSection experienceItems={experienceItems} />
+            </div>
           </aside>
         </div>
 

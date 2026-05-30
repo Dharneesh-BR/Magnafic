@@ -301,16 +301,10 @@ export const mentorSchema = defineType({
       ],
     }),
     defineField({
-      name: 'skills',
-      title: 'Skills',
+      name: 'keySkills',
+      title: 'Key Skills',
       type: 'array',
-      of: [{ type: 'string' }],
-    }),
-    defineField({
-      name: 'topSkills',
-      title: 'Top Skills',
-      type: 'array',
-      description: 'Highlighted skills shown prominently on the profile.',
+      description: 'Primary skills shown on the expert profile.',
       of: [{ type: 'string' }],
     }),
     defineField({
