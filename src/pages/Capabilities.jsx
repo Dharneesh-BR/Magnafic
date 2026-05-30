@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, BarChart3, BrainCircuit, BriefcaseBusiness, CheckCircle2, Network, ShoppingBag, Sparkles, Target, TrendingUp } from 'lucide-react'
+import { ArrowRight, BarChart3, Bot, BrainCircuit, BriefcaseBusiness, CheckCircle2, Globe2, Lightbulb, Network, ShoppingBag, ShoppingCart, Sparkles, Target, TrendingUp, User } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import MagnaLoader from '../components/MagnaLoader'
 
@@ -13,6 +13,11 @@ const capabilityIcons = {
   network: Network,
   briefcase: BriefcaseBusiness,
   'bar-chart': BarChart3,
+  'shopping-cart': ShoppingCart,
+  lightbulb: Lightbulb,
+  globe: Globe2,
+  user: User,
+  bot: Bot,
 }
 
 export default function Capabilities() {

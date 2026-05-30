@@ -16,7 +16,7 @@ export default function Hero() {
           <h1 className="mx-auto max-w-2xl pb-4 pt-12 text-4xl font-extrabold leading-[1.08] tracking-normal text-white lg:mx-0 sm:pt-6 sm:text-5xl lg:text-[2.75rem]">
             Top 1% <br/>
             <span className="text-cyan">Elite Consultants</span>  <br className="sm:hidden" />
-            for Scaling <br className="sm:hidden" /> FMCG & Consumer Business
+            for Scaling <br className="sm:hidden" /> Consumer Products Business
           </h1>
 
           <p className="mx-auto mt-4 max-w-2xl py-3 text-2xl font-bold leading-snug text-cyan lg:mx-0 sm:text-3xl">
