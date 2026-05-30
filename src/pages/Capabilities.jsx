@@ -1,8 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, BarChart3, BrainCircuit, BriefcaseBusiness, CheckCircle2, Network, ShoppingBag, Sparkles, Target, TrendingUp } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import MagnaLoader from '../components/MagnaLoader'
+
+const capabilityIcons = {
+  sparkles: Sparkles,
+  'trending-up': TrendingUp,
+  target: Target,
+  'brain-circuit': BrainCircuit,
+  'shopping-bag': ShoppingBag,
+  network: Network,
+  briefcase: BriefcaseBusiness,
+  'bar-chart': BarChart3,
+}
 
 export default function Capabilities() {
   const [capabilities, setCapabilities] = useState([])
@@ -11,11 +22,12 @@ export default function Capabilities() {
   useEffect(() => {
     const fetchCapabilities = async () => {
       try {
-        const query = `*[_type == "capabilities"] | order(title asc) {
+        const query = `*[_type == "capabilities"] | order(coalesce(displayOrder, 9999) asc, title asc) {
           _id,
           "slug": slug.current,
           title,
           subtitle,
+          icon,
           aboutCapabilities,
           useCases,
           useCasesList[]{
@@ -70,12 +82,16 @@ export default function Capabilities() {
             </div>
           ) : (
             <div className="grid gap-7 md:grid-cols-2 lg:grid-cols-3">
-              {capabilities.map((capability) => (
+              {capabilities.map((capability) => {
+                const Icon = capabilityIcons[capability.icon] || capabilityIcons.sparkles
+
+                return (
                 <article key={capability._id} className="group flex h-full flex-col overflow-hidden rounded-[1.5rem] bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/10">
                   <div className="relative flex h-32 items-center justify-center overflow-hidden bg-gradient-to-br from-primary-900 via-primary-700 to-cyan-500">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.22),transparent_30%)]"></div>
-                    <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur">
-                      <Sparkles className="h-8 w-8 text-white" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.22),transparent_30%),radial-gradient(circle_at_82%_78%,rgba(0,255,255,0.35),transparent_26%)]"></div>
+                    <div className="absolute -right-8 -bottom-8 h-24 w-24 rounded-full border-2 border-white/35 transition duration-300 group-hover:scale-110"></div>
+                    <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 shadow-lg shadow-primary-950/20 ring-1 ring-white/30 backdrop-blur">
+                      <Icon className="h-8 w-8 text-white" />
                     </div>
                   </div>
 
@@ -111,7 +127,8 @@ export default function Capabilities() {
                     </Link>
                   </div>
                 </article>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

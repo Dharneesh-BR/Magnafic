@@ -84,6 +84,15 @@ function renderBio(blocks = []) {
   return rendered
 }
 
+function renderTextParagraphs(text = '') {
+  if (typeof text !== 'string') return []
+
+  return text
+    .split(/\n{2,}/)
+    .map(paragraph => paragraph.trim())
+    .filter(Boolean)
+}
+
 export default function CapabilityDetail() {
   const { id } = useParams()
   const [capability, setCapability] = useState(null)
@@ -109,13 +118,23 @@ export default function CapabilityDetail() {
           useCasesList[]{
             title,
             description
+          },
+          orderedExperts[]->{
+            _id,
+            "slug": slug.current,
+            fullName,
+            "imageUrl": profileImage.asset->url,
+            headline,
+            currentDesignation,
+            location,
+            designation,
+            city
           }
         }`
 
         const data = await mentorClient.fetch(query, { id })
         setCapability(data)
 
-        // Fetch mentors tagged to this capability
         if (data?._id) {
           const servicesQuery = `*[_type == "services" && capability._ref == $capabilityId] | order(title asc) {
             _id,
@@ -129,20 +148,7 @@ export default function CapabilityDetail() {
           }`
           const servicesData = await mentorClient.fetch(servicesQuery, { capabilityId: data._id })
           setServices(servicesData || [])
-
-          const mentorsQuery = `*[_type == "mentor" && (capability._ref == $capabilityId || $capabilityId in capabilities[]._ref)] {
-            _id,
-            "slug": slug.current,
-            fullName,
-            "imageUrl": profileImage.asset->url,
-            designation,
-            shortBio,
-            rating,
-            yearsOfExperience,
-            city
-          }`
-          const mentorsData = await mentorClient.fetch(mentorsQuery, { capabilityId: data._id })
-          setMentors(mentorsData || [])
+          setMentors((data.orderedExperts || []).filter(Boolean))
         }
       } catch (fetchError) {
         console.error('Error fetching capability:', fetchError)
@@ -156,6 +162,7 @@ export default function CapabilityDetail() {
   }, [id])
 
   const aboutContent = useMemo(() => renderBio(capability?.aboutCapabilities), [capability?.aboutCapabilities])
+  const useCaseParagraphs = useMemo(() => renderTextParagraphs(capability?.useCases || ''), [capability?.useCases])
 
   if (loading) {
     return (
@@ -252,81 +259,6 @@ export default function CapabilityDetail() {
         </section>
       ) : null}
 
-      {/* Mentors Section */}
-      {mentors.length > 0 && (
-        <section className="px-4 py-12 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <div className="mb-8 flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
-                <User className="h-6 w-6" />
-              </span>
-              <h2 className="text-2xl font-bold text-center text-gray-950 sm:text-3xl">Explore Experts</h2>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {mentors.map((mentor) => (
-                <Link
-                  key={mentor._id}
-                  to={`/experts/${mentor.slug || mentor._id}`}
-                  className="group relative flex h-full flex-col overflow-hidden rounded-3xl bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/10"
-                >
-                  <div className="relative h-36 overflow-visible bg-gradient-to-br from-primary-900 via-primary-700 to-cyan-500 sm:h-40">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.22),transparent_30%)]"></div>
-                    <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,255,255,0.18),transparent_45%,rgba(255,255,255,0.16))]"></div>
-                    <img
-                      src="/favicon.png"
-                      alt=""
-                      aria-hidden="true"
-                      className="absolute right-4 top-4 h-14 w-14 p-1.5"
-                    />
-                    {mentor.imageUrl ? (
-                      <img
-                        src={mentor.imageUrl}
-                        alt={mentor.fullName}
-                        className="absolute left-1/2 bottom-6 h-36 w-36 -translate-x-1/2 translate-y-1/2 rounded-full border-4 border-white bg-white object-cover shadow-xl shadow-primary-900/20 transition duration-300 group-hover:scale-105 sm:h-40 sm:w-40"
-                      />
-                    ) : (
-                      <div className="absolute left-1/2 bottom-6 flex h-36 w-36 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-primary-100 shadow-xl shadow-primary-900/20 sm:h-40 sm:w-40">
-                        <User className="h-16 w-16 text-primary-600" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-1 flex-col p-5 pt-16 pb-7 text-center sm:p-6 sm:pt-20 sm:pb-8">
-                    <h3 className="text-xl font-bold text-gray-950 sm:text-2xl">{mentor.fullName}</h3>
-                    {mentor.designation && (
-                      <p className="mt-1 font-semibold text-primary-600">{mentor.designation}</p>
-                    )}
-                    {mentor.shortBio && (
-                      <p className="mt-4 line-clamp-3 text-sm leading-6 text-gray-600">{mentor.shortBio}</p>
-                    )}
-
-                    <div className="mt-auto flex items-center justify-center gap-4 pt-4 text-sm text-gray-600">
-                      {mentor.rating && (
-                        <div className="flex items-center gap-1">
-                          <span className="font-semibold text-primary-600">{mentor.rating}</span>
-                          <span className="text-gray-500">★</span>
-                        </div>
-                      )}
-                      {mentor.yearsOfExperience && (
-                        <span>{mentor.yearsOfExperience} years exp.</span>
-                      )}
-                      {mentor.city && (
-                        <span>{mentor.city}</span>
-                      )}
-                    </div>
-                    <span className="mx-auto mt-5 inline-flex items-center justify-center rounded-full bg-[#000047] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600 group-hover:shadow-primary-600/30">
-                      View Profile
-                      <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-0.5" />
-                    </span>
-                  </div>
-                  <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400"></div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Use Cases Section */}
       {capability.useCases || (capability.useCasesList && capability.useCasesList.length > 0) ? (
@@ -340,24 +272,30 @@ export default function CapabilityDetail() {
 
             {/* Use Cases Description */}
             {capability.useCases && (
-              <div className="mb-8 rounded-3xl bg-white/10 p-6 shadow-xl backdrop-blur-sm">
-                <p className="text-lg leading-8 text-white">{capability.useCases}</p>
+              <div className="mb-8 space-y-5 rounded-3xl bg-white/10 p-6 shadow-xl backdrop-blur-sm">
+                {useCaseParagraphs.map((paragraph) => (
+                  <p key={paragraph} className="text-lg leading-8 text-white">{paragraph}</p>
+                ))}
               </div>
             )}
 
             {/* Use Cases Cards Grid */}
             {capability.useCasesList && capability.useCasesList.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-6">
+              <div className="flex flex-wrap items-start justify-center gap-6">
                 {capability.useCasesList.map((useCase, index) => (
-                  <div key={index} className="group relative w-full overflow-hidden rounded-3xl bg-white shadow-xl shadow-primary-950/10 ring-1 ring-white/20 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/10 sm:w-[calc(50%_-_0.75rem)] lg:w-[calc(33.333333%_-_1rem)]">
+                  <div
+                    key={index}
+                    onMouseEnter={() => setOpenUseCase(index)}
+                    onMouseLeave={() => setOpenUseCase(null)}
+                    onFocus={() => setOpenUseCase(index)}
+                    onBlur={() => setOpenUseCase(null)}
+                    className="group relative w-full overflow-hidden rounded-3xl bg-white shadow-xl shadow-primary-950/10 ring-1 ring-white/20 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/10 sm:w-[calc(50%_-_0.75rem)] lg:w-[calc(33.333333%_-_1rem)]"
+                  >
                     <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-cyan-300 via-white to-primary-400"></div>
                     <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-cyan-100/80 transition duration-300 group-hover:scale-110"></div>
                     <div className="absolute bottom-0 left-0 h-20 w-20 rounded-tr-full bg-primary-50"></div>
 
-                    <button
-                      onClick={() => setOpenUseCase(openUseCase === index ? null : index)}
-                      className="relative flex min-h-32 w-full items-start justify-between gap-4 p-6 text-left"
-                    >
+                    <div className="relative flex min-h-32 w-full items-start justify-between gap-4 p-6 text-left" tabIndex={0}>
                       <div>
                         <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#000047] text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600">
                           <Sparkles className="h-5 w-5" />
@@ -367,7 +305,7 @@ export default function CapabilityDetail() {
                       <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600 transition group-hover:bg-primary-600 group-hover:text-white">
                         <ChevronDown className={`h-5 w-5 transition-transform duration-300 ${openUseCase === index ? 'rotate-180' : ''}`} />
                       </span>
-                    </button>
+                    </div>
                     {openUseCase === index && useCase.description && (
                       <div className="relative px-6 pb-6">
                         <div className="border-t border-gray-100 pt-5">
@@ -382,6 +320,75 @@ export default function CapabilityDetail() {
           </div>
         </section>
       ) : null}
+
+      {/* Mentors Section */}
+      {mentors.length > 0 && (
+        <section className="px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-8 flex items-center gap-3">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
+                <User className="h-6 w-6" />
+              </span>
+              <h2 className="text-2xl font-bold text-center text-gray-950 sm:text-3xl">Explore Experts</h2>
+            </div>
+
+            <div className="expert-scroller overflow-x-auto pb-7">
+              <div className="flex snap-x snap-mandatory gap-4">
+              {mentors.map((mentor) => (
+                <Link
+                  key={mentor._id}
+                  to={`/experts/${mentor.slug || mentor._id}`}
+                  className="group relative flex h-[22rem] w-[17rem] shrink-0 snap-start flex-col overflow-hidden rounded-3xl bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/10 sm:h-[23rem] sm:w-[18rem] lg:w-[calc((100%_-_4rem)/5)]"
+                >
+                  <div className="relative h-24 overflow-visible bg-gradient-to-br from-primary-900 via-primary-700 to-cyan-500 sm:h-28">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.22),transparent_30%)]"></div>
+                    <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,255,255,0.18),transparent_45%,rgba(255,255,255,0.16))]"></div>
+                    <img
+                      src="/favicon.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="absolute right-3 top-3 h-10 w-10 p-1"
+                    />
+                    {mentor.imageUrl ? (
+                      <img
+                        src={mentor.imageUrl}
+                        alt={mentor.fullName}
+                        className="absolute left-1/2 bottom-4 h-24 w-24 -translate-x-1/2 translate-y-1/2 rounded-full border-4 border-white bg-white object-cover shadow-xl shadow-primary-900/20 transition duration-300 group-hover:scale-105 sm:h-28 sm:w-28"
+                      />
+                    ) : (
+                      <div className="absolute left-1/2 bottom-4 flex h-24 w-24 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-primary-100 shadow-xl shadow-primary-900/20 sm:h-28 sm:w-28">
+                        <User className="h-10 w-10 text-primary-600" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-1 flex-col p-4 pt-14 pb-6 text-center sm:p-4 sm:pt-16">
+                    <h3 className="line-clamp-2 min-h-[2.75rem] text-lg font-bold leading-tight text-gray-950">{mentor.fullName}</h3>
+                    {(mentor.headline || mentor.currentDesignation || mentor.designation) && (
+                      <p className="mt-0 line-clamp-3 min-h-[3.35rem] text-[12px] font-medium leading-[18px] text-primary-600">{mentor.headline || mentor.currentDesignation || mentor.designation}</p>
+                    )}
+                    {!(mentor.headline || mentor.currentDesignation || mentor.designation) && (
+                      <span className="mt-0.5 block min-h-[3.35rem]" aria-hidden="true"></span>
+                    )}
+                    {(mentor.location || mentor.city) && (
+                      <p className="mt-3 line-clamp-1 min-h-[1rem] text-xs font-medium text-gray-600">{mentor.location || mentor.city}</p>
+                    )}
+                    {!(mentor.location || mentor.city) && (
+                      <span className="mt-3 block min-h-[1rem]" aria-hidden="true"></span>
+                    )}
+                    <span className="mx-auto mt-auto inline-flex items-center justify-center rounded-full bg-[#000047] px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600 group-hover:shadow-primary-600/30">
+                      View Profile
+                      <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-0.5" />
+                    </span>
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400"></div>
+                </Link>
+              ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

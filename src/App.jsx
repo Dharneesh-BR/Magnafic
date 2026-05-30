@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { useEffect } from 'react'
 import Header from './components/Header'
 import Footer from './components/Footer'
+import ErrorBoundary from './components/ErrorBoundary'
 import Home from './pages/Home'
 import Experts from './pages/Experts'
 import ExpertDetail from './pages/ExpertDetail'
@@ -32,14 +33,15 @@ function ScrollToTop() {
   return null
 }
 
-function App() {
+function AppContent() {
+  const location = useLocation()
+
   return (
-    <Router>
-      <ScrollToTop />
-      <div className="min-h-screen">
-        <SEO />
-        <Header />
-        <main>
+    <div className="min-h-screen">
+      <SEO />
+      <Header />
+      <main>
+        <ErrorBoundary resetKey={location.pathname}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/experts" element={<Experts />} />
@@ -59,9 +61,18 @@ function App() {
             <Route path="/capabilities/:id" element={<CapabilityDetail />} />
             <Route path="/services/:id" element={<ServiceDetail />} />
           </Routes>
-        </main>
-        <Footer />
-      </div>
+        </ErrorBoundary>
+      </main>
+      <Footer />
+    </div>
+  )
+}
+
+function App() {
+  return (
+    <Router>
+      <ScrollToTop />
+      <AppContent />
     </Router>
   )
 }

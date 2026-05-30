@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Filter, Star, MapPin, Clock, Award, ArrowRight, Users, Briefcase } from 'lucide-react'
+import { Search, Filter, MapPin, ArrowRight, Briefcase } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import { getExpertImage } from '../lib/expertImages'
 import MagnaLoader from '../components/MagnaLoader'
@@ -13,34 +13,16 @@ export default function Experts() {
   useEffect(() => {
     const fetchExperts = async () => {
       try {
-        const query = `*[_type == "mentor"] | order(featured desc, rating desc, fullName asc) {
+        const query = `*[_type == "mentor"] | order(fullName asc) {
           _id,
           fullName,
           "slug": slug.current,
           "imageUrl": profileImage.asset->url,
+          headline,
+          currentDesignation,
+          location,
           designation,
-          company,
-          shortBio,
-          expertiseAreas,
-          yearsOfExperience,
-          industry,
-          skills,
-          rating,
-          totalSessions,
-          workshopCount,
-          courseCount,
-          city,
-          featured,
-          capability->{
-            _id,
-            title,
-            "slug": slug.current
-          },
-          capabilities[]->{
-            _id,
-            title,
-            "slug": slug.current
-          }
+          city
         }`
 
         const data = await mentorClient.fetch(query)
@@ -63,15 +45,11 @@ export default function Experts() {
     return experts.filter(expert => {
       const searchable = [
         expert.fullName,
+        expert.headline,
+        expert.currentDesignation,
         expert.designation,
-        expert.company,
-        expert.shortBio,
-        expert.industry,
+        expert.location,
         expert.city,
-        expert.capability?.title,
-        ...(expert.expertiseAreas || []),
-        ...(expert.skills || []),
-        ...(expert.capabilities || []).map(capability => capability.title)
       ]
         .filter(Boolean)
         .join(' ')
@@ -88,10 +66,6 @@ export default function Experts() {
         <div className="relative mx-auto max-w-7xl">
           <div className="grid gap-10 lg:grid-cols-[1fr_380px] lg:items-end">
             <div>
-              <span className="mb-5 inline-flex items-center rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-cyan-100 ring-1 ring-white/15">
-                <Award className="mr-2 h-4 w-4" />
-                Expert Network
-              </span>
               <h1 className="max-w-4xl text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">
                 Find Expert Consultants
               </h1>
@@ -151,78 +125,20 @@ export default function Experts() {
                         </div>
                       )}
                     </div>
-                    {expert.featured && (
-                      <span className="absolute left-4 top-4 inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-bold text-primary-700 shadow-lg">
-                        <Award className="mr-1 h-3.5 w-3.5" />
-                        Featured
-                      </span>
-                    )}
-                    <div className="absolute bottom-4 right-4 flex items-center rounded-full bg-white px-3 py-1.5 text-sm font-bold text-gray-900 shadow-lg">
-                      <Star className="mr-1 h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      {expert.rating || 'New'}
-                    </div>
                   </div>
 
                   <div className="flex flex-1 flex-col p-5 sm:p-6">
                     <h3 className="text-xl font-bold text-gray-950 sm:text-2xl">{expert.fullName}</h3>
-                    <p className="mt-1 font-semibold text-primary-600">{expert.designation || 'Expert Mentor'}</p>
-                    {expert.company && <p className="mt-1 text-sm font-medium text-gray-500">{expert.company}</p>}
-
-                    <p className="mt-5 line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-gray-600">{expert.shortBio}</p>
+                    <p className="mt-1 line-clamp-2 font-semibold text-primary-600">{expert.headline || expert.currentDesignation || expert.designation || 'Expert Mentor'}</p>
 
                     <div className="mt-5 space-y-2 text-sm text-gray-600">
-                      {expert.city && (
+                      {(expert.location || expert.city) && (
                         <div className="flex items-center">
                           <MapPin className="mr-2 h-4 w-4 text-primary-500" />
-                          {expert.city}
+                          {expert.location || expert.city}
                         </div>
                       )}
-                      {expert.yearsOfExperience ? (
-                        <div className="flex items-center">
-                          <Clock className="mr-2 h-4 w-4 text-primary-500" />
-                          {expert.yearsOfExperience}+ years experience
-                        </div>
-                      ) : null}
-                      {expert.totalSessions ? (
-                        <div className="flex items-center">
-                          <Users className="mr-2 h-4 w-4 text-primary-500" />
-                          {expert.totalSessions} sessions
-                        </div>
-                      ) : null}
                     </div>
-
-                    {expert.expertiseAreas?.length ? (
-                      <div className="mt-5 flex flex-wrap gap-2">
-                        {expert.expertiseAreas.slice(0, 3).map(area => (
-                          <span key={area} className="rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700">
-                            {area}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-
-                    {expert.capabilities?.length ? (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {expert.capabilities.slice(0, 2).map(capability => (
-                          <Link
-                            key={capability._id}
-                            to={`/capabilities/${capability.slug || capability._id}`}
-                            className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:bg-primary-50 hover:text-primary-700"
-                          >
-                            {capability.title}
-                          </Link>
-                        ))}
-                      </div>
-                    ) : expert.capability ? (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Link
-                          to={`/capabilities/${expert.capability.slug || expert.capability._id}`}
-                          className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:bg-primary-50 hover:text-primary-700"
-                        >
-                          {expert.capability.title}
-                        </Link>
-                      </div>
-                    ) : null}
 
                     <Link
                       to={`/experts/${expert.slug || expert._id}`}

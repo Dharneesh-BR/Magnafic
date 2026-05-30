@@ -4,6 +4,23 @@ import { ArrowRight, Building2, Lock, Mail, User, Eye, EyeOff } from 'lucide-rea
 import SEO from '../components/SEO'
 import { isProfessionalEmail, signupClient } from '../lib/auth'
 
+function getSignupErrorMessage(error) {
+  switch (error?.code) {
+    case 'auth/email-already-in-use':
+      return 'An account already exists with this email. Please log in or use a different professional email.'
+    case 'auth/invalid-email':
+      return 'Please enter a valid professional email address.'
+    case 'auth/weak-password':
+      return 'Please use a stronger password with at least 8 characters.'
+    case 'auth/operation-not-allowed':
+      return 'Email signup is not enabled in Firebase Authentication. Please enable Email/Password sign-in in Firebase.'
+    case 'permission-denied':
+      return 'Your account was created, but the profile could not be saved. Please check Firestore permissions.'
+    default:
+      return 'Unable to create your account right now. Please check the details and try again.'
+  }
+}
+
 export default function ClientSignup() {
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
@@ -37,7 +54,7 @@ export default function ClientSignup() {
       navigate('/')
     } catch (signupError) {
       console.error('Firebase signup failed:', signupError)
-      setError('Unable to create your account. Please try again with a different email or password.')
+      setError(getSignupErrorMessage(signupError))
     } finally {
       setSubmitting(false)
     }

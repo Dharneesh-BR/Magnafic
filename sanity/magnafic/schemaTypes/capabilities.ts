@@ -27,6 +27,45 @@ export const capabilitiesSchema = defineType({
       type: 'string',
     }),
     defineField({
+      name: 'displayOrder',
+      title: 'Display Order',
+      type: 'number',
+      description: 'Controls the order of capabilities across the website. Lower numbers appear first.',
+      validation: (Rule) => Rule.integer().min(0),
+    }),
+    defineField({
+      name: 'icon',
+      title: 'Card Icon',
+      type: 'string',
+      description: 'Choose the icon shown on capability cards.',
+      options: {
+        list: [
+          { title: 'Sparkles', value: 'sparkles' },
+          { title: 'Trending Up', value: 'trending-up' },
+          { title: 'Target', value: 'target' },
+          { title: 'Brain Circuit', value: 'brain-circuit' },
+          { title: 'Shopping Bag', value: 'shopping-bag' },
+          { title: 'Network', value: 'network' },
+          { title: 'Briefcase', value: 'briefcase' },
+          { title: 'Bar Chart', value: 'bar-chart' },
+        ],
+        layout: 'dropdown',
+      },
+      initialValue: 'sparkles',
+    }),
+    defineField({
+      name: 'orderedExperts',
+      title: 'Ordered Experts',
+      type: 'array',
+      description: 'Drag experts into the order they should appear for this capability. Experts listed here appear first.',
+      of: [
+        {
+          type: 'reference',
+          to: [{ type: 'mentor' }],
+        },
+      ],
+    }),
+    defineField({
       name: 'aboutCapabilities',
       title: 'About Capabilities',
       type: 'array',
@@ -82,6 +121,13 @@ export const capabilitiesSchema = defineType({
     select: {
       title: 'title',
       subtitle: 'subtitle',
+      displayOrder: 'displayOrder',
+    },
+    prepare({ title, subtitle, displayOrder }) {
+      return {
+        title,
+        subtitle: `${displayOrder ?? 'No order'}${subtitle ? ` - ${subtitle}` : ''}`,
+      }
     },
   },
 })

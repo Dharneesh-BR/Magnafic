@@ -200,7 +200,7 @@ function SkillPills({ title, items = [] }) {
   )
 }
 
-function FeaturedIcon({ type }) {
+function FeaturedIcon(type) {
   if (type === 'video') return PlayCircle
   if (type === 'document') return FileText
   return ExternalLink
@@ -299,12 +299,7 @@ export default function ExpertDetail() {
           expertiseAreas,
           industry,
           city,
-          capability->{
-            _id,
-            title,
-            "slug": slug.current
-          },
-          capabilities[]->{
+          "capabilities": *[_type == "capabilities" && ^._id in orderedExperts[]._ref] | order(coalesce(displayOrder, 9999) asc, title asc) {
             _id,
             title,
             "slug": slug.current
@@ -354,10 +349,7 @@ export default function ExpertDetail() {
   }
 
   const expertImage = getExpertImage(expert)
-  const assignedCapabilities = [
-    ...(expert.capabilities || []),
-    ...(expert.capability ? [expert.capability] : []),
-  ].filter((capability, index, capabilities) => (
+  const assignedCapabilities = (expert.capabilities || []).filter((capability, index, capabilities) => (
     capability?._id && capabilities.findIndex(item => item?._id === capability._id) === index
   ))
   const primaryCapability = assignedCapabilities[0]
@@ -371,6 +363,12 @@ export default function ExpertDetail() {
   const skillSet = new Set(topSkills.map(skill => skill.toLowerCase()))
   const remainingSkills = toTextList(expert.skills).filter(skill => !skillSet.has(skill.toLowerCase()))
   const aboutContent = aboutBlocks.length ? aboutBlocks : <p className="text-base leading-7 text-gray-700">{expert.shortBio}</p>
+  const featuredItems = (expert.featuredItems || []).filter(Boolean)
+  const experienceItems = (expert.experience || []).filter(Boolean)
+  const educationItems = (expert.education || []).filter(Boolean)
+  const certificationItems = (expert.certifications || []).filter(Boolean)
+  const projectItems = (expert.projects || []).filter(Boolean)
+  const recommendationItems = (expert.recommendations || []).filter(Boolean)
 
   return (
     <div className="min-h-screen bg-[#f3f2ef] px-4 pt-24 pb-12 sm:px-6 lg:px-8">
@@ -471,10 +469,10 @@ export default function ExpertDetail() {
               <div className="space-y-4">{aboutContent}</div>
             </Section>
 
-            {Array.isArray(expert.featuredItems) && expert.featuredItems.length > 0 && (
+            {featuredItems.length > 0 && (
               <Section title="Featured">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {expert.featuredItems.map((item, index) => {
+                  {featuredItems.map((item, index) => {
                     const Icon = FeaturedIcon(item.type)
                     const CardTag = item.link ? 'a' : 'div'
 
@@ -508,10 +506,10 @@ export default function ExpertDetail() {
               </Section>
             )}
 
-            {Array.isArray(expert.experience) && expert.experience.length > 0 && (
+            {experienceItems.length > 0 && (
               <Section title="Experience">
                 <div className="space-y-6">
-                  {expert.experience.map((item, index) => (
+                  {experienceItems.map((item, index) => (
                     <article key={`${item.roleTitle}-${index}`} className="flex gap-4 border-b border-gray-100 pb-6 last:border-0 last:pb-0">
                       <LogoFrame src={item.companyLogoUrl} alt={item.companyName || item.roleTitle} />
                       <div className="min-w-0 flex-1">
@@ -545,10 +543,10 @@ export default function ExpertDetail() {
               </Section>
             )}
 
-            {Array.isArray(expert.education) && expert.education.length > 0 && (
+            {educationItems.length > 0 && (
               <Section title="Education">
                 <div className="space-y-6">
-                  {expert.education.map((item, index) => (
+                  {educationItems.map((item, index) => (
                     <article key={`${item.schoolName}-${index}`} className="flex gap-4 border-b border-gray-100 pb-6 last:border-0 last:pb-0">
                       <LogoFrame src={item.schoolLogoUrl} alt={item.schoolName} fallback={GraduationCap} />
                       <div>
@@ -563,10 +561,10 @@ export default function ExpertDetail() {
               </Section>
             )}
 
-            {Array.isArray(expert.certifications) && expert.certifications.length > 0 && (
+            {certificationItems.length > 0 && (
               <Section title="Licenses & Certifications">
                 <div className="space-y-6">
-                  {expert.certifications.map((item, index) => (
+                  {certificationItems.map((item, index) => (
                     <article key={`${item.certificationName}-${index}`} className="flex gap-4 border-b border-gray-100 pb-6 last:border-0 last:pb-0">
                       <LogoFrame src={item.organizationLogoUrl} alt={item.issuingOrganization} fallback={Award} />
                       <div>
@@ -589,10 +587,10 @@ export default function ExpertDetail() {
               </Section>
             )}
 
-            {Array.isArray(expert.projects) && expert.projects.length > 0 && (
+            {projectItems.length > 0 && (
               <Section title="Projects / Case Studies">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {expert.projects.map((item, index) => (
+                  {projectItems.map((item, index) => (
                     <article key={`${item.projectTitle}-${index}`} className="overflow-hidden rounded-lg border border-gray-200">
                       <div className="flex aspect-[16/9] items-center justify-center bg-gray-100 text-gray-400">
                         {item.projectImageUrl ? (
@@ -619,10 +617,10 @@ export default function ExpertDetail() {
               </Section>
             )}
 
-            {Array.isArray(expert.recommendations) && expert.recommendations.length > 0 && (
+            {recommendationItems.length > 0 && (
               <Section title="Recommendations">
                 <div className="space-y-5">
-                  {expert.recommendations.map((item, index) => (
+                  {recommendationItems.map((item, index) => (
                     <article key={`${item.name}-${index}`} className="border-b border-gray-100 pb-5 last:border-0 last:pb-0">
                       <div className="flex gap-3">
                         <LogoFrame src={item.profileImageUrl} alt={item.name} fallback={UserRound} />

@@ -486,29 +486,6 @@ export const mentorSchema = defineType({
         },
       ],
     }),
-    defineField({
-      name: 'capability',
-      title: 'Primary Capability (legacy)',
-      type: 'reference',
-      description: 'Legacy single capability field. Use Capabilities below for assigning an expert to one or more capabilities.',
-      deprecated: {
-        reason: 'Use the Capabilities field to assign one expert to multiple capabilities.',
-      },
-      to: [{ type: 'capabilities' }],
-    }),
-    defineField({
-      name: 'capabilities',
-      title: 'Capabilities',
-      type: 'array',
-      description: 'Assign this expert to one or more capabilities. The expert will appear on each selected capability detail page.',
-      of: [
-        {
-          type: 'reference',
-          to: [{ type: 'capabilities' }],
-        },
-      ],
-      validation: (Rule) => Rule.unique(),
-    }),
   ],
   orderings: [
     {

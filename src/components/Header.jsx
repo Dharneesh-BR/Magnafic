@@ -28,7 +28,7 @@ export default function Header() {
   useEffect(() => {
     const fetchCapabilities = async () => {
       try {
-        const query = `*[_type == "capabilities"] | order(title asc) {
+        const query = `*[_type == "capabilities"] | order(coalesce(displayOrder, 9999) asc, title asc) {
           _id,
           "slug": slug.current,
           title,

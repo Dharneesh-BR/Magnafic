@@ -31,6 +31,16 @@ const personalEmailDomains = new Set([
   'rediffmail.com',
 ])
 
+function nameFromEmail(email = '') {
+  const localPart = email.split('@')[0] || ''
+
+  return localPart
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
 export function isProfessionalEmail(email = '') {
   const domain = email.trim().toLowerCase().split('@')[1]
 
@@ -52,11 +62,12 @@ export function setAuthUser(user) {
 
 function mapFirebaseUser(firebaseUser, profile = {}) {
   if (!firebaseUser) return null
+  const profileEmail = profile.email || firebaseUser.email || ''
 
   return {
     uid: firebaseUser.uid,
-    email: firebaseUser.email,
-    name: profile.name || firebaseUser.displayName || '',
+    email: profileEmail,
+    name: profile.name || nameFromEmail(profileEmail) || firebaseUser.displayName || '',
     company: profile.company || '',
     role: profile.role || 'client',
   }
@@ -90,10 +101,17 @@ export async function signupClient({ name, company, email, password }) {
 
 export async function loginUser({ email, password, fallbackRole = 'client' }) {
   const credentials = await signInWithEmailAndPassword(auth, email, password)
-  const profile = await getUserProfile(credentials.user.uid)
+  let profile = null
+
+  try {
+    profile = await getUserProfile(credentials.user.uid)
+  } catch (profileError) {
+    console.warn('Firebase profile read failed:', profileError)
+  }
+
   const appUser = mapFirebaseUser(credentials.user, {
     role: fallbackRole,
-    ...profile,
+    ...(profile || {}),
   })
 
   setAuthUser(appUser)
@@ -103,7 +121,14 @@ export async function loginUser({ email, password, fallbackRole = 'client' }) {
 export async function hydrateAuthUser() {
   if (!auth.currentUser) return null
 
-  const profile = await getUserProfile(auth.currentUser.uid)
+  let profile = null
+
+  try {
+    profile = await getUserProfile(auth.currentUser.uid)
+  } catch (profileError) {
+    console.warn('Firebase profile hydration failed:', profileError)
+  }
+
   const appUser = mapFirebaseUser(auth.currentUser, profile || {})
   setAuthUser(appUser)
   return appUser
