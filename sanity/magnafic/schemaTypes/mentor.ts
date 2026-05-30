@@ -87,6 +87,13 @@ export const mentorSchema = defineType({
       description: 'Brief intro for the top profile card.',
     }),
     defineField({
+      name: 'totalYearsOfExperience',
+      title: 'Total Years Of Experience',
+      type: 'number',
+      description: 'Overall years of professional experience, for example 18.',
+      validation: (Rule) => Rule.min(0).precision(1),
+    }),
+    defineField({
       name: 'about',
       title: 'About',
       type: 'array',

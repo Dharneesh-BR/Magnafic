@@ -65,19 +65,12 @@ export default function HomeCapabilities() {
       <div className="relative mx-auto max-w-7xl">
         <div className="mb-10 flex flex-col gap-5 md:mb-12 md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl">
-            <h2 className="text-3xl font-extrabold leading-tight text-blue-900 sm:text-4xl lg:text-5xl">
-              Capabilities built to move revenue, speed, and execution.
+            <h2 className="mb-2 text-center text-3xl font-extrabold leading-tight text-blue-900 sm:text-left sm:text-4xl">
+              Explore Expert Capabilities
             </h2>
           </div>
 
-          <div className="flex max-w-md items-center gap-3 rounded-2xl bg-white/80 px-4 py-3 shadow-sm ring-1 ring-primary-100 backdrop-blur">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700">
-              <TrendingUp className="h-5 w-5" />
-            </span>
-            <p className="text-sm font-semibold leading-5 text-gray-700">
-              Choose the capability area and connect with operators who can turn plans into measurable traction.
-            </p>
-          </div>
+          
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">

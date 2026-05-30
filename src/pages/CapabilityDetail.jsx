@@ -128,7 +128,8 @@ export default function CapabilityDetail() {
             currentDesignation,
             location,
             designation,
-            city
+            city,
+            totalYearsOfExperience
           }
         }`
 
@@ -347,7 +348,7 @@ export default function CapabilityDetail() {
                       src="/favicon.png"
                       alt=""
                       aria-hidden="true"
-                      className="absolute right-3 top-3 h-10 w-10 p-1"
+                      className="absolute right-3 top-3 h-8 w-8 p-1"
                     />
                     {mentor.imageUrl ? (
                       <img
@@ -370,11 +371,18 @@ export default function CapabilityDetail() {
                     {!(mentor.headline || mentor.currentDesignation || mentor.designation) && (
                       <span className="mt-0.5 block min-h-[3.35rem]" aria-hidden="true"></span>
                     )}
+                    {mentor.totalYearsOfExperience ? (
+                      <p className="mt-2 line-clamp-1 min-h-[1rem] text-xs font-bold text-primary-700">
+                        {mentor.totalYearsOfExperience}+ years experience
+                      </p>
+                    ) : (
+                      <span className="mt-2 block min-h-[1rem]" aria-hidden="true"></span>
+                    )}
                     {(mentor.location || mentor.city) && (
-                      <p className="mt-3 line-clamp-1 min-h-[1rem] text-xs font-medium text-gray-600">{mentor.location || mentor.city}</p>
+                      <p className="mt-2 mb-3 line-clamp-1 min-h-[1rem] text-xs font-bold text-primary-700">{mentor.location || mentor.city}</p>
                     )}
                     {!(mentor.location || mentor.city) && (
-                      <span className="mt-3 block min-h-[1rem]" aria-hidden="true"></span>
+                      <span className="mt-2 mb-3 block min-h-[1rem]" aria-hidden="true"></span>
                     )}
                     <span className="mx-auto mt-auto inline-flex items-center justify-center rounded-full bg-[#000047] px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600 group-hover:shadow-primary-600/30">
                       View Profile
