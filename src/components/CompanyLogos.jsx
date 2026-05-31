@@ -54,10 +54,8 @@ const CompanyLogos = () => {
 
       <div className="relative mx-auto max-w-7xl">
         <div className="mb-10 text-center">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary-600">Trusted By</p>
-          <h2 className="mt-3 text-2xl font-bold text-gray-950 sm:text-3xl">
-            Companies our experts have helped scale
-          </h2>
+          <p className="text-3xl font-bold text-primary-600">Trusted By 650+ Leading CPG Businesses</p>
+          
         </div>
 
         <div className="space-y-7 overflow-hidden pb-5">
