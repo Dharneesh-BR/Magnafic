@@ -41,7 +41,7 @@ function PDFPreview({ fileUrl }) {
     if (!wrapperRef.current) return undefined
 
     const resizeObserver = new ResizeObserver(([entry]) => {
-      setWidth(Math.min(entry.contentRect.width - 24, 980))
+      setWidth(Math.min(entry.contentRect.width - 12, 1220))
     })
 
     resizeObserver.observe(wrapperRef.current)
@@ -49,7 +49,7 @@ function PDFPreview({ fileUrl }) {
   }, [])
 
   return (
-    <div ref={wrapperRef} className="h-[78vh] overflow-auto rounded-2xl border border-gray-200 bg-gray-100 p-3">
+    <div ref={wrapperRef} className="h-[92vh] overflow-auto rounded-2xl border border-gray-200 bg-gray-100 p-2">
       <Document
         file={fileUrl}
         loading={<div className="flex h-64 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary-600" /></div>}
@@ -167,7 +167,7 @@ export default function ConsultantDocuments({ user, expert }) {
   }
 
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
+    <section className="rounded-3xl bg-white p-4 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-5">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-600">Assigned Documents</p>
@@ -197,7 +197,7 @@ export default function ConsultantDocuments({ user, expert }) {
           <p className="mt-2 text-sm text-gray-600">When an admin assigns an MOU to your consultant profile, it will appear here.</p>
         </div>
       ) : selectedDocument && (
-        <div className="grid gap-5 xl:grid-cols-[270px_minmax(0,1fr)]">
+        <div className="grid gap-4 xl:grid-cols-[210px_minmax(0,1fr)]">
           <div className="space-y-3">
             {documents.map((document) => (
               <button
