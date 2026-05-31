@@ -34,9 +34,11 @@ VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
 VITE_FIREBASE_APP_ID=your_firebase_app_id
 VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+VITE_SANITY_WRITE_TOKEN=your_sanity_write_token
 ```
 
 Never commit `.env`. Firebase web config is not a server secret, but environment-specific values should still be managed outside source control.
+`VITE_SANITY_WRITE_TOKEN` is required for the consultant document signing flow to update the signed PDF URL, status, timestamp, and audit trail in Sanity after Firebase Storage upload.
 
 ## Firebase Console Steps
 

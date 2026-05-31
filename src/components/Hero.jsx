@@ -40,7 +40,7 @@ export default function Hero() {
             </Link>
             <Link
               to="/describe-your-problem"
-              className="group inline-flex w-72 items-center justify-center gap-2 rounded-full bg-gradient-primary px-6 py-3 text-lg font-bold text-white sm:w-56 sm:px-8 sm:py-4 sm:text-lg"
+              className="group inline-flex w-72 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-gradient-primary px-6 py-3 text-base font-bold text-white sm:w-64 sm:px-8 sm:py-4 sm:text-lg"
             >
               Describe your problem
             </Link>

@@ -24,7 +24,7 @@ function getSignaturePosition(page) {
 
 export async function signMouDocument({ document, signatureDataUrl, consultant }) {
   if (!import.meta.env.VITE_SANITY_WRITE_TOKEN) {
-    throw new Error('Missing VITE_SANITY_WRITE_TOKEN. Add a Sanity write token to update signed documents.')
+    throw new Error('Signing is not configured yet. Add VITE_SANITY_WRITE_TOKEN to .env and restart the dev server.')
   }
 
   if (!document?.pdfUrl) {

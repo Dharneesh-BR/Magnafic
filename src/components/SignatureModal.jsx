@@ -23,7 +23,7 @@ export default function SignatureModal({ open, documentTitle, onClose, onSubmit,
     }
 
     setError('')
-    await onSubmit(signatureRef.current.getTrimmedCanvas().toDataURL('image/png'))
+    await onSubmit(signatureRef.current.toDataURL('image/png'))
   }
 
   return (
