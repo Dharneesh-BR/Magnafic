@@ -1,19 +1,25 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Briefcase, ChevronDown, Eye, EyeOff, Lock, Mail, User } from 'lucide-react'
+import { ArrowRight, Briefcase, CheckCircle2, ChevronDown, Eye, EyeOff, Lock, Mail, User } from 'lucide-react'
 import SEO from '../components/SEO'
 import { isProfessionalEmail, loginUser, sendAccountPasswordReset } from '../lib/auth'
 
 export default function Login() {
   const navigate = useNavigate()
+  const redirectTimerRef = useRef(null)
   const [role, setRole] = useState('client')
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [loginComplete, setLoginComplete] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [resettingPassword, setResettingPassword] = useState(false)
+
+  useEffect(() => () => {
+    if (redirectTimerRef.current) window.clearTimeout(redirectTimerRef.current)
+  }, [])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -29,7 +35,11 @@ export default function Login() {
 
     try {
       await loginUser({ email, password, fallbackRole: role })
-      navigate('/dashboard')
+      setLoginComplete(true)
+      setMessage('Thank you. You have logged in successfully.')
+      redirectTimerRef.current = window.setTimeout(() => {
+        navigate('/dashboard')
+      }, 1400)
     } catch (loginError) {
       console.error('Firebase login failed:', loginError)
       setError('Unable to login. Please check your email and password.')
@@ -64,6 +74,16 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-[#f7f9ff] px-4 pt-24 pb-16 sm:px-6 lg:px-8">
       <SEO title="Login" description="Log in to Magnafic." path="/login" noIndex />
       <div className="w-full max-w-md">
+        {loginComplete ? (
+          <div className="rounded-3xl bg-white p-8 text-center shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-50">
+              <CheckCircle2 className="h-9 w-9 text-green-600" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-950">Thank you</h1>
+            <p className="mt-3 text-gray-600">Your login is complete. Redirecting you to your dashboard...</p>
+          </div>
+        ) : (
+        <>
         <div className="mb-8 text-center">
           <h1 className="mb-2 text-3xl font-bold text-gray-900">Welcome Back</h1>
           <p className="text-gray-600">Login with your Business email ID</p>
@@ -163,6 +183,8 @@ export default function Login() {
             </Link>
           </p>
         </div>
+        </>
+        )}
       </div>
     </div>
   )

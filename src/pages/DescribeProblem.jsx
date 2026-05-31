@@ -55,6 +55,7 @@ export default function DescribeProblem() {
 
   const currentQuestion = questions.find(question => question._id === currentQuestionId)
   const selectedAnswer = currentQuestion ? answers[currentQuestion._id] : null
+  const nextButtonLabel = selectedAnswer?.nextQuestionId || !selectedAnswer ? 'Next' : 'Complete'
   const isComplete = questions.length > 0 && !currentQuestionId && Object.keys(answers).length > 0
   const progress = useMemo(() => {
     if (!questions.length) return 0
@@ -91,7 +92,7 @@ export default function DescribeProblem() {
 
   const startConversation = () => {
     localStorage.setItem('magnafic-problem-answers', JSON.stringify(Object.values(answers)))
-    navigate('/login')
+    navigate('/signup')
   }
 
   return (
@@ -191,7 +192,7 @@ export default function DescribeProblem() {
                     disabled={!selectedAnswer}
                     className="inline-flex items-center justify-center rounded-full bg-primary-600 px-6 py-3 font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {selectedAnswer?.nextQuestionId ? 'Next' : 'Complete'}
+                    {nextButtonLabel}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </button>
                 </div>
