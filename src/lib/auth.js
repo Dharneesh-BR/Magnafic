@@ -89,7 +89,7 @@ async function getUserProfile(uid, email = '') {
   return profileDoc ? profileDoc.data() : null
 }
 
-export async function signupClient({ name, company, email, password }) {
+export async function signupClient({ name, company, phone, email, password }) {
   const credentials = await createUserWithEmailAndPassword(auth, email, password)
 
   await updateProfile(credentials.user, { displayName: name })
@@ -97,6 +97,7 @@ export async function signupClient({ name, company, email, password }) {
   const profile = {
     name,
     company,
+    phone,
     email,
     role: 'client',
     createdAt: serverTimestamp(),

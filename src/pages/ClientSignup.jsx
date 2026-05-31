@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Building2, CheckCircle2, Lock, Mail, User, Eye, EyeOff, X } from 'lucide-react'
+import { ArrowRight, Building2, CheckCircle2, Lock, Mail, Phone, User, Eye, EyeOff, X } from 'lucide-react'
 import SEO from '../components/SEO'
 import { isProfessionalEmail, signupClient } from '../lib/auth'
 
@@ -27,6 +27,7 @@ export default function ClientSignup() {
   const [form, setForm] = useState({
     name: '',
     company: '',
+    phone: '',
     email: '',
     password: '',
   })
@@ -45,7 +46,7 @@ export default function ClientSignup() {
     setError('')
 
     if (!isProfessionalEmail(form.email)) {
-      setError('Please use your professional company email. Personal email IDs are not allowed for client signup.')
+      setError('Please use your Business email ID. Personal email IDs are not allowed for client signup.')
       setSubmitting(false)
       return
     }
@@ -148,6 +149,21 @@ export default function ClientSignup() {
                   onChange={event => updateField('email', event.target.value)}
                   className="w-full rounded-xl border border-gray-300 py-3 pl-12 pr-4 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                   placeholder="name@company.com"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Contact number</label>
+              <div className="relative">
+                <Phone className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <input
+                  required
+                  type="tel"
+                  value={form.phone}
+                  onChange={event => updateField('phone', event.target.value)}
+                  className="w-full rounded-xl border border-gray-300 py-3 pl-12 pr-4 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                  placeholder="+91 98765 43210"
                 />
               </div>
             </div>
