@@ -1,23 +1,73 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import SignatureCanvas from 'react-signature-canvas'
 import { AlertCircle, Loader2, X } from 'lucide-react'
 
-export default function SignatureModal({ open, documentTitle, onClose, onSubmit, loading }) {
+export default function SignatureModal({ open, documentTitle, signerName, onClose, onSubmit, loading }) {
   const signatureRef = useRef(null)
   const [agreed, setAgreed] = useState(false)
   const [error, setError] = useState('')
+  const [hasTypedSignature, setHasTypedSignature] = useState(false)
 
-  if (!open) return null
+  const drawTypedSignature = () => {
+    const canvas = signatureRef.current?.getCanvas()
+    const name = signerName || 'Consultant'
+
+    if (!canvas) return
+
+    const context = canvas.getContext('2d')
+    const width = canvas.width
+    const height = canvas.height
+    const fontSize = Math.max(34, Math.min(58, width / Math.max(name.length * 0.55, 8)))
+
+    signatureRef.current?.clear()
+    context.fillStyle = '#111827'
+    context.textAlign = 'center'
+    context.textBaseline = 'middle'
+    context.font = `${fontSize}px "Brush Script MT", "Segoe Script", cursive`
+    context.fillText(name, width / 2, height / 2)
+    context.strokeStyle = '#111827'
+    context.lineWidth = 1
+    context.globalAlpha = 0.25
+    context.beginPath()
+    context.moveTo(width * 0.22, height * 0.66)
+    context.lineTo(width * 0.78, height * 0.66)
+    context.stroke()
+    context.globalAlpha = 1
+    setHasTypedSignature(true)
+  }
+
+  useEffect(() => {
+    if (!open) return
+
+    setAgreed(false)
+    setError('')
+    setHasTypedSignature(false)
+    signatureRef.current?.clear()
+  }, [open])
+
+  useEffect(() => {
+    if (agreed) {
+      window.requestAnimationFrame(drawTypedSignature)
+    } else {
+      signatureRef.current?.clear()
+      setHasTypedSignature(false)
+    }
+  }, [agreed, signerName])
 
   const handleClear = () => {
     signatureRef.current?.clear()
+    if (agreed) {
+      window.requestAnimationFrame(drawTypedSignature)
+    } else {
+      setHasTypedSignature(false)
+    }
     setError('')
   }
 
   const handleSubmit = async () => {
     if (!agreed) return
 
-    if (!signatureRef.current || signatureRef.current.isEmpty()) {
+    if (!signatureRef.current || (!hasTypedSignature && signatureRef.current.isEmpty())) {
       setError('Please draw your signature before submitting.')
       return
     }
@@ -25,6 +75,8 @@ export default function SignatureModal({ open, documentTitle, onClose, onSubmit,
     setError('')
     await onSubmit(signatureRef.current.toDataURL('image/png'))
   }
+
+  if (!open) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/60 px-4 py-6 backdrop-blur-sm">

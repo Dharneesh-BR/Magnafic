@@ -313,6 +313,7 @@ export default function ConsultantDocuments({ user, expert }) {
       <SignatureModal
         open={signatureOpen}
         documentTitle={selectedDocument?.title}
+        signerName={expert?.fullName || user?.name || user?.email}
         loading={signing}
         onClose={() => {
           if (!signing) setSignatureOpen(false)
