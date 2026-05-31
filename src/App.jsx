@@ -15,6 +15,7 @@ import Login from './pages/Login'
 import ClientSignup from './pages/ClientSignup'
 import Academy from './pages/Academy'
 import Contact from './pages/Contact'
+import DescribeProblem from './pages/DescribeProblem'
 import CapabilityDetail from './pages/CapabilityDetail'
 import ServiceDetail from './pages/ServiceDetail'
 import SEO from './components/SEO'
@@ -53,6 +54,7 @@ function AppContent() {
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<ClientSignup />} />
+            <Route path="/describe-your-problem" element={<DescribeProblem />} />
             <Route path="/dashboard" element={<DashboardRedirect />} />
             <Route path="/dashboard/client" element={<ProtectedRoute role="client"><ClientDashboard /></ProtectedRoute>} />
             <Route path="/dashboard/consultant" element={<ProtectedRoute role="consultant"><ConsultantDashboard /></ProtectedRoute>} />

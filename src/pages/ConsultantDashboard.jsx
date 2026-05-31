@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertCircle, Award, BookOpen, BriefcaseBusiness, CalendarDays, Loader2, MapPin, UserRound, Users } from 'lucide-react'
-import { doc, onSnapshot } from 'firebase/firestore'
+import { AlertCircle, Award, BookOpen, BriefcaseBusiness, CalendarDays, FileText, Loader2, MapPin, UserRound, Users } from 'lucide-react'
+import { collection, limit, onSnapshot, query, where } from 'firebase/firestore'
 import SEO from '../components/SEO'
+import ConsultantDocuments from '../components/ConsultantDocuments'
 import { getAuthUser, setAuthUser } from '../lib/auth'
 import { subscribeConsultantOpportunities } from '../lib/dashboard'
 import { db } from '../lib/firebase'
@@ -39,25 +40,34 @@ export default function ConsultantDashboard() {
   const menuItems = [
     { id: 'profile', label: 'Profile', icon: UserRound },
     { id: 'opportunities', label: 'Opportunities', icon: BriefcaseBusiness },
+    { id: 'mou', label: 'Documents', icon: FileText },
   ]
 
   useEffect(() => {
     const localUser = getAuthUser()
 
-    if (!localUser?.uid) {
+    if (!localUser?.email) {
       setUser(localUser)
       setProfileLoading(false)
       return undefined
     }
 
+    const consultantProfileQuery = query(
+      collection(db, 'users'),
+      where('email', '==', localUser.email),
+      limit(1)
+    )
+
     const unsubscribe = onSnapshot(
-      doc(db, 'users', localUser.uid),
+      consultantProfileQuery,
       (snapshot) => {
-        const profile = snapshot.exists() ? snapshot.data() : {}
+        const profileDocument = snapshot.docs[0]
+        const profile = profileDocument?.data() || {}
         const updatedUser = {
           ...localUser,
           ...profile,
           uid: localUser.uid,
+          consultantUserId: profileDocument?.id || localUser.consultantUserId || '',
           email: profile.email || localUser.email || '',
           name: profile.name || localUser.name || '',
           role: profile.role || localUser.role || 'client',
@@ -199,11 +209,10 @@ export default function ConsultantDashboard() {
 
           <div className="min-w-0">
             {activeView === 'profile' && (
-              <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
+              <section className="rounded-3xl bg-white p-4 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
                 <div className="mb-6 flex items-center justify-between gap-4">
                   <div>
                     <h2 className="text-2xl font-bold text-gray-950">Profile</h2>
-                    <p className="mt-2 max-w-3xl text-gray-600">This profile is loaded from Sanity using your linked expert ID.</p>
                   </div>
                   {profileLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
                 </div>
@@ -251,18 +260,10 @@ export default function ConsultantDashboard() {
                       <p className="mt-8 text-base leading-7 text-gray-700">{expert.profileIntro || expert.shortBio}</p>
                     )}
 
-                    <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                    <div className="mt-8 grid gap-4 sm:grid-cols-2">
                       <div className="rounded-2xl bg-gray-50 p-4">
                         <p className="text-2xl font-bold text-gray-950">{expert.totalYearsOfExperience || '-'}</p>
                         <p className="mt-1 text-sm font-medium text-gray-500">Years experience</p>
-                      </div>
-                      <div className="rounded-2xl bg-gray-50 p-4">
-                        <p className="text-2xl font-bold capitalize text-gray-950">{expert.availabilityStatus || '-'}</p>
-                        <p className="mt-1 text-sm font-medium text-gray-500">Availability</p>
-                      </div>
-                      <div className="rounded-2xl bg-gray-50 p-4">
-                        <p className="break-all text-sm font-bold text-gray-950">{user?.sanityExpertId || '-'}</p>
-                        <p className="mt-1 text-sm font-medium text-gray-500">Sanity expert ID</p>
                       </div>
                     </div>
 
@@ -343,6 +344,10 @@ export default function ConsultantDashboard() {
                   )}
                 </section>
               </>
+            )}
+
+            {activeView === 'mou' && (
+              <ConsultantDocuments user={user} expert={expert} />
             )}
           </div>
         </div>

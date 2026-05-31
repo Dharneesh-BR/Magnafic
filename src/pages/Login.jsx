@@ -66,7 +66,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="mb-2 text-3xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="text-gray-600">Login with your professional ID</p>
+          <p className="text-gray-600">Login with your Business email ID</p>
         </div>
 
         <div className="rounded-3xl bg-white p-5 shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100 sm:p-8">
@@ -96,7 +96,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Professional email</label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Business email Id</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <input

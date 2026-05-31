@@ -7,6 +7,7 @@ import AboutMagna from '../components/AboutMagna'
 import HomeCapabilities from '../components/HomeCapabilities'
 import HomeMentors from '../components/HomeMentors'
 import ExpertiseSection from '../components/ExpertiseSection'
+import CompanyLogos from '../components/CompanyLogos'
 
 
 
@@ -14,6 +15,7 @@ export default function Home() {
   return (
     <div className="pt-16">
       <Hero />
+      <CompanyLogos />
       <ExpertiseSection />
       <AboutMagna />
       <HomeCapabilities />

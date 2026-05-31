@@ -33,16 +33,16 @@ export default function Hero() {
 
           <div className="mt-6 flex flex-col items-center gap-3 pb-8 sm:flex-row sm:justify-center sm:pb-0 lg:items-start lg:justify-start">
             <Link
-              to="/experts"
-              className="group inline-flex w-72 items-center justify-center gap-2 rounded-full bg-gradient-primary px-6 py-3 text-lg font-bold text-white sm:w-48 sm:px-8 sm:py-4 sm:text-lg"
-            >
-              Find Experts
-            </Link>
-            <Link
               to="/contact"
               className="group inline-flex w-72 items-center justify-center gap-2 rounded-full bg-gradient-primary px-6 py-3 text-lg font-bold text-white sm:w-48 sm:px-8 sm:py-4 sm:text-lg"
             >
               Let's Talk
+            </Link>
+            <Link
+              to="/describe-your-problem"
+              className="group inline-flex w-72 items-center justify-center gap-2 rounded-full bg-gradient-primary px-6 py-3 text-lg font-bold text-white sm:w-56 sm:px-8 sm:py-4 sm:text-lg"
+            >
+              Describe your problem
             </Link>
           </div>
 

@@ -6,7 +6,7 @@ import {
   signOut,
   updateProfile,
 } from 'firebase/auth'
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
 import { auth, db } from './firebase'
 
 const AUTH_KEY = 'magnafic-auth-user'
@@ -76,9 +76,17 @@ function mapFirebaseUser(firebaseUser, profile = {}) {
   }
 }
 
-async function getUserProfile(uid) {
+async function getUserProfile(uid, email = '') {
   const snapshot = await getDoc(doc(db, 'users', uid))
-  return snapshot.exists() ? snapshot.data() : null
+  if (snapshot.exists()) return snapshot.data()
+
+  if (!email) return null
+
+  const profileQuery = query(collection(db, 'users'), where('email', '==', email), limit(1))
+  const profileSnapshot = await getDocs(profileQuery)
+  const profileDoc = profileSnapshot.docs[0]
+
+  return profileDoc ? profileDoc.data() : null
 }
 
 export async function signupClient({ name, company, email, password }) {
@@ -107,7 +115,7 @@ export async function loginUser({ email, password, fallbackRole = 'client' }) {
   let profile = null
 
   try {
-    profile = await getUserProfile(credentials.user.uid)
+    profile = await getUserProfile(credentials.user.uid, credentials.user.email)
   } catch (profileError) {
     console.warn('Firebase profile read failed:', profileError)
   }
@@ -131,7 +139,7 @@ export async function hydrateAuthUser() {
   let profile = null
 
   try {
-    profile = await getUserProfile(auth.currentUser.uid)
+    profile = await getUserProfile(auth.currentUser.uid, auth.currentUser.email)
   } catch (profileError) {
     console.warn('Firebase profile hydration failed:', profileError)
   }
@@ -150,7 +158,7 @@ export function subscribeAuthUser() {
     }
 
     try {
-      const profile = await getUserProfile(firebaseUser.uid)
+      const profile = await getUserProfile(firebaseUser.uid, firebaseUser.email)
       setAuthUser(mapFirebaseUser(firebaseUser, profile || {}))
     } catch {
       setAuthUser(mapFirebaseUser(firebaseUser))

@@ -69,7 +69,7 @@ export default function ClientSignup() {
             Client access
           </span>
           <h1 className="max-w-3xl text-3xl font-bold leading-tight text-gray-950 sm:text-4xl md:text-6xl">
-            Create your client account with a verified professional ID
+            Create your client account with a verified Business email ID
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-gray-600">
             Client signup is limited to business email addresses so project briefs, expert matching, and workspace access stay tied to verified organizations.
@@ -110,7 +110,7 @@ export default function ClientSignup() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Professional email</label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Business email Id</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <input

@@ -60,7 +60,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId} {
-      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null
+        && (
+          request.auth.uid == userId ||
+          resource.data.email == request.auth.token.email
+        );
+      allow update: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null && request.auth.uid == userId;
     }
 
@@ -105,11 +110,11 @@ The dynamic dashboards also require the `clientBriefs` rule above. Clients creat
 
 ### Consultant Firestore Collections
 
-Firebase Firestore uses collections instead of SQL tables. Use the Firebase Authentication `uid` as the document ID in both collections.
+Firebase Firestore uses collections instead of SQL tables. If you generate consultant IDs yourself, use that generated ID as the document ID in both collections and keep `email` exactly the same as the Firebase Authentication email.
 
-#### `users/{uid}`
+#### `users/{generatedConsultantId}`
 
-This is required for login routing. The app reads this document after Firebase Auth login and uses `role: consultant` to send the user to the consultant dashboard.
+This is required for login routing. The app finds this document by consultant email after Firebase Auth login and uses `role: consultant` plus `sanityExpertId` to load the consultant dashboard profile.
 
 ```js
 {
@@ -124,7 +129,7 @@ This is required for login routing. The app reads this document after Firebase A
 }
 ```
 
-#### `consultants/{uid}`
+#### `consultants/{generatedConsultantId}`
 
 This is the consultant profile table/collection. Use it for admin-managed consultant data, profile details, matching, and future dashboard fields.
 

@@ -174,8 +174,8 @@ function Section({ title, children, variant = 'default' }) {
   const isGradient = variant === 'gradient'
 
   return (
-    <section className={`rounded-lg border p-5 transition ${isGradient ? 'border-white/20 bg-[linear-gradient(135deg,#000047,#2563eb_52%,#00ffff)] text-white shadow-[0_0_26px_rgba(0,255,255,0.24)] hover:shadow-[0_0_34px_rgba(0,255,255,0.32)]' : 'border-cyan-100 bg-white shadow-[0_0_22px_rgba(0,255,255,0.18)] hover:border-cyan-200 hover:shadow-[0_0_30px_rgba(0,255,255,0.26)]'}`}>
-      <h2 className={`mb-4 text-xl font-semibold ${isGradient ? 'text-white' : 'text-gray-950'}`}>{title}</h2>
+    <section className={`rounded-lg border p-4 transition sm:p-5 ${isGradient ? 'border-white/20 bg-[linear-gradient(135deg,#000047,#2563eb_52%,#00ffff)] text-white shadow-[0_0_26px_rgba(0,255,255,0.24)] hover:shadow-[0_0_34px_rgba(0,255,255,0.32)]' : 'border-cyan-100 bg-white shadow-[0_0_22px_rgba(0,255,255,0.18)] hover:border-cyan-200 hover:shadow-[0_0_30px_rgba(0,255,255,0.26)]'}`}>
+      <h2 className={`mb-4 text-lg font-semibold sm:text-xl ${isGradient ? 'text-white' : 'text-gray-950'}`}>{title}</h2>
       {children}
     </section>
   )
@@ -198,10 +198,10 @@ function SkillPills({ title, items = [] }) {
   if (!normalized.length) return null
 
   return (
-    <Section title={title} variant="gradient">
+    <Section title={title}>
       <div className="flex flex-wrap gap-2.5">
         {normalized.map(item => (
-          <span key={item} className="rounded-full border border-white/25 bg-white/14 px-3.5 py-2 text-sm font-bold text-white shadow-sm shadow-primary-950/10 backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-white/22">
+          <span key={item} className="rounded-full bg-primary-50 px-3.5 py-2 text-sm font-bold text-primary-700 transition hover:-translate-y-0.5 hover:bg-primary-100">
             {item}
           </span>
         ))}
@@ -422,7 +422,7 @@ export default function ExpertDetail() {
   const recommendationItems = (expert.recommendations || []).filter(Boolean)
 
   return (
-    <div className="min-h-screen bg-[#f3f2ef] px-4 pt-24 pb-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#f3f2ef] px-3 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-12 lg:px-8">
       <SEO
         title={`${expert.fullName} - ${headline}`}
         description={expert.shortBio || intro}
@@ -446,34 +446,34 @@ export default function ExpertDetail() {
         }}
       />
       <div className="mx-auto max-w-6xl">
-        <Link to={capabilityPath} className="mb-4 inline-flex items-center text-sm font-semibold text-primary-700 transition hover:text-primary-900">
+        <Link to={capabilityPath} className="mb-4 inline-flex max-w-full items-center text-sm font-semibold text-primary-700 transition hover:text-primary-900">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          {backLabel}
+          <span className="truncate">{backLabel}</span>
         </Link>
 
         <section className="rounded-lg border border-cyan-100 bg-white shadow-[0_0_24px_rgba(0,255,255,0.18)]">
-          <div className="relative h-28 overflow-hidden rounded-t-lg bg-[#000047] sm:h-40 lg:h-44">
+          <div className="relative h-36 overflow-hidden rounded-t-lg bg-[#000047] sm:h-40 lg:h-44">
             {expert.bannerImageUrl ? (
-              <img src={expert.bannerImageUrl} alt="" className="h-full w-full object-cover object-center" />
+              <img src={expert.bannerImageUrl} alt="" className="h-full w-full object-cover object-center sm:object-center" />
             ) : (
               <div className="h-full w-full bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-500" />
             )}
             <div className="absolute inset-0 bg-gradient-to-r from-[#000047]/45 via-[#000047]/20 to-cyan-400/20" />
-            <div className="absolute inset-y-0 right-24 hidden max-w-[62%] items-center justify-end text-right text-white sm:flex lg:right-40">
+            <div className="absolute inset-y-0 right-4 flex max-w-[58%] items-center justify-end text-right text-white sm:right-24 sm:max-w-[62%] lg:right-40">
               <div>
-                <h2 className="text-4xl font-extrabold leading-tight tracking-normal drop-shadow-[0_4px_16px_rgba(0,0,0,0.55)] lg:text-6xl">
+                <h2 className="line-clamp-2 text-xl font-extrabold leading-tight tracking-normal drop-shadow-[0_4px_16px_rgba(0,0,0,0.55)] sm:text-4xl lg:text-6xl">
                   {expert.fullName}
                 </h2>
-                <div className="mt-4 flex flex-wrap justify-end gap-x-5 gap-y-2 text-base font-bold text-cyan-50 drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)] lg:text-xl">
+                <div className="mt-2 flex flex-wrap justify-end gap-x-3 gap-y-1 text-xs font-bold text-cyan-50 drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)] sm:mt-4 sm:gap-x-5 sm:gap-y-2 sm:text-base lg:text-xl">
                   {location && (
                     <span className="inline-flex items-center">
-                      <MapPin className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
+                      <MapPin className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
                       {location}
                     </span>
                   )}
                   {expert.totalYearsOfExperience ? (
                     <span className="inline-flex items-center">
-                      <Timer className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
+                      <Timer className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
                       {expert.totalYearsOfExperience}+ years experience
                     </span>
                   ) : null}
@@ -482,9 +482,9 @@ export default function ExpertDetail() {
             </div>
           </div>
 
-          <div className="relative px-4 pb-6 sm:px-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="relative z-20 ml-3 -mt-16 h-32 w-32 shrink-0 overflow-hidden rounded-full border-4 border-white bg-primary-700 text-3xl font-bold shadow-md sm:ml-5 sm:-mt-20 sm:h-44 sm:w-44 sm:text-5xl">
+          <div className="relative px-4 pb-5 sm:px-6 sm:pb-6">
+            <div className="flex items-start justify-between gap-3 sm:gap-4">
+              <div className="relative z-20 -mt-16 h-32 w-32 shrink-0 overflow-hidden rounded-full border-4 border-white bg-primary-700 text-3xl font-bold shadow-md sm:ml-5 sm:-mt-20 sm:h-44 sm:w-44 sm:text-5xl">
                 <div className="flex h-full w-full items-center justify-center">
                   {expertImage ? (
                     <img src={expertImage} alt={expert.fullName} className="h-full w-full object-cover object-center" />
@@ -494,19 +494,19 @@ export default function ExpertDetail() {
                 </div>
               </div>
 
-              <span className="mt-4 inline-flex w-fit items-center bg-green-200 rounded-full px-4 py-2 text-sm font-semibold text-green-800 sm:mt-8">
-                <CheckCircle2 className="mr-2 h-10 w-10" />
+              <span className="mt-3 inline-flex w-fit items-center rounded-full bg-green-200 px-3 py-1.5 text-xs font-semibold text-green-800 sm:mt-8 sm:px-4 sm:py-2 sm:text-sm">
+                <CheckCircle2 className="mr-1.5 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
                 {availabilityLabel(expert.availabilityStatus)}
               </span>
             </div>
 
-            <div className="mt-3 grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-              <div>
-                <h1 className="text-2xl font-semibold leading-tight text-[#000047] sm:text-3xl">{expert.fullName}</h1>
-                <p className="mt-2 text-lg leading-7 font-medium text-[#000047]">{headline}</p>
-                {company && <p className="mt-1 text-base font-medium text-gray-700">{company}</p>}
+            <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+              <div className="text-left">
+                <h1 className="break-words text-2xl font-semibold leading-tight text-[#000047] sm:text-3xl">{expert.fullName}</h1>
+                <p className="mt-2 break-words text-base font-medium leading-6 text-[#000047] sm:text-lg sm:leading-7">{headline}</p>
+                {company && <p className="mt-1 break-words text-sm font-medium text-gray-700 sm:text-base">{company}</p>}
 
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-base font-medium text-gray-600">
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium text-gray-600 sm:text-base">
                   {location && (
                     <span className="inline-flex items-center">
                       <MapPin className="mr-1.5 h-4 w-4 text-gray-500" />
@@ -516,7 +516,7 @@ export default function ExpertDetail() {
                 </div>
 
                 {intro && (
-                  <p className="mt-4 max-w-3xl text-base font-medium leading-7 text-gray-700">{intro}</p>
+                  <p className="mt-4 max-w-3xl text-left text-sm font-medium leading-6 text-gray-700 sm:text-base sm:leading-7">{intro}</p>
                 )}
               </div>
 
@@ -547,6 +547,10 @@ export default function ExpertDetail() {
 
             <div className="lg:hidden">
               <RoadmapSection experienceItems={experienceItems} />
+            </div>
+
+            <div className="lg:hidden">
+              <SkillPills title="Key skills" items={keySkills} />
             </div>
 
             {featuredItems.length > 0 && (
@@ -719,7 +723,9 @@ export default function ExpertDetail() {
           </main>
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-            <SkillPills title="Key skills" items={keySkills} />
+            <div className="hidden lg:block">
+              <SkillPills title="Key skills" items={keySkills} />
+            </div>
             <div className="hidden lg:block">
               <RoadmapSection experienceItems={experienceItems} />
             </div>
@@ -727,9 +733,9 @@ export default function ExpertDetail() {
         </div>
 
         <div className="mt-8 flex justify-center">
-          <Link to={capabilityPath} className="inline-flex items-center justify-center rounded-full bg-primary-600 px-7 py-3 font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700">
+          <Link to={capabilityPath} className="inline-flex max-w-full items-center justify-center rounded-full bg-primary-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700 sm:px-7 sm:text-base">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            {backLabel}
+            <span className="truncate">{backLabel}</span>
           </Link>
         </div>
       </div>
