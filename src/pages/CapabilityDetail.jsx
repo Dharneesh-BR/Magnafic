@@ -262,6 +262,13 @@ export default function CapabilityDetail() {
               {capability.subtitle && (
                 <p className="mt-4 text-xl text-cyan-100 sm:text-xl">{capability.subtitle}</p>
               )}
+              <Link
+                to="/describe-your-problem"
+                className="mt-8 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-white px-6 py-3 font-bold text-primary-700 shadow-xl shadow-primary-950/20 transition hover:-translate-y-0.5 hover:bg-cyan-50"
+              >
+                Describe your problem
+                <ArrowRight className="h-5 w-5" />
+              </Link>
             </div>
           </div>
         </div>

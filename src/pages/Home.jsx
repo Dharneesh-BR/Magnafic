@@ -6,6 +6,7 @@ import MagnaFramework from '../components/MagnaFramework'
 import AboutMagna from '../components/AboutMagna'
 import HomeCapabilities from '../components/HomeCapabilities'
 import HomeMentors from '../components/HomeMentors'
+import DescribeProblemCTA from '../components/DescribeProblemCTA'
 import ExpertiseSection from '../components/ExpertiseSection'
 import CompanyLogos from '../components/CompanyLogos'
 
@@ -19,6 +20,7 @@ export default function Home() {
       <CompanyLogos />
       <AboutMagna />
       <HomeCapabilities />
+      <DescribeProblemCTA />
       <HomeMentors />
       <ValueProp />
       <MagnaFramework />

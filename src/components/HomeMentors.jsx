@@ -108,7 +108,7 @@ export default function HomeMentors() {
                   {!(mentor.location || mentor.city) && (
                     <span className="mt-2 mb-3 block min-h-[1rem]" aria-hidden="true"></span>
                   )}
-                  <span className="mx-auto mt-auto inline-flex items-center justify-center rounded-full bg-[#000047] px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600 group-hover:shadow-primary-600/30">
+                  <span className="mx-auto mt-auto inline-flex items-center justify-center rounded-full bg-gradient-to-r from-primary-600 to-cyan-400 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600 group-hover:shadow-primary-600/30">
                     View Profile
                     <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-0.5" />
                   </span>

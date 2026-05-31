@@ -100,7 +100,7 @@ export default function HomeCapabilities() {
                   )}
                 </div>
 
-                <span className="relative mt-auto inline-flex w-fit max-w-full items-center rounded-full bg-[#000047] px-4 py-2 text-sm font-extrabold leading-tight text-white shadow-lg shadow-primary-950/20 ring-1 ring-white/20 transition group-hover:translate-x-1 group-hover:bg-primary-700 sm:text-base">
+                <span className="relative mt-auto inline-flex w-fit max-w-full items-center rounded-full bg-white px-4 py-2 text-sm font-extrabold leading-tight text-[#000047] shadow-lg shadow-primary-950/20 ring-1 ring-white/20 transition group-hover:translate-x-1 group-hover:bg-white sm:text-base">
                   Explore
                   <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" />
                 </span>
