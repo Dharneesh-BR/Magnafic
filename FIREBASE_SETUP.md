@@ -64,6 +64,11 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == userId;
     }
 
+    match /consultants/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if false;
+    }
+
     match /clientBriefs/{documentId} {
       allow create: if request.auth != null
         && request.resource.data.clientId == request.auth.uid;
@@ -85,7 +90,80 @@ service cloud.firestore {
 
 If login succeeds in Firebase Auth but the console shows `Missing or insufficient permissions`, your Firestore rules are blocking the app from reading `users/{uid}` after login. The `/users/{userId}` rule above is required for profile reads and writes.
 
+Consultant accounts are admin-created, not self-created from the public site. Create the consultant in Firebase Authentication, then create `users/{uid}` in Firestore with `role: consultant`. You can optionally create `consultants/{uid}` for profile details; the Firebase Console and Admin SDK bypass the client-side `allow create: if false` rule.
+
 The dynamic dashboards also require the `clientBriefs` rule above. Clients create and read their own briefs through `clientId`; consultants read assigned briefs through `assignedConsultantId`.
+
+## Consultant Onboarding
+
+1. Create the consultant in Firebase Authentication with their professional email and a temporary password.
+2. Copy the generated user `uid`.
+3. Create `users/{uid}` in Firestore.
+4. Create `consultants/{uid}` in Firestore.
+5. Share the login email and temporary password with the consultant.
+6. Ask them to use Login, choose Consultant, and click Reset password after signing in or before their first sign-in.
+
+### Consultant Firestore Collections
+
+Firebase Firestore uses collections instead of SQL tables. Use the Firebase Authentication `uid` as the document ID in both collections.
+
+#### `users/{uid}`
+
+This is required for login routing. The app reads this document after Firebase Auth login and uses `role: consultant` to send the user to the consultant dashboard.
+
+```js
+{
+  name: 'Consultant Name',
+  email: 'consultant@company.com',
+  role: 'consultant',
+  sanityExpertId: 'e3497cc4-e7a1-459f-bcca-583aeeb8473f',
+  company: 'Company Name',
+  status: 'active',
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp()
+}
+```
+
+#### `consultants/{uid}`
+
+This is the consultant profile table/collection. Use it for admin-managed consultant data, profile details, matching, and future dashboard fields.
+
+```js
+{
+  userId: 'firebase-auth-uid',
+  sanityExpertId: 'e3497cc4-e7a1-459f-bcca-583aeeb8473f',
+  name: 'Consultant Name',
+  email: 'consultant@company.com',
+  phone: '',
+  company: 'Company Name',
+  headline: 'Fractional growth leader',
+  expertise: ['Digital Transformation', 'Business Strategy'],
+  industries: ['Consumer Brands', 'Retail'],
+  location: 'Bengaluru, India',
+  experienceYears: 10,
+  hourlyRate: null,
+  availability: 'available',
+  status: 'active',
+  verificationStatus: 'verified',
+  profileImageUrl: '',
+  bio: '',
+  linkedinUrl: '',
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp()
+}
+```
+
+Recommended status values:
+
+- `active`: consultant can access dashboard.
+- `inactive`: consultant exists but should not be assigned new work.
+- `pending_review`: profile exists but is not approved yet.
+
+Recommended availability values:
+
+- `available`
+- `limited`
+- `unavailable`
 
 Storage example:
 

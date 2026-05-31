@@ -1,6 +1,7 @@
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
@@ -70,6 +71,8 @@ function mapFirebaseUser(firebaseUser, profile = {}) {
     name: profile.name || nameFromEmail(profileEmail) || firebaseUser.displayName || '',
     company: profile.company || '',
     role: profile.role || 'client',
+    status: profile.status || '',
+    sanityExpertId: profile.sanityExpertId || '',
   }
 }
 
@@ -116,6 +119,10 @@ export async function loginUser({ email, password, fallbackRole = 'client' }) {
 
   setAuthUser(appUser)
   return appUser
+}
+
+export async function sendAccountPasswordReset(email) {
+  await sendPasswordResetEmail(auth, email)
 }
 
 export async function hydrateAuthUser() {

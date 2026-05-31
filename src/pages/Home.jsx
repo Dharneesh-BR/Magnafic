@@ -5,6 +5,7 @@ import ValueProp from '../components/ValueProp'
 import MagnaFramework from '../components/MagnaFramework'
 import AboutMagna from '../components/AboutMagna'
 import HomeCapabilities from '../components/HomeCapabilities'
+import HomeMentors from '../components/HomeMentors'
 import ExpertiseSection from '../components/ExpertiseSection'
 
 
@@ -16,6 +17,7 @@ export default function Home() {
       <ExpertiseSection />
       <AboutMagna />
       <HomeCapabilities />
+      <HomeMentors />
       <ValueProp />
       <MagnaFramework />
       

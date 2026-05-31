@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Briefcase, ChevronDown, Eye, EyeOff, Lock, Mail, User } from 'lucide-react'
 import SEO from '../components/SEO'
-import { isProfessionalEmail, loginUser } from '../lib/auth'
+import { isProfessionalEmail, loginUser, sendAccountPasswordReset } from '../lib/auth'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -11,12 +11,15 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [resettingPassword, setResettingPassword] = useState(false)
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     setSubmitting(true)
     setError('')
+    setMessage('')
 
     if (!isProfessionalEmail(email)) {
       setError('Please login with your professional email ID. Personal email IDs are not allowed.')
@@ -26,12 +29,34 @@ export default function Login() {
 
     try {
       await loginUser({ email, password, fallbackRole: role })
-      navigate('/')
+      navigate('/dashboard')
     } catch (loginError) {
       console.error('Firebase login failed:', loginError)
       setError('Unable to login. Please check your email and password.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handlePasswordReset = async () => {
+    setError('')
+    setMessage('')
+
+    if (!isProfessionalEmail(email)) {
+      setError('Enter your professional email ID first, then request a password reset.')
+      return
+    }
+
+    setResettingPassword(true)
+
+    try {
+      await sendAccountPasswordReset(email)
+      setMessage('Password reset link sent. Please check your email inbox.')
+    } catch (resetError) {
+      console.error('Firebase password reset failed:', resetError)
+      setError('Unable to send a password reset link. Please confirm the account email with Magnafic.')
+    } finally {
+      setResettingPassword(false)
     }
   }
 
@@ -54,6 +79,7 @@ export default function Login() {
                   onChange={event => {
                     setRole(event.target.value)
                     setError('')
+                    setMessage('')
                   }}
                   className="w-full appearance-none rounded-xl border border-gray-300 bg-white py-3 pl-12 pr-10 font-medium text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                 >
@@ -80,6 +106,7 @@ export default function Login() {
                   onChange={event => {
                     setEmail(event.target.value)
                     setError('')
+                    setMessage('')
                   }}
                   placeholder="name@company.com"
                   className="w-full rounded-xl border border-gray-300 py-3 pl-12 pr-4 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
@@ -95,7 +122,11 @@ export default function Login() {
                   required
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={event => setPassword(event.target.value)}
+                  onChange={event => {
+                    setPassword(event.target.value)
+                    setError('')
+                    setMessage('')
+                  }}
                   placeholder="Password"
                   className="w-full rounded-xl border border-gray-300 py-3 pl-12 pr-12 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                 />
@@ -107,15 +138,21 @@ export default function Login() {
 
             {role === 'consultant' && (
               <p className="rounded-xl bg-primary-50 px-4 py-3 text-sm font-medium text-primary-800">
-                Consultant accounts are created and managed through the Magnafic backend team.
+                Consultant accounts are created by Magnafic. Use the email shared with the backend team and reset your password after receiving credentials.
               </p>
             )}
+
+            {message && <p className="rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">{message}</p>}
 
             {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
 
             <button type="submit" disabled={submitting} className="flex w-full items-center justify-center rounded-xl bg-primary-600 py-3 font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-70">
               {submitting ? 'Logging in...' : `Login as ${role === 'client' ? 'Client' : 'Consultant'}`}
               <ArrowRight className="ml-2 h-5 w-5" />
+            </button>
+
+            <button type="button" onClick={handlePasswordReset} disabled={resettingPassword} className="w-full rounded-xl border border-primary-200 py-3 font-semibold text-primary-700 transition hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-70">
+              {resettingPassword ? 'Sending reset link...' : 'Reset password'}
             </button>
           </form>
 

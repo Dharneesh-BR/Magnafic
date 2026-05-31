@@ -1,0 +1,124 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRight, User } from 'lucide-react'
+import { mentorClient } from '../lib/sanityClient'
+import { getExpertImage } from '../lib/expertImages'
+import MagnaLoader from './MagnaLoader'
+
+export default function HomeMentors() {
+  const [mentors, setMentors] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchMentors = async () => {
+      try {
+        const query = `*[_type == "mentor"] | order(fullName asc) {
+          _id,
+          "slug": slug.current,
+          fullName,
+          "imageUrl": profileImage.asset->url,
+          headline,
+          currentDesignation,
+          designation,
+          location,
+          city,
+          totalYearsOfExperience
+        }`
+
+        const data = await mentorClient.fetch(query)
+        setMentors((data || []).filter(Boolean))
+      } catch (error) {
+        console.error('Error fetching home mentors:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchMentors()
+  }, [])
+
+  if (loading) {
+    return (
+      <section className="bg-[#f7f9ff] px-4 py-12 sm:px-6 lg:px-8">
+        <MagnaLoader message="Loading experts..." className="mx-auto max-w-3xl" />
+      </section>
+    )
+  }
+
+  if (mentors.length === 0) return null
+
+  return (
+    <section className="bg-[#f7f9ff] px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8 flex items-center gap-3">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
+            <User className="h-6 w-6" />
+          </span>
+          <h2 className="text-2xl font-bold text-center text-gray-950 sm:text-3xl">Explore Experts</h2>
+        </div>
+
+        <div className="expert-scroller overflow-x-auto pb-7">
+          <div className="flex snap-x snap-mandatory gap-4">
+            {mentors.map((mentor) => (
+              <Link
+                key={mentor._id}
+                to={`/experts/${mentor.slug || mentor._id}`}
+                className="group relative flex h-[22rem] w-[17rem] shrink-0 snap-start flex-col overflow-hidden rounded-3xl bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/10 sm:h-[23rem] sm:w-[18rem] lg:w-[calc((100%_-_4rem)/5)]"
+              >
+                <div className="relative h-24 overflow-visible bg-gradient-to-br from-primary-900 via-primary-700 to-cyan-500 sm:h-28">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.22),transparent_30%)]"></div>
+                  <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,255,255,0.18),transparent_45%,rgba(255,255,255,0.16))]"></div>
+                  <img
+                    src="/favicon.png"
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute right-3 top-3 h-8 w-8 p-1"
+                  />
+                  {getExpertImage(mentor) ? (
+                    <img
+                      src={getExpertImage(mentor)}
+                      alt={mentor.fullName}
+                      className="absolute left-1/2 bottom-4 h-24 w-24 -translate-x-1/2 translate-y-1/2 rounded-full border-4 border-white bg-white object-cover shadow-xl shadow-primary-900/20 transition duration-300 group-hover:scale-105 sm:h-28 sm:w-28"
+                    />
+                  ) : (
+                    <div className="absolute left-1/2 bottom-4 flex h-24 w-24 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-primary-100 shadow-xl shadow-primary-900/20 sm:h-28 sm:w-28">
+                      <User className="h-10 w-10 text-primary-600" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-1 flex-col p-4 pt-14 pb-6 text-center sm:p-4 sm:pt-16">
+                  <h3 className="line-clamp-2 min-h-[2.75rem] text-lg font-bold leading-tight text-gray-950">{mentor.fullName}</h3>
+                  {(mentor.headline || mentor.currentDesignation || mentor.designation) && (
+                    <p className="mt-0 line-clamp-3 min-h-[3.35rem] text-[12px] font-medium leading-[18px] text-primary-600">{mentor.headline || mentor.currentDesignation || mentor.designation}</p>
+                  )}
+                  {!(mentor.headline || mentor.currentDesignation || mentor.designation) && (
+                    <span className="mt-0.5 block min-h-[3.35rem]" aria-hidden="true"></span>
+                  )}
+                  {mentor.totalYearsOfExperience ? (
+                    <p className="mt-2 line-clamp-1 min-h-[1rem] text-xs font-bold text-primary-700">
+                      {mentor.totalYearsOfExperience}+ years experience
+                    </p>
+                  ) : (
+                    <span className="mt-2 block min-h-[1rem]" aria-hidden="true"></span>
+                  )}
+                  {(mentor.location || mentor.city) && (
+                    <p className="mt-2 mb-3 line-clamp-1 min-h-[1rem] text-xs font-bold text-primary-700">{mentor.location || mentor.city}</p>
+                  )}
+                  {!(mentor.location || mentor.city) && (
+                    <span className="mt-2 mb-3 block min-h-[1rem]" aria-hidden="true"></span>
+                  )}
+                  <span className="mx-auto mt-auto inline-flex items-center justify-center rounded-full bg-[#000047] px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600 group-hover:shadow-primary-600/30">
+                    View Profile
+                    <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-0.5" />
+                  </span>
+                </div>
+                <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400"></div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { UserPlus, CheckCircle, Star, TrendingUp, Users, Award, ArrowRight } from 'lucide-react'
 
 export default function JoinExpertsHub() {
@@ -117,33 +118,18 @@ export default function JoinExpertsHub() {
           </div>
 
           <div className="rounded-2xl bg-primary-600 p-5 text-white shadow-lg sm:p-8">
-            <h3 className="text-2xl font-bold mb-6">Ready to Join?</h3>
+            <h3 className="text-2xl font-bold mb-6">Consultant Access</h3>
             <p className="text-white/90 mb-6">
-              Start your application today and become part of our growing network of expert consultants.
+              Consultant accounts are created by the Magnafic backend team after verification. Once your Firebase account is ready, you will receive login credentials and can reset your password from the login page.
             </p>
-            <form className="space-y-4">
-              <input
-                type="text"
-                placeholder="Full Name"
-                className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50"
-              />
-              <input
-                type="email"
-                placeholder="Email Address"
-                className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50"
-              />
-              <select className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-white/50">
-                <option value="" className="text-gray-900">Area of Expertise</option>
-                <option value="digital" className="text-gray-900">Digital Transformation</option>
-                <option value="strategy" className="text-gray-900">Business Strategy</option>
-                <option value="technology" className="text-gray-900">Technology</option>
-                <option value="marketing" className="text-gray-900">Marketing</option>
-                <option value="finance" className="text-gray-900">Finance</option>
-              </select>
-              <button className="w-full bg-white text-primary-600 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                Submit Application
-              </button>
-            </form>
+            <div className="space-y-4">
+              <Link to="/login" className="block w-full rounded-lg bg-white py-3 text-center font-semibold text-primary-600 transition-colors hover:bg-gray-100">
+                Consultant Login
+              </Link>
+              <Link to="/contact" className="block w-full rounded-lg border border-white/30 py-3 text-center font-semibold text-white transition-colors hover:bg-white/10">
+                Contact Magnafic
+              </Link>
+            </div>
           </div>
         </div>
       </div>
