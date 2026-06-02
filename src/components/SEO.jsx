@@ -83,18 +83,18 @@ export default function SEO({ title, description, path, image, type = 'website',
     upsertMeta('meta[property="og:url"]', { property: 'og:url', content: canonical })
     upsertMeta('meta[property="og:image"]', { property: 'og:image', content: pageImage })
     if (isDefaultImage) {
-      upsertMeta('meta[property="og:image:width"]', { property: 'og:image:width', content: '320' })
-      upsertMeta('meta[property="og:image:height"]', { property: 'og:image:height', content: '75' })
+      upsertMeta('meta[property="og:image:width"]', { property: 'og:image:width', content: '620' })
+      upsertMeta('meta[property="og:image:height"]', { property: 'og:image:height', content: '640' })
     } else {
       removeHeadElement('meta[property="og:image:width"]')
       removeHeadElement('meta[property="og:image:height"]')
     }
-    upsertMeta('meta[property="og:image:alt"]', { property: 'og:image:alt', content: isDefaultImage ? `${SITE_NAME} logo` : pageTitle })
+    upsertMeta('meta[property="og:image:alt"]', { property: 'og:image:alt', content: isDefaultImage ? `${SITE_NAME} consulting platform preview` : pageTitle })
     upsertMeta('meta[name="twitter:card"]', { name: 'twitter:card', content: 'summary_large_image' })
     upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: pageTitle })
     upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: pageDescription })
     upsertMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: pageImage })
-    upsertMeta('meta[name="twitter:image:alt"]', { name: 'twitter:image:alt', content: isDefaultImage ? `${SITE_NAME} logo` : pageTitle })
+    upsertMeta('meta[name="twitter:image:alt"]', { name: 'twitter:image:alt', content: isDefaultImage ? `${SITE_NAME} consulting platform preview` : pageTitle })
     upsertLink('link[rel="canonical"]', { rel: 'canonical', href: canonical })
 
     upsertJsonLd('site-json-ld', {

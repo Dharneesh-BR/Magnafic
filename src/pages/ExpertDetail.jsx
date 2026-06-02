@@ -354,22 +354,13 @@ async function createExpertShareCard({ expert, expertImage, headline }) {
   context.fillStyle = headerGradient
   context.fillRect(cardX, cardY, cardWidth, 180)
 
-  context.fillStyle = 'rgba(255, 255, 255, 0.18)'
-  context.beginPath()
-  context.arc(cardX + 94, cardY + 46, 94, 0, Math.PI * 2)
-  context.fill()
-  context.fillStyle = 'rgba(0, 255, 255, 0.2)'
-  context.beginPath()
-  context.arc(cardX + 372, cardY + 20, 116, 0, Math.PI * 2)
-  context.fill()
-
   try {
     const logo = await loadShareImage('/favicon.png')
-    context.drawImage(logo, cardX + cardWidth - 58, cardY + 20, 36, 30)
+    context.drawImage(logo, cardX + cardWidth - 68, cardY + 18, 46, 38)
   } catch {
     context.fillStyle = '#ffffff'
-    context.font = '700 22px Arial'
-    context.fillText('M', cardX + cardWidth - 48, cardY + 44)
+    context.font = '700 28px Arial'
+    context.fillText('M', cardX + cardWidth - 56, cardY + 46)
   }
 
   const profileX = cardX + (cardWidth / 2)
