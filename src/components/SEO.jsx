@@ -76,10 +76,14 @@ export default function SEO({ title, description, path, image, type = 'website',
     upsertMeta('meta[property="og:type"]', { property: 'og:type', content: type })
     upsertMeta('meta[property="og:url"]', { property: 'og:url', content: canonical })
     upsertMeta('meta[property="og:image"]', { property: 'og:image', content: pageImage })
+    upsertMeta('meta[property="og:image:width"]', { property: 'og:image:width', content: '1200' })
+    upsertMeta('meta[property="og:image:height"]', { property: 'og:image:height', content: '630' })
+    upsertMeta('meta[property="og:image:alt"]', { property: 'og:image:alt', content: `${SITE_NAME} expert consulting for FMCG and consumer brand growth` })
     upsertMeta('meta[name="twitter:card"]', { name: 'twitter:card', content: 'summary_large_image' })
     upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: pageTitle })
     upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: pageDescription })
     upsertMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: pageImage })
+    upsertMeta('meta[name="twitter:image:alt"]', { name: 'twitter:image:alt', content: `${SITE_NAME} expert consulting for FMCG and consumer brand growth` })
     upsertLink('link[rel="canonical"]', { rel: 'canonical', href: canonical })
 
     upsertJsonLd('site-json-ld', {
@@ -88,6 +92,7 @@ export default function SEO({ title, description, path, image, type = 'website',
       name: SITE_NAME,
       url: SITE_URL,
       logo: absoluteUrl('/Magnafic.png'),
+      image: DEFAULT_IMAGE,
       description: DEFAULT_DESCRIPTION,
     })
 

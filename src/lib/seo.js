@@ -1,13 +1,13 @@
 export const SITE_NAME = 'Magnafic'
 export const DEFAULT_SITE_URL = 'https://magnafic.com'
 export const SITE_URL = (import.meta.env.VITE_SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '')
-export const DEFAULT_IMAGE = `${SITE_URL}/Magnafic.png`
+export const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`
 export const DEFAULT_DESCRIPTION =
-  'Magnafic connects consumer brands with top experts, fractional CXOs, CPG leaders, and AI-enabled systems to solve growth and transformation challenges.'
+  'Magnafic is an end-to-end expert consulting platform for FMCG and consumer brands, connecting businesses with fractional CXOs, operators, and AI-enabled execution.'
 
 export const staticRouteSeo = {
   '/': {
-    title: 'Magnafic - Top 1% Experts for Scaling Consumer Brands',
+    title: 'Magnafic - Expert Consulting for FMCG & Consumer Brand Growth',
     description: DEFAULT_DESCRIPTION,
   },
   '/experts': {

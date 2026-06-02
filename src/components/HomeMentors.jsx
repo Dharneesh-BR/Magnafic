@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, User } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
@@ -8,6 +8,8 @@ import MagnaLoader from './MagnaLoader'
 export default function HomeMentors() {
   const [mentors, setMentors] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isAutoScrollPaused, setIsAutoScrollPaused] = useState(false)
+  const scrollerRef = useRef(null)
 
   useEffect(() => {
     const fetchMentors = async () => {
@@ -37,6 +39,40 @@ export default function HomeMentors() {
     fetchMentors()
   }, [])
 
+  useEffect(() => {
+    const scroller = scrollerRef.current
+    if (!scroller || mentors.length <= 1 || isAutoScrollPaused) return undefined
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (reduceMotion.matches) return undefined
+
+    let animationFrameId
+    let previousTimestamp
+    const scrollSpeed = 34
+
+    const scrollExperts = (timestamp) => {
+      if (previousTimestamp === undefined) previousTimestamp = timestamp
+
+      const elapsedSeconds = (timestamp - previousTimestamp) / 1000
+      previousTimestamp = timestamp
+
+      const loopWidth = scroller.scrollWidth / 2
+      scroller.scrollLeft += scrollSpeed * elapsedSeconds
+
+      if (loopWidth > 0 && scroller.scrollLeft >= loopWidth) {
+        scroller.scrollLeft -= loopWidth
+      }
+
+      animationFrameId = window.requestAnimationFrame(scrollExperts)
+    }
+
+    animationFrameId = window.requestAnimationFrame(scrollExperts)
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId)
+    }
+  }, [mentors.length, isAutoScrollPaused])
+
   if (loading) {
     return (
       <section className="bg-[#f7f9ff] px-4 py-12 sm:px-6 lg:px-8">
@@ -46,6 +82,8 @@ export default function HomeMentors() {
   }
 
   if (mentors.length === 0) return null
+
+  const mentorsForScroller = mentors.length > 1 ? [...mentors, ...mentors] : mentors
 
   return (
     <section className="bg-[#f7f9ff] px-4 py-12 sm:px-6 lg:px-8">
@@ -57,12 +95,24 @@ export default function HomeMentors() {
           <h2 className="text-2xl font-bold text-center text-gray-950 sm:text-3xl">Explore Experts</h2>
         </div>
 
-        <div className="expert-scroller overflow-x-auto pb-7">
+        <div
+          ref={scrollerRef}
+          className="expert-scroller overflow-x-auto pb-7"
+          onMouseEnter={() => setIsAutoScrollPaused(true)}
+          onMouseLeave={() => setIsAutoScrollPaused(false)}
+          onFocus={() => setIsAutoScrollPaused(true)}
+          onBlur={() => setIsAutoScrollPaused(false)}
+        >
           <div className="flex snap-x snap-mandatory gap-4">
-            {mentors.map((mentor) => (
+            {mentorsForScroller.map((mentor, index) => {
+              const isDuplicate = index >= mentors.length
+
+              return (
               <Link
-                key={mentor._id}
+                key={`${mentor._id}-${index}`}
                 to={`/experts/${mentor.slug || mentor._id}`}
+                aria-hidden={isDuplicate}
+                tabIndex={isDuplicate ? -1 : undefined}
                 className="group relative flex h-[22rem] w-[17rem] shrink-0 snap-start flex-col overflow-hidden rounded-3xl bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/10 sm:h-[23rem] sm:w-[18rem] lg:w-[calc((100%_-_4rem)/5)]"
               >
                 <div className="relative h-24 overflow-visible bg-gradient-to-br from-primary-900 via-primary-700 to-cyan-500 sm:h-28">
@@ -115,7 +165,8 @@ export default function HomeMentors() {
                 </div>
                 <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400"></div>
               </Link>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>

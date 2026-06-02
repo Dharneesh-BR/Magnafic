@@ -12,6 +12,7 @@ import {
   ImageIcon,
   MapPin,
   PlayCircle,
+  Share2,
   Timer,
   UserRound
 } from 'lucide-react'
@@ -214,7 +215,10 @@ function RoadmapSection({ experienceItems = [] }) {
   if (!experienceItems.length) return null
 
   return (
-    <Section title="Roadmap">
+    <Section title="My Growth Story">
+      <p className="mb-4 text-sm font-semibold leading-6 text-gray-600">
+        Journey of Building and Scaling Businesses
+      </p>
       <div className="relative space-y-4 overflow-hidden py-1">
         <svg className="absolute left-6 top-6 h-[calc(100%-3rem)] w-12 overflow-visible" viewBox="0 0 48 420" preserveAspectRatio="none" aria-hidden="true">
           <path d="M20 0 C 2 58, 44 96, 22 154 S 5 260, 27 322 S 20 390, 28 420" fill="none" stroke="#1f2937" strokeWidth="12" strokeLinecap="round" />
@@ -256,11 +260,144 @@ function FeaturedIcon(type) {
   return ExternalLink
 }
 
+function loadShareImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.crossOrigin = 'anonymous'
+    image.onload = () => resolve(image)
+    image.onerror = reject
+    image.src = src
+  })
+}
+
+function wrapCanvasText(context, text, x, y, maxWidth, lineHeight, maxLines = 3) {
+  const words = text.split(/\s+/).filter(Boolean)
+  const lines = []
+  let line = ''
+
+  words.forEach(word => {
+    const testLine = line ? `${line} ${word}` : word
+
+    if (context.measureText(testLine).width > maxWidth && line) {
+      lines.push(line)
+      line = word
+    } else {
+      line = testLine
+    }
+  })
+
+  if (line) lines.push(line)
+
+  lines.slice(0, maxLines).forEach((lineText, index) => {
+    const isLastVisibleLine = index === maxLines - 1 && lines.length > maxLines
+    context.fillText(isLastVisibleLine ? `${lineText.replace(/\s+\S+$/, '')}...` : lineText, x, y + (index * lineHeight))
+  })
+}
+
+async function createExpertShareCard({ expert, expertImage, headline, description }) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 1200
+  canvas.height = 630
+  const context = canvas.getContext('2d')
+
+  const gradient = context.createLinearGradient(0, 0, 1200, 630)
+  gradient.addColorStop(0, '#000047')
+  gradient.addColorStop(0.56, '#3534cd')
+  gradient.addColorStop(1, '#00b7d8')
+  context.fillStyle = gradient
+  context.fillRect(0, 0, 1200, 630)
+
+  context.fillStyle = 'rgba(0, 255, 255, 0.14)'
+  context.beginPath()
+  context.arc(1030, 90, 255, 0, Math.PI * 2)
+  context.fill()
+  context.beginPath()
+  context.arc(80, 570, 230, 0, Math.PI * 2)
+  context.fill()
+
+  context.strokeStyle = 'rgba(0, 255, 255, 0.78)'
+  context.lineWidth = 3
+  context.strokeRect(28, 28, 1144, 574)
+
+  try {
+    const logo = await loadShareImage('/Magnafic final.png')
+    context.drawImage(logo, 430, 74, 360, 101)
+  } catch {
+    context.font = '700 54px Arial'
+    context.fillStyle = '#ffffff'
+    context.fillText('Magnafic', 475, 140)
+  }
+
+  context.save()
+  context.beginPath()
+  context.arc(248, 332, 138, 0, Math.PI * 2)
+  context.closePath()
+  context.fillStyle = '#ffffff'
+  context.fill()
+  context.clip()
+
+  let profileDrawn = false
+
+  if (expertImage) {
+    try {
+      const profile = await loadShareImage(expertImage)
+      context.drawImage(profile, 110, 194, 276, 276)
+      profileDrawn = true
+    } catch {
+      context.fillStyle = '#000047'
+      context.fillRect(110, 194, 276, 276)
+    }
+  } else {
+    context.fillStyle = '#000047'
+    context.fillRect(110, 194, 276, 276)
+  }
+
+  context.restore()
+
+  if (!profileDrawn) {
+    context.font = '700 84px Arial'
+    context.fillStyle = '#ffffff'
+    context.textAlign = 'center'
+    context.fillText(initials(expert.fullName), 248, 360)
+    context.textAlign = 'left'
+  }
+
+  context.strokeStyle = '#ffffff'
+  context.lineWidth = 8
+  context.beginPath()
+  context.arc(248, 332, 140, 0, Math.PI * 2)
+  context.stroke()
+
+  context.fillStyle = '#ffffff'
+  context.font = '700 58px Arial'
+  wrapCanvasText(context, expert.fullName, 450, 285, 620, 64, 2)
+
+  context.fillStyle = '#dffcff'
+  context.font = '700 30px Arial'
+  wrapCanvasText(context, headline, 450, 404, 620, 38, 2)
+
+  context.fillStyle = 'rgba(255, 255, 255, 0.88)'
+  context.font = '400 25px Arial'
+  wrapCanvasText(context, description, 450, 500, 620, 34, 2)
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(blob => {
+      if (blob) {
+        resolve(blob)
+      } else {
+        reject(new Error('Unable to create share image'))
+      }
+    }, 'image/png')
+  })
+}
+
 export default function ExpertDetail() {
   const { slug } = useParams()
   const [expert, setExpert] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isSharing, setIsSharing] = useState(false)
+  const [shareStatus, setShareStatus] = useState('')
 
   useEffect(() => {
     const fetchExpert = async () => {
@@ -409,6 +546,9 @@ export default function ExpertDetail() {
   const company = expert.currentCompany || expert.company
   const location = expert.location || expert.city
   const intro = expert.profileIntro || expert.shortBio
+  const shareDescription = expert.shortBio || intro || `Meet ${expert.fullName}, an expert consultant on Magnafic.`
+  const shareTitle = `${expert.fullName} - ${headline} | Magnafic`
+  const shareUrl = absoluteUrl(`/experts/${expert.slug || expert._id}`)
   const keySkills = toTextList(expert.keySkills)
   const aboutContent = aboutBlocks.length ? aboutBlocks : <p className="text-base leading-7 text-gray-700">{expert.shortBio}</p>
   const featuredItems = (expert.featuredItems || []).filter(Boolean)
@@ -421,18 +561,67 @@ export default function ExpertDetail() {
   const projectItems = (expert.projects || []).filter(Boolean)
   const recommendationItems = (expert.recommendations || []).filter(Boolean)
 
+  const handleShareExpert = async () => {
+    setIsSharing(true)
+    setShareStatus('')
+
+    try {
+      const shareData = {
+        title: shareTitle,
+        text: shareDescription,
+        url: shareUrl,
+      }
+
+      if (navigator.share) {
+        try {
+          const shareCard = await createExpertShareCard({
+            expert,
+            expertImage,
+            headline,
+            description: shareDescription,
+          })
+          const shareFile = new File([shareCard], `${expert.slug || expert._id || 'magnafic-expert'}-share.png`, { type: 'image/png' })
+          const fileShareData = { ...shareData, files: [shareFile] }
+
+          if (!navigator.canShare || navigator.canShare(fileShareData)) {
+            await navigator.share(fileShareData)
+            setShareStatus('Shared')
+            return
+          }
+        } catch (shareImageError) {
+          console.warn('Expert share image could not be attached:', shareImageError)
+        }
+
+        await navigator.share(shareData)
+        setShareStatus('Shared')
+        return
+      }
+
+      await navigator.clipboard.writeText(shareUrl)
+      setShareStatus('Link copied')
+    } catch (shareError) {
+      if (shareError?.name !== 'AbortError') {
+        console.error('Expert share failed:', shareError)
+        setShareStatus('Could not share')
+      }
+    } finally {
+      setIsSharing(false)
+      window.setTimeout(() => setShareStatus(''), 2400)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#f3f2ef] px-3 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-12 lg:px-8">
       <SEO
-        title={`${expert.fullName} - ${headline}`}
-        description={expert.shortBio || intro}
+        title={shareTitle}
+        description={shareDescription}
         path={`/experts/${expert.slug || expert._id}`}
         image={expertImage || expert.bannerImageUrl || undefined}
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'Person',
           name: expert.fullName,
-          description: expert.shortBio || intro,
+          description: shareDescription,
           image: expertImage,
           jobTitle: headline,
           worksFor: company
@@ -441,7 +630,7 @@ export default function ExpertDetail() {
                 name: company,
               }
             : undefined,
-          url: absoluteUrl(`/experts/${expert.slug || expert._id}`),
+          url: shareUrl,
           knowsAbout: [...keySkills, ...toTextList(expert.expertiseAreas)],
         }}
       />
@@ -494,10 +683,21 @@ export default function ExpertDetail() {
                 </div>
               </div>
 
-              <span className="mt-3 inline-flex w-fit items-center rounded-full bg-green-200 px-3 py-1.5 text-xs font-semibold text-green-800 sm:mt-8 sm:px-4 sm:py-2 sm:text-sm">
-                <CheckCircle2 className="mr-1.5 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
-                {availabilityLabel(expert.availabilityStatus)}
-              </span>
+              <div className="mt-3 flex flex-col items-end gap-2 sm:mt-8 sm:flex-row sm:items-center">
+                <span className="inline-flex w-fit items-center rounded-full bg-green-200 px-3 py-1.5 text-xs font-semibold text-green-800 sm:px-4 sm:py-2 sm:text-sm">
+                  <CheckCircle2 className="mr-1.5 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
+                  {availabilityLabel(expert.availabilityStatus)}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleShareExpert}
+                  disabled={isSharing}
+                  className="inline-flex w-fit items-center rounded-full bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700 disabled:cursor-wait disabled:opacity-70 sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  <Share2 className="mr-1.5 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
+                  {isSharing ? 'Sharing...' : shareStatus || 'Share'}
+                </button>
+              </div>
             </div>
 
             <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
@@ -594,7 +794,7 @@ export default function ExpertDetail() {
               <Section title="Experience">
                 <div className="space-y-6">
                   {experienceItems.map((item, index) => (
-                    <article key={`${item.roleTitle}-${index}`} className="flex gap-4 border-b border-gray-100 pb-6 last:border-0 last:pb-0">
+                    <article key={`${item.roleTitle}-${index}`} className="grid grid-cols-[3rem_minmax(0,1fr)] gap-x-4 border-b border-gray-100 pb-6 last:border-0 last:pb-0">
                       <LogoFrame src={item.companyLogoUrl} alt={item.companyName || item.roleTitle} />
                       <div className="min-w-0 flex-1">
                         <h3 className="font-semibold text-gray-950">{item.roleTitle}</h3>
@@ -610,17 +810,19 @@ export default function ExpertDetail() {
                           )}
                           {item.location && <span>{item.location}</span>}
                         </p>
-                        {item.description?.length > 0 && (
-                          <div className="mt-3 space-y-3">{renderPortableText(item.description, true)}</div>
-                        )}
-                        {toTextList(item.skillsUsed).length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {toTextList(item.skillsUsed).map(skill => (
-                              <span key={skill} className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">{skill}</span>
-                            ))}
-                          </div>
-                        )}
                       </div>
+                      {item.description?.length > 0 && (
+                        <div className="col-span-2 mt-3 space-y-3 pl-0 [&_ol]:ml-0 [&_ul]:ml-0">
+                          {renderPortableText(item.description, true)}
+                        </div>
+                      )}
+                      {toTextList(item.skillsUsed).length > 0 && (
+                        <div className="col-span-2 mt-3 flex flex-wrap gap-2">
+                          {toTextList(item.skillsUsed).map(skill => (
+                            <span key={skill} className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">{skill}</span>
+                          ))}
+                        </div>
+                      )}
                     </article>
                   ))}
                 </div>
@@ -676,13 +878,11 @@ export default function ExpertDetail() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   {projectItems.map((item, index) => (
                     <article key={`${item.projectTitle}-${index}`} className="overflow-hidden rounded-lg border border-gray-200">
-                      <div className="flex aspect-[16/9] items-center justify-center bg-gray-100 text-gray-400">
-                        {item.projectImageUrl ? (
+                      {item.projectImageUrl && (
+                        <div className="flex aspect-[16/9] items-center justify-center bg-gray-100 text-gray-400">
                           <img src={item.projectImageUrl} alt={item.projectTitle} className="h-full w-full object-cover" />
-                        ) : (
-                          <ImageIcon className="h-8 w-8" />
-                        )}
-                      </div>
+                        </div>
+                      )}
                       <div className="p-4">
                         <h3 className="font-semibold text-gray-950">{item.projectTitle}</h3>
                         {item.clientOrCompany && <p className="mt-1 text-sm text-gray-600">{item.clientOrCompany}</p>}
