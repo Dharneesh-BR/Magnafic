@@ -294,43 +294,91 @@ function wrapCanvasText(context, text, x, y, maxWidth, lineHeight, maxLines = 3)
   })
 }
 
-async function createExpertShareCard({ expert, expertImage, headline, description }) {
+function roundedRect(context, x, y, width, height, radius) {
+  context.beginPath()
+  context.moveTo(x + radius, y)
+  context.lineTo(x + width - radius, y)
+  context.quadraticCurveTo(x + width, y, x + width, y + radius)
+  context.lineTo(x + width, y + height - radius)
+  context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+  context.lineTo(x + radius, y + height)
+  context.quadraticCurveTo(x, y + height, x, y + height - radius)
+  context.lineTo(x, y + radius)
+  context.quadraticCurveTo(x, y, x + radius, y)
+  context.closePath()
+}
+
+function drawImageCover(context, image, x, y, width, height) {
+  const sourceRatio = image.width / image.height
+  const targetRatio = width / height
+  let sourceWidth = image.width
+  let sourceHeight = image.height
+  let sourceX = 0
+  let sourceY = 0
+
+  if (sourceRatio > targetRatio) {
+    sourceWidth = image.height * targetRatio
+    sourceX = (image.width - sourceWidth) / 2
+  } else {
+    sourceHeight = image.width / targetRatio
+    sourceY = (image.height - sourceHeight) / 2
+  }
+
+  context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height)
+}
+
+async function createExpertShareCard({ expert, expertImage, headline }) {
   const canvas = document.createElement('canvas')
-  canvas.width = 1200
-  canvas.height = 630
+  canvas.width = 420
+  canvas.height = 558
   const context = canvas.getContext('2d')
 
-  const gradient = context.createLinearGradient(0, 0, 1200, 630)
-  gradient.addColorStop(0, '#000047')
-  gradient.addColorStop(0.56, '#3534cd')
-  gradient.addColorStop(1, '#00b7d8')
-  context.fillStyle = gradient
-  context.fillRect(0, 0, 1200, 630)
+  const cardX = 0
+  const cardY = 0
+  const cardWidth = canvas.width
+  const cardHeight = canvas.height
+  const cardRadius = 34
 
-  context.fillStyle = 'rgba(0, 255, 255, 0.14)'
-  context.beginPath()
-  context.arc(1030, 90, 255, 0, Math.PI * 2)
-  context.fill()
-  context.beginPath()
-  context.arc(80, 570, 230, 0, Math.PI * 2)
+  roundedRect(context, cardX, cardY, cardWidth, cardHeight, cardRadius)
+  context.fillStyle = '#ffffff'
   context.fill()
 
-  context.strokeStyle = 'rgba(0, 255, 255, 0.78)'
-  context.lineWidth = 3
-  context.strokeRect(28, 28, 1144, 574)
+  context.save()
+  roundedRect(context, cardX, cardY, cardWidth, cardHeight, cardRadius)
+  context.clip()
+
+  const headerGradient = context.createLinearGradient(cardX, cardY, cardX + cardWidth, cardY + 175)
+  headerGradient.addColorStop(0, '#000047')
+  headerGradient.addColorStop(0.58, '#3534cd')
+  headerGradient.addColorStop(1, '#00ffff')
+  context.fillStyle = headerGradient
+  context.fillRect(cardX, cardY, cardWidth, 180)
+
+  context.fillStyle = 'rgba(255, 255, 255, 0.18)'
+  context.beginPath()
+  context.arc(cardX + 94, cardY + 46, 94, 0, Math.PI * 2)
+  context.fill()
+  context.fillStyle = 'rgba(0, 255, 255, 0.2)'
+  context.beginPath()
+  context.arc(cardX + 372, cardY + 20, 116, 0, Math.PI * 2)
+  context.fill()
 
   try {
-    const logo = await loadShareImage('/Magnafic final.png')
-    context.drawImage(logo, 430, 74, 360, 101)
+    const logo = await loadShareImage('/favicon.png')
+    context.drawImage(logo, cardX + cardWidth - 58, cardY + 20, 36, 30)
   } catch {
-    context.font = '700 54px Arial'
     context.fillStyle = '#ffffff'
-    context.fillText('Magnafic', 475, 140)
+    context.font = '700 22px Arial'
+    context.fillText('M', cardX + cardWidth - 48, cardY + 44)
   }
+
+  const profileX = cardX + (cardWidth / 2)
+  const profileY = cardY + 160
+  const profileRadius = 78
 
   context.save()
   context.beginPath()
-  context.arc(248, 332, 138, 0, Math.PI * 2)
+  context.arc(profileX, profileY, profileRadius, 0, Math.PI * 2)
   context.closePath()
   context.fillStyle = '#ffffff'
   context.fill()
@@ -341,44 +389,59 @@ async function createExpertShareCard({ expert, expertImage, headline, descriptio
   if (expertImage) {
     try {
       const profile = await loadShareImage(expertImage)
-      context.drawImage(profile, 110, 194, 276, 276)
+      drawImageCover(context, profile, profileX - profileRadius, profileY - profileRadius, profileRadius * 2, profileRadius * 2)
       profileDrawn = true
     } catch {
-      context.fillStyle = '#000047'
-      context.fillRect(110, 194, 276, 276)
+      context.fillStyle = '#e6f7ff'
+      context.fillRect(profileX - profileRadius, profileY - profileRadius, profileRadius * 2, profileRadius * 2)
     }
   } else {
-    context.fillStyle = '#000047'
-    context.fillRect(110, 194, 276, 276)
+    context.fillStyle = '#e6f7ff'
+    context.fillRect(profileX - profileRadius, profileY - profileRadius, profileRadius * 2, profileRadius * 2)
   }
 
   context.restore()
 
   if (!profileDrawn) {
-    context.font = '700 84px Arial'
-    context.fillStyle = '#ffffff'
+    context.font = '700 54px Arial'
+    context.fillStyle = '#3534cd'
     context.textAlign = 'center'
-    context.fillText(initials(expert.fullName), 248, 360)
+    context.fillText(initials(expert.fullName), profileX, profileY + 18)
     context.textAlign = 'left'
   }
 
   context.strokeStyle = '#ffffff'
-  context.lineWidth = 8
+  context.lineWidth = 7
   context.beginPath()
-  context.arc(248, 332, 140, 0, Math.PI * 2)
+  context.arc(profileX, profileY, profileRadius + 2, 0, Math.PI * 2)
   context.stroke()
 
-  context.fillStyle = '#ffffff'
-  context.font = '700 58px Arial'
-  wrapCanvasText(context, expert.fullName, 450, 285, 620, 64, 2)
+  context.textAlign = 'center'
+  context.fillStyle = '#030712'
+  context.font = '700 34px Arial'
+  wrapCanvasText(context, expert.fullName, profileX, cardY + 280, cardWidth - 68, 38, 2)
 
-  context.fillStyle = '#dffcff'
-  context.font = '700 30px Arial'
-  wrapCanvasText(context, headline, 450, 404, 620, 38, 2)
+  context.fillStyle = '#3534cd'
+  context.font = '700 20px Arial'
+  wrapCanvasText(context, headline, profileX, cardY + 365, cardWidth - 80, 26, 3)
 
-  context.fillStyle = 'rgba(255, 255, 255, 0.88)'
-  context.font = '400 25px Arial'
-  wrapCanvasText(context, description, 450, 500, 620, 34, 2)
+  context.fillStyle = '#1d4ed8'
+  context.font = '700 18px Arial'
+  if (expert.totalYearsOfExperience) {
+    context.fillText(`${expert.totalYearsOfExperience}+ years experience`, profileX, cardY + 472)
+  }
+
+  const expertLocation = expert.location || expert.city
+  if (expertLocation) {
+    context.fillText(expertLocation, profileX, cardY + 512)
+  }
+
+  const footerGradient = context.createLinearGradient(cardX, cardY + cardHeight - 10, cardX + cardWidth, cardY + cardHeight - 10)
+  footerGradient.addColorStop(0, '#3534cd')
+  footerGradient.addColorStop(1, '#00ffff')
+  context.fillStyle = footerGradient
+  context.fillRect(cardX, cardY + cardHeight - 10, cardWidth, 10)
+  context.restore()
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(blob => {
@@ -547,6 +610,7 @@ export default function ExpertDetail() {
   const location = expert.location || expert.city
   const intro = expert.profileIntro || expert.shortBio
   const shareDescription = expert.shortBio || intro || `Meet ${expert.fullName}, an expert consultant on Magnafic.`
+  const shareMessage = 'Magnafic - Top-1% Expert Consulting for FMCG & Consumer Brand Growth'
   const shareTitle = `${expert.fullName} - ${headline} | Magnafic`
   const shareUrl = absoluteUrl(`/experts/${expert.slug || expert._id}`)
   const keySkills = toTextList(expert.keySkills)
@@ -568,7 +632,7 @@ export default function ExpertDetail() {
     try {
       const shareData = {
         title: shareTitle,
-        text: shareDescription,
+        text: shareMessage,
         url: shareUrl,
       }
 
@@ -578,7 +642,6 @@ export default function ExpertDetail() {
             expert,
             expertImage,
             headline,
-            description: shareDescription,
           })
           const shareFile = new File([shareCard], `${expert.slug || expert._id || 'magnafic-expert'}-share.png`, { type: 'image/png' })
           const fileShareData = { ...shareData, files: [shareFile] }
@@ -692,7 +755,7 @@ export default function ExpertDetail() {
                   type="button"
                   onClick={handleShareExpert}
                   disabled={isSharing}
-                  className="inline-flex w-fit items-center rounded-full bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700 disabled:cursor-wait disabled:opacity-70 sm:px-4 sm:py-2 sm:text-sm"
+                  className="inline-flex w-fit items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-primary-200 hover:text-primary-700 disabled:cursor-wait disabled:opacity-70 sm:px-4 sm:py-2 sm:text-sm"
                 >
                   <Share2 className="mr-1.5 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
                   {isSharing ? 'Sharing...' : shareStatus || 'Share'}

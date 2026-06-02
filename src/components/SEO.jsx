@@ -54,6 +54,11 @@ function removeJsonLd(id) {
   element?.remove()
 }
 
+function removeHeadElement(selector) {
+  const element = document.head.querySelector(selector)
+  element?.remove()
+}
+
 export default function SEO({ title, description, path, image, type = 'website', jsonLd, noIndex = false }) {
   const location = useLocation()
   const routeSeo = staticRouteSeo[location.pathname] || {}
@@ -61,6 +66,7 @@ export default function SEO({ title, description, path, image, type = 'website',
   const pageDescription = description || routeSeo.description || DEFAULT_DESCRIPTION
   const canonical = absoluteUrl(path || location.pathname)
   const pageImage = image ? absoluteUrl(image) : DEFAULT_IMAGE
+  const isDefaultImage = pageImage === DEFAULT_IMAGE
 
   useEffect(() => {
     document.title = pageTitle
@@ -76,14 +82,19 @@ export default function SEO({ title, description, path, image, type = 'website',
     upsertMeta('meta[property="og:type"]', { property: 'og:type', content: type })
     upsertMeta('meta[property="og:url"]', { property: 'og:url', content: canonical })
     upsertMeta('meta[property="og:image"]', { property: 'og:image', content: pageImage })
-    upsertMeta('meta[property="og:image:width"]', { property: 'og:image:width', content: '1200' })
-    upsertMeta('meta[property="og:image:height"]', { property: 'og:image:height', content: '630' })
-    upsertMeta('meta[property="og:image:alt"]', { property: 'og:image:alt', content: `${SITE_NAME} expert consulting for FMCG and consumer brand growth` })
+    if (isDefaultImage) {
+      upsertMeta('meta[property="og:image:width"]', { property: 'og:image:width', content: '320' })
+      upsertMeta('meta[property="og:image:height"]', { property: 'og:image:height', content: '75' })
+    } else {
+      removeHeadElement('meta[property="og:image:width"]')
+      removeHeadElement('meta[property="og:image:height"]')
+    }
+    upsertMeta('meta[property="og:image:alt"]', { property: 'og:image:alt', content: isDefaultImage ? `${SITE_NAME} logo` : pageTitle })
     upsertMeta('meta[name="twitter:card"]', { name: 'twitter:card', content: 'summary_large_image' })
     upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: pageTitle })
     upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: pageDescription })
     upsertMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: pageImage })
-    upsertMeta('meta[name="twitter:image:alt"]', { name: 'twitter:image:alt', content: `${SITE_NAME} expert consulting for FMCG and consumer brand growth` })
+    upsertMeta('meta[name="twitter:image:alt"]', { name: 'twitter:image:alt', content: isDefaultImage ? `${SITE_NAME} logo` : pageTitle })
     upsertLink('link[rel="canonical"]', { rel: 'canonical', href: canonical })
 
     upsertJsonLd('site-json-ld', {
@@ -108,7 +119,7 @@ export default function SEO({ title, description, path, image, type = 'website',
     } else {
       removeJsonLd('page-json-ld')
     }
-  }, [canonical, jsonLd, noIndex, pageDescription, pageImage, pageTitle, type])
+  }, [canonical, isDefaultImage, jsonLd, noIndex, pageDescription, pageImage, pageTitle, type])
 
   return null
 }
