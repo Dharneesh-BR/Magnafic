@@ -848,7 +848,7 @@ export default function ExpertDetail() {
               <Section title="Experience">
                 <div className="space-y-6">
                   {experienceItems.map((item, index) => (
-                    <article key={`${item.roleTitle}-${index}`} className="grid grid-cols-[3rem_minmax(0,1fr)] gap-x-4 border-b border-gray-100 pb-6 last:border-0 last:pb-0">
+                    <article key={`${item.roleTitle}-${index}`} tabIndex={0} className="group grid grid-cols-[3rem_minmax(0,1fr)] gap-x-4 rounded-lg border border-transparent border-b-gray-100 p-0 pb-6 outline-none transition-all duration-300 ease-out last:border-b-transparent last:pb-0 hover:-translate-y-1 hover:border-primary-100 hover:bg-white hover:p-4 hover:pb-4 hover:shadow-xl hover:shadow-primary-900/10 focus:-translate-y-1 focus:border-primary-100 focus:bg-white focus:p-4 focus:pb-4 focus:shadow-xl focus:shadow-primary-900/10 focus:ring-2 focus:ring-primary-100">
                       <LogoFrame src={item.companyLogoUrl} alt={item.companyName || item.roleTitle} />
                       <div className="min-w-0 flex-1">
                         <h3 className="font-semibold text-gray-950">{item.roleTitle}</h3>
@@ -866,12 +866,14 @@ export default function ExpertDetail() {
                         </p>
                       </div>
                       {item.description?.length > 0 && (
-                        <div className="col-span-2 mt-3 space-y-3 pl-0 [&_ol]:ml-0 [&_ul]:ml-0">
+                        <div className="col-span-2 grid max-h-0 overflow-hidden opacity-0 transition-all duration-300 ease-out group-hover:mt-3 group-hover:max-h-[30rem] group-hover:opacity-100 group-focus:mt-3 group-focus:max-h-[30rem] group-focus:opacity-100 group-focus-within:mt-3 group-focus-within:max-h-[30rem] group-focus-within:opacity-100">
+                          <div className="space-y-3 border-t border-gray-100 pt-3 pl-0 [&_ol]:ml-0 [&_ul]:ml-0">
                           {renderPortableText(item.description, true)}
+                          </div>
                         </div>
                       )}
                       {toTextList(item.skillsUsed).length > 0 && (
-                        <div className="col-span-2 mt-3 flex flex-wrap gap-2">
+                        <div className="col-span-2 flex max-h-0 flex-wrap gap-2 overflow-hidden opacity-0 transition-all duration-300 ease-out group-hover:mt-3 group-hover:max-h-40 group-hover:opacity-100 group-focus:mt-3 group-focus:max-h-40 group-focus:opacity-100 group-focus-within:mt-3 group-focus-within:max-h-40 group-focus-within:opacity-100">
                           {toTextList(item.skillsUsed).map(skill => (
                             <span key={skill} className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">{skill}</span>
                           ))}

@@ -82,10 +82,13 @@ export default function SEO({ title, description, path, image, type = 'website',
     upsertMeta('meta[property="og:type"]', { property: 'og:type', content: type })
     upsertMeta('meta[property="og:url"]', { property: 'og:url', content: canonical })
     upsertMeta('meta[property="og:image"]', { property: 'og:image', content: pageImage })
+    upsertMeta('meta[property="og:image:secure_url"]', { property: 'og:image:secure_url', content: pageImage })
     if (isDefaultImage) {
-      upsertMeta('meta[property="og:image:width"]', { property: 'og:image:width', content: '620' })
-      upsertMeta('meta[property="og:image:height"]', { property: 'og:image:height', content: '640' })
+      upsertMeta('meta[property="og:image:type"]', { property: 'og:image:type', content: 'image/jpeg' })
+      upsertMeta('meta[property="og:image:width"]', { property: 'og:image:width', content: '1200' })
+      upsertMeta('meta[property="og:image:height"]', { property: 'og:image:height', content: '630' })
     } else {
+      removeHeadElement('meta[property="og:image:type"]')
       removeHeadElement('meta[property="og:image:width"]')
       removeHeadElement('meta[property="og:image:height"]')
     }

@@ -1,7 +1,7 @@
 export const SITE_NAME = 'Magnafic'
 export const DEFAULT_SITE_URL = 'https://magnafic.com'
 export const SITE_URL = (import.meta.env.VITE_SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '')
-export const DEFAULT_IMAGE = `${SITE_URL}/Banner.png`
+export const DEFAULT_IMAGE = `${SITE_URL}/share-banner.jpg`
 export const DEFAULT_DESCRIPTION =
   'Magnafic is an end-to-end expert consulting platform for FMCG and consumer brands, connecting businesses with fractional CXOs, operators, and AI-enabled execution.'
 
