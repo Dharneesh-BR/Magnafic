@@ -5,6 +5,7 @@ import {
   Award,
   BriefcaseBusiness,
   CalendarDays,
+  ChevronDown,
   CheckCircle2,
   ExternalLink,
   FileText,
@@ -412,12 +413,10 @@ async function createExpertShareCard({ expert, expertImage, headline }) {
   context.font = '700 34px Arial'
   wrapCanvasText(context, expert.fullName, profileX, cardY + 280, cardWidth - 68, 38, 2)
 
-  context.fillStyle = '#3534cd'
-  context.font = '700 20px Arial'
-  wrapCanvasText(context, headline, profileX, cardY + 365, cardWidth - 80, 26, 3)
-
   context.fillStyle = '#1d4ed8'
   context.font = '700 18px Arial'
+  wrapCanvasText(context, headline, profileX, cardY + 338, cardWidth - 80, 24, 3)
+
   if (expert.totalYearsOfExperience) {
     context.fillText(`${expert.totalYearsOfExperience}+ years experience`, profileX, cardY + 472)
   }
@@ -850,7 +849,7 @@ export default function ExpertDetail() {
                   {experienceItems.map((item, index) => (
                     <article key={`${item.roleTitle}-${index}`} tabIndex={0} className="group grid grid-cols-[3rem_minmax(0,1fr)] gap-x-4 rounded-lg border border-transparent border-b-gray-100 p-0 pb-6 outline-none transition-all duration-300 ease-out last:border-b-transparent last:pb-0 hover:-translate-y-1 hover:border-primary-100 hover:bg-white hover:p-4 hover:pb-4 hover:shadow-xl hover:shadow-primary-900/10 focus:-translate-y-1 focus:border-primary-100 focus:bg-white focus:p-4 focus:pb-4 focus:shadow-xl focus:shadow-primary-900/10 focus:ring-2 focus:ring-primary-100">
                       <LogoFrame src={item.companyLogoUrl} alt={item.companyName || item.roleTitle} />
-                      <div className="min-w-0 flex-1">
+                      <div className="relative min-w-0 flex-1 pr-10">
                         <h3 className="font-semibold text-gray-950">{item.roleTitle}</h3>
                         <p className="mt-1 text-sm text-gray-700">
                           {[item.companyName, item.employmentType].filter(Boolean).join(' · ')}
@@ -864,6 +863,11 @@ export default function ExpertDetail() {
                           )}
                           {item.location && <span>{item.location}</span>}
                         </p>
+                        {(item.description?.length > 0 || toTextList(item.skillsUsed).length > 0) && (
+                          <span className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center rounded-full bg-primary-50 text-primary-600 transition duration-300 group-hover:rotate-180 group-hover:bg-primary-600 group-hover:text-white group-focus:rotate-180 group-focus:bg-primary-600 group-focus:text-white group-focus-within:rotate-180 group-focus-within:bg-primary-600 group-focus-within:text-white" aria-hidden="true">
+                            <ChevronDown className="h-4 w-4" />
+                          </span>
+                        )}
                       </div>
                       {item.description?.length > 0 && (
                         <div className="col-span-2 grid max-h-0 overflow-hidden opacity-0 transition-all duration-300 ease-out group-hover:mt-3 group-hover:max-h-[30rem] group-hover:opacity-100 group-focus:mt-3 group-focus:max-h-[30rem] group-focus:opacity-100 group-focus-within:mt-3 group-focus-within:max-h-[30rem] group-focus-within:opacity-100">
