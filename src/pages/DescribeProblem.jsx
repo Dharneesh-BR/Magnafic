@@ -110,9 +110,13 @@ export default function DescribeProblem() {
             <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
               <MessageSquareText className="h-6 w-6 text-cyan" />
             </div>
-            <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Describe your problem</h1>
+            <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+              {isComplete ? 'Thank you!' : 'Describe your problem'}
+            </h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-cyan-50 sm:text-lg">
-              Answer a few quick questions so we can understand your business challenge before starting the conversation.
+              {isComplete
+                ? 'Your responses have been captured successfully.'
+                : 'Answer a few quick questions so we can understand your business challenge before starting the conversation.'}
             </p>
           </div>
 

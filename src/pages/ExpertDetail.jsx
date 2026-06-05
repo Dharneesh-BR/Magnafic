@@ -11,11 +11,15 @@ import {
   FileText,
   GraduationCap,
   ImageIcon,
+  Lightbulb,
   MapPin,
+  MessageSquareQuote,
   PlayCircle,
+  Route,
   Share2,
   Timer,
-  UserRound
+  UserRound,
+  Wrench
 } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
@@ -171,13 +175,31 @@ function availabilityLabel(status) {
   return 'Available'
 }
 
+const sectionIcons = {
+  About: UserRound,
+  Featured: Lightbulb,
+  Experience: BriefcaseBusiness,
+  Education: GraduationCap,
+  'Licenses & Certifications': Award,
+  'Projects / Case Studies': FileText,
+  Recommendations: MessageSquareQuote,
+  'Key skills': Wrench,
+  'My Growth Story': Route,
+}
+
 function Section({ title, children, variant = 'default' }) {
   if (!children) return null
   const isGradient = variant === 'gradient'
+  const Icon = sectionIcons[title] || FileText
 
   return (
     <section className={`rounded-lg border p-4 transition sm:p-5 ${isGradient ? 'border-white/20 bg-[linear-gradient(135deg,#000047,#2563eb_52%,#00ffff)] text-white shadow-[0_0_26px_rgba(0,255,255,0.24)] hover:shadow-[0_0_34px_rgba(0,255,255,0.32)]' : 'border-cyan-100 bg-white shadow-[0_0_22px_rgba(0,255,255,0.18)] hover:border-cyan-200 hover:shadow-[0_0_30px_rgba(0,255,255,0.26)]'}`}>
-      <h2 className={`mb-4 text-lg font-semibold sm:text-xl ${isGradient ? 'text-white' : 'text-gray-950'}`}>{title}</h2>
+      <div className="mb-6 flex items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#000047,#3534cd_55%,#00bfcf)] shadow-md shadow-primary-900/25">
+          <Icon className="h-5 w-5 text-white" aria-hidden="true" />
+        </span>
+        <h2 className={`text-lg font-semibold sm:text-xl ${isGradient ? 'text-white' : 'text-gray-950'}`}>{title}</h2>
+      </div>
       {children}
     </section>
   )

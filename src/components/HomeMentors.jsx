@@ -4,6 +4,7 @@ import { ArrowRight, User } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import { getExpertImage } from '../lib/expertImages'
 import MagnaLoader from './MagnaLoader'
+import ExpertWorldMap from './ExpertWorldMap'
 
 export default function HomeMentors() {
   const [mentors, setMentors] = useState([])
@@ -169,6 +170,8 @@ export default function HomeMentors() {
             })}
           </div>
         </div>
+
+        <ExpertWorldMap />
       </div>
     </section>
   )

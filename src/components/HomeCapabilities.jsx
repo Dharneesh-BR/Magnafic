@@ -81,7 +81,7 @@ export default function HomeCapabilities() {
               <Link
                 key={capability._id}
                 to={`/capabilities/${capability.slug || capability._id}`}
-                className="group relative flex min-h-[10.5rem] flex-col overflow-hidden rounded-2xl bg-gradient-to-br from-magna-m via-blue-500 to-cyan-500 p-5 text-white shadow-xl shadow-primary-900/15 ring-1 ring-white/25 transition duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-cyan-500/25 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300/70 sm:min-h-[14.5rem] sm:p-6"
+                className="group relative flex min-h-[16rem] flex-col overflow-hidden rounded-2xl bg-gradient-to-br from-magna-m via-blue-500 to-cyan-500 p-6 text-white shadow-xl shadow-primary-900/15 ring-1 ring-white/25 transition duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-cyan-500/25 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300/70 sm:min-h-[15rem]"
               >
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.24),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.2),transparent_42%)] opacity-85"></div>
                 <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-white/80 via-cyan-200 to-white/20"></div>
@@ -91,12 +91,12 @@ export default function HomeCapabilities() {
                   <Icon className="h-7 w-7 sm:h-8 sm:w-8" />
                 </span>
 
-                <div className="relative pr-12 sm:pr-16">
-                  <h3 className="max-w-[18rem] text-lg font-extrabold leading-tight sm:text-2xl">
+                <div className="relative pr-10 sm:pr-16">
+                  <h3 className="max-w-[18rem] text-xl font-extrabold leading-tight sm:text-2xl">
                     {capability.title}
                   </h3>
                   {capability.subtitle && (
-                    <p className="mt-3 line-clamp-2 max-w-[21rem] text-sm font-semibold leading-5 text-white/90 sm:text-base sm:leading-6">{capability.subtitle}</p>
+                    <p className="mt-3 line-clamp-3 max-w-[21rem] text-sm font-semibold leading-5 text-white/90 sm:line-clamp-2 sm:text-base sm:leading-6">{capability.subtitle}</p>
                   )}
                 </div>
 
