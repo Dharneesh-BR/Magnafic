@@ -16,16 +16,10 @@ const staticRoutes = [
   { path: '/digital-transformation', priority: '0.8', changefreq: 'monthly' },
   { path: '/about', priority: '0.7', changefreq: 'monthly' },
   { path: '/academy', priority: '0.7', changefreq: 'monthly' },
+  { path: '/programs', priority: '0.7', changefreq: 'monthly' },
   { path: '/join-experts-hub', priority: '0.6', changefreq: 'monthly' },
   { path: '/contact', priority: '0.6', changefreq: 'monthly' },
 ]
-
-const blogClient = createClient({
-  projectId: 'eu2wjb5o',
-  dataset: 'production',
-  apiVersion: '2024-01-01',
-  useCdn: true,
-})
 
 const mentorClient = createClient({
   projectId: '8pf5fxwy',
@@ -57,7 +51,7 @@ function toUrl(route) {
 async function fetchDynamicRoutes() {
   try {
     const [blogs, experts] = await Promise.all([
-      blogClient.fetch(`*[_type == "blog" && defined(slug.current)]{
+      mentorClient.fetch(`*[_type == "blog" && status == "published" && defined(slug.current)]{
         "slug": slug.current,
         "updatedAt": coalesce(_updatedAt, publishedAt)
       }`),

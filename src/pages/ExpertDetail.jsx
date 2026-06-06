@@ -26,6 +26,7 @@ import SEO from '../components/SEO'
 import { absoluteUrl } from '../lib/seo'
 import { getExpertImage } from '../lib/expertImages'
 import MagnaLoader from '../components/MagnaLoader'
+import DescribeProblemCTA from '../components/DescribeProblemCTA'
 
 function initials(name = '') {
   return name
@@ -472,12 +473,15 @@ export default function ExpertDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [isSharing, setIsSharing] = useState(false)
+  const [isAboutExpanded, setIsAboutExpanded] = useState(false)
   const [shareStatus, setShareStatus] = useState('')
+  const [relatedInsights, setRelatedInsights] = useState([])
 
   useEffect(() => {
     const fetchExpert = async () => {
       setLoading(true)
       setError('')
+      setIsAboutExpanded(false)
 
       try {
         const query = `*[_type == "mentor" && (slug.current == $slug || _id == $slug)][0] {
@@ -570,6 +574,27 @@ export default function ExpertDetail() {
 
         const data = await mentorClient.fetch(query, { slug })
         setExpert(data)
+
+        const capabilityIds = (data?.capabilities || [])
+          .map(capability => capability?._id)
+          .filter(Boolean)
+
+        if (capabilityIds.length > 0) {
+          const insightsQuery = `*[_type == "blog" && status == "published" && capability._ref in $capabilityIds] | order(featured desc, publishedAt desc) {
+            _id,
+            title,
+            "slug": slug.current,
+            "imageUrl": mainImage.asset->url,
+            capability->{
+              title,
+              "slug": slug.current
+            }
+          }`
+          const insightsData = await mentorClient.fetch(insightsQuery, { capabilityIds })
+          setRelatedInsights(insightsData || [])
+        } else {
+          setRelatedInsights([])
+        }
       } catch (fetchError) {
         console.error('Error fetching expert:', fetchError)
         setError('We could not load this expert profile right now.')
@@ -817,7 +842,25 @@ export default function ExpertDetail() {
         <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <main className="space-y-4">
             <Section title="About">
-              <div className="space-y-4">{aboutContent}</div>
+              <div className="relative">
+                <div className={`space-y-4 transition-all duration-300 ${isAboutExpanded ? '' : 'max-h-40 overflow-hidden'}`}>
+                  {aboutContent}
+                </div>
+                {!isAboutExpanded && (
+                  <div className="pointer-events-none absolute inset-x-0 bottom-12 h-16 bg-gradient-to-t from-white to-white/0" />
+                )}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsAboutExpanded(current => !current)}
+                    className="inline-flex items-center rounded-full bg-primary-50 px-4 py-2 text-sm font-bold text-primary-700 transition hover:bg-primary-100 hover:text-primary-900"
+                    aria-expanded={isAboutExpanded}
+                  >
+                    {isAboutExpanded ? 'Show less' : 'See more'}
+                    <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${isAboutExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+              </div>
             </Section>
 
             <div className="lg:hidden">
@@ -1002,6 +1045,51 @@ export default function ExpertDetail() {
                 </div>
               </Section>
             )}
+
+            {relatedInsights.length > 0 && (
+              <Section title="Related Insights">
+                <div className="mb-5 flex flex-wrap gap-2">
+                  {assignedCapabilities.map(capability => (
+                    <Link
+                      key={capability._id}
+                      to={`/capabilities/${capability.slug || capability._id}`}
+                      className="rounded-full bg-primary-50 px-3 py-1.5 text-xs font-bold text-primary-700 transition hover:bg-primary-100"
+                    >
+                      {capability.title}
+                    </Link>
+                  ))}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {relatedInsights.map((insight) => (
+                    <Link
+                      key={insight._id}
+                      to={`/insights/${insight.slug || insight._id}`}
+                      className="group overflow-hidden rounded-lg border border-gray-200 bg-white transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-900/10"
+                    >
+                      <div className="flex aspect-[16/9] items-center justify-center bg-gradient-to-br from-primary-700 to-cyan-500 text-white">
+                        {insight.imageUrl ? (
+                          <img
+                            src={insight.imageUrl}
+                            alt={insight.title}
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <FileText className="h-10 w-10 text-white/80" />
+                        )}
+                      </div>
+                      <div className="p-4">
+                        {insight.capability?.title && (
+                          <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-primary-600">{insight.capability.title}</p>
+                        )}
+                        <h3 className="line-clamp-2 font-semibold leading-6 text-gray-950 transition group-hover:text-primary-600">
+                          {insight.title}
+                        </h3>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </Section>
+            )}
           </main>
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
@@ -1014,13 +1102,17 @@ export default function ExpertDetail() {
           </aside>
         </div>
 
+        <DescribeProblemCTA />
+
         <div className="mt-8 flex justify-center">
-          <Link to={capabilityPath} className="inline-flex max-w-full items-center justify-center rounded-full bg-primary-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700 sm:px-7 sm:text-base">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+          <Link to={capabilityPath} className="inline-flex max-w-full items-center justify-center rounded-full bg-[#000047] px-5 py-3 text-lg font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700 sm:px-7 sm:text-base">
+            <ArrowLeft className="mr-2 h-8 w-8" />
             <span className="truncate">{backLabel}</span>
           </Link>
         </div>
       </div>
+
+      
     </div>
   )
 }

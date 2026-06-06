@@ -4,6 +4,7 @@ import { servicesSchema } from './services'
 import { youtubeVideosSchema } from './youtubeVideos'
 import { problemQuestionSchema } from './problemQuestion'
 import { mouDocumentSchema } from './mouDocument'
+import { blogSchema } from './blog'
 
 export const schemaTypes = [
   mentorSchema,
@@ -12,4 +13,5 @@ export const schemaTypes = [
   youtubeVideosSchema,
   problemQuestionSchema,
   mouDocumentSchema,
+  blogSchema,
 ]

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, CheckCircle2, Layers, Lightbulb, Sparkles, Target } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle2, FileText, Layers, Lightbulb, Sparkles, Target } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
 import MagnaLoader from '../components/MagnaLoader'
+import DescribeProblemCTA from '../components/DescribeProblemCTA'
 
 function toPlainText(value) {
   if (value === undefined || value === null) return ''
@@ -47,6 +48,7 @@ function toPointList(value = '') {
 export default function ServiceDetail() {
   const { id } = useParams()
   const [service, setService] = useState(null)
+  const [insights, setInsights] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -72,6 +74,19 @@ export default function ServiceDetail() {
 
         const data = await mentorClient.fetch(query, { id })
         setService(data)
+
+        if (data?.capability?._id) {
+          const insightsQuery = `*[_type == "blog" && status == "published" && capability._ref == $capabilityId] | order(featured desc, publishedAt desc) {
+            _id,
+            title,
+            "slug": slug.current,
+            "imageUrl": mainImage.asset->url
+          }`
+          const insightsData = await mentorClient.fetch(insightsQuery, { capabilityId: data.capability._id })
+          setInsights(insightsData || [])
+        } else {
+          setInsights([])
+        }
       } catch (fetchError) {
         console.error('Error fetching service:', fetchError)
         setError('We could not load this service right now.')
@@ -110,6 +125,54 @@ export default function ServiceDetail() {
   const capabilityPath = service.capability ? `/capabilities/${service.capability.slug || service.capability._id}` : null
   const approachPoints = toPointList(service.approach)
   const insightItems = Array.isArray(service.keyInsights) ? service.keyInsights.filter(Boolean) : []
+  const relatedInsightsSection = insights.length > 0 ? (
+    <section className="px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8 flex flex-col gap-3 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary-600">Related Insights</p>
+            <h2 className="mt-2 text-2xl font-bold text-gray-950 sm:text-3xl">
+              Insights for {service.capability?.title || service.title}
+            </h2>
+          </div>
+          <Link
+            to="/insights"
+            className="inline-flex items-center justify-center rounded-full bg-primary-50 px-5 py-2.5 text-sm font-bold text-primary-700 transition hover:bg-primary-100"
+          >
+            View all insights
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </div>
+
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {insights.map((insight) => (
+            <Link
+              key={insight._id}
+              to={`/insights/${insight.slug || insight._id}`}
+              className="group overflow-hidden rounded-2xl bg-white shadow-lg transition hover:-translate-y-1 hover:shadow-xl"
+            >
+              <div className="flex h-48 items-center justify-center bg-gradient-to-br from-primary-700 to-cyan-500">
+                {insight.imageUrl ? (
+                  <img
+                    src={insight.imageUrl}
+                    alt={insight.title}
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <FileText className="h-16 w-16 text-white/80" />
+                )}
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-semibold text-gray-900 transition group-hover:text-primary-600">
+                  {insight.title}
+                </h3>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  ) : null
 
   return (
     <div className="min-h-screen bg-[#f7f9ff]">
@@ -235,6 +298,10 @@ export default function ServiceDetail() {
           )}
         </div>
       </section>
+
+      {relatedInsightsSection}
+
+      <DescribeProblemCTA />
     </div>
   )
 }

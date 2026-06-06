@@ -9,6 +9,7 @@
     "fix:usecases": "node scripts/fix-usecases-list.mjs",
     "prebuild": "npm run generate:sitemap",
     "build": "vite build",
+    "postbuild": "node scripts/generate-insight-pages.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

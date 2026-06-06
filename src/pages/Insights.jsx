@@ -1,8 +1,10 @@
-import { FileText, Lightbulb, Briefcase, Calendar, Clock, Share2, Facebook, Linkedin, Twitter, PlayCircle } from 'lucide-react'
+import { FileText, Lightbulb, Briefcase, Calendar, Clock, Share2, Facebook, Linkedin, Twitter, PlayCircle, Mail, Bell } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { blogClient, mentorClient } from '../lib/sanityClient'
+import { mentorClient } from '../lib/sanityClient'
 import MagnaLoader from '../components/MagnaLoader'
+import { absoluteUrl } from '../lib/seo'
+import { subscribeToInsights } from '../lib/insightSubscriptions'
 
 export default function Insights() {
   const [activeTab, setActiveTab] = useState('all')
@@ -10,6 +12,9 @@ export default function Insights() {
   const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(true)
   const [shareMenuOpen, setShareMenuOpen] = useState(null)
+  const [subscriberEmail, setSubscriberEmail] = useState('')
+  const [subscribing, setSubscribing] = useState(false)
+  const [subscriptionStatus, setSubscriptionStatus] = useState({ type: '', message: '' })
 
   const tabs = [
     { id: 'all', label: 'All' },
@@ -22,8 +27,7 @@ export default function Insights() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch blogs from Sanity
-        const query = `*[_type == "blog"] | order(publishedAt desc) {
+        const query = `*[_type == "blog" && status == "published"] | order(featured desc, publishedAt desc) {
           _id,
           title,
           "slug": slug.current,
@@ -31,8 +35,13 @@ export default function Insights() {
           type,
           category,
           publishedAt,
+          _updatedAt,
           readTime,
-          "imageUrl": mainImage.asset->url
+          "imageUrl": mainImage.asset->url,
+          capability->{
+            title,
+            "slug": slug.current
+          }
         }`
         const videosQuery = `*[_type == "youtubeVideos"] | order(featured desc, publishedAt desc, title asc) {
           _id,
@@ -51,7 +60,7 @@ export default function Insights() {
         }`
 
         const [blogData, videoData] = await Promise.all([
-          blogClient.fetch(query),
+          mentorClient.fetch(query),
           mentorClient.fetch(videosQuery),
         ])
 
@@ -102,8 +111,17 @@ export default function Insights() {
     return imageUrl || null
   }
 
+  const formatCategory = (category) => {
+    if (!category) return 'Insight'
+    return category
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
   const handleShare = (platform, item) => {
-    const url = `${window.location.origin}/insights/${item.slug || item._id}`
+    const url = absoluteUrl(`/insights/${item.slug || item._id}`)
+    const linkedinUrl = `${url}?share=${encodeURIComponent((item._updatedAt || item.publishedAt || '').slice(0, 10) || 'latest')}`
     const title = item.title
     const text = item.excerpt
 
@@ -117,7 +135,7 @@ export default function Insights() {
         shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`
         break
       case 'linkedin':
-        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(linkedinUrl)}`
         break
       case 'copy':
         navigator.clipboard.writeText(url)
@@ -130,6 +148,29 @@ export default function Insights() {
 
     window.open(shareUrl, '_blank', 'width=600,height=400')
     setShareMenuOpen(null)
+  }
+
+  const handleSubscribe = async (event) => {
+    event.preventDefault()
+    setSubscribing(true)
+    setSubscriptionStatus({ type: '', message: '' })
+
+    try {
+      const email = await subscribeToInsights(subscriberEmail)
+      setSubscriberEmail('')
+      setSubscriptionStatus({
+        type: 'success',
+        message: `You're subscribed. We'll notify ${email} when new insights are published.`,
+      })
+    } catch (subscribeError) {
+      console.error('Insight subscription failed:', subscribeError)
+      setSubscriptionStatus({
+        type: 'error',
+        message: subscribeError.message || 'We could not subscribe you right now. Please try again.',
+      })
+    } finally {
+      setSubscribing(false)
+    }
   }
 
   return (
@@ -158,6 +199,50 @@ export default function Insights() {
 
       <div className="pt-12 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
+          <section className="mb-10 overflow-hidden rounded-3xl bg-primary-900 shadow-2xl shadow-primary-900/10">
+            <div className="grid gap-6 p-6 text-white sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.75fr)] lg:items-center">
+              <div>
+                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-300/20 text-cyan-100 ring-1 ring-cyan-200/30">
+                  <Bell className="h-6 w-6" />
+                </div>
+                <h2 className="text-2xl font-bold sm:text-3xl">Get new insights in your inbox</h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-cyan-50/80 sm:text-base">
+                  Subscribe to receive a notification whenever Magnafic publishes a new insight.
+                </p>
+              </div>
+
+              <form onSubmit={handleSubscribe} className="rounded-2xl bg-white p-3 shadow-xl shadow-primary-950/20">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <label htmlFor="insight-subscription-email" className="sr-only">Email address</label>
+                  <div className="relative flex-1">
+                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary-500" />
+                    <input
+                      id="insight-subscription-email"
+                      type="email"
+                      value={subscriberEmail}
+                      onChange={(event) => setSubscriberEmail(event.target.value)}
+                      placeholder="Enter your email"
+                      required
+                      className="h-12 w-full rounded-xl border border-gray-200 pl-11 pr-4 text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={subscribing}
+                    className="h-12 rounded-xl bg-primary-600 px-6 font-bold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {subscribing ? 'Subscribing...' : 'Subscribe'}
+                  </button>
+                </div>
+                {subscriptionStatus.message && (
+                  <p className={`mt-3 px-1 text-sm font-semibold ${subscriptionStatus.type === 'success' ? 'text-green-700' : 'text-red-600'}`}>
+                    {subscriptionStatus.message}
+                  </p>
+                )}
+              </form>
+            </div>
+          </section>
+
           <div className="flex justify-center mb-12">
             <div className="inline-flex max-w-full overflow-x-auto rounded-full bg-gray-100 p-1">
               {tabs.map(tab => (
@@ -213,9 +298,16 @@ export default function Insights() {
                               {item.readTime}
                             </span>
                           </div>
-                          <span className="inline-block px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium mb-3">
-                            {item.category}
-                          </span>
+                          <div className="mb-3 flex flex-wrap gap-2">
+                            <span className="inline-block rounded-full bg-primary-100 px-3 py-1 text-sm font-medium text-primary-700">
+                              {formatCategory(item.category)}
+                            </span>
+                            {item.capability?.title && (
+                              <span className="inline-block rounded-full bg-cyan-100 px-3 py-1 text-sm font-medium text-primary-700">
+                                {item.capability.title}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex justify-end mb-2">
                             <div className="relative">
                               <button
@@ -266,7 +358,7 @@ export default function Insights() {
                             to={`/insights/${item.slug || item._id}`}
                             className="inline-flex items-center text-primary-600 font-semibold group-hover:text-primary-700"
                           >
-                            Read More →
+                            Read More &rarr;
                           </Link>
                         </div>
                       </article>

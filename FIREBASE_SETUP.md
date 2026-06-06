@@ -234,3 +234,32 @@ await exampleLogout()
 - Add production domains to Firebase authorized domains.
 - Avoid storing sensitive business secrets in frontend code.
 - Use server-side Cloud Functions for privileged admin operations.
+
+## Insight Subscribers
+
+The Insights page stores email subscribers in Firestore:
+
+```text
+insightSubscribers/{encodedEmail}
+```
+
+Each document contains `email`, `status`, `source`, `subscribedAt`, and `updatedAt`.
+
+Allow public subscription writes with a narrow rule like:
+
+```js
+match /insightSubscribers/{subscriberId} {
+  allow create, update: if
+    request.resource.data.email is string &&
+    request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') &&
+    request.resource.data.status == 'active';
+  allow read, delete: if false;
+}
+```
+
+To notify subscribers when a new Sanity insight is published, use a server-side trigger such as a Sanity webhook to a Firebase Cloud Function. The function should:
+
+1. Receive the published insight payload from Sanity.
+2. Read active documents from `insightSubscribers`.
+3. Send the email through your provider, for example EmailJS, SendGrid, Brevo, or Firebase Extensions.
+4. Record notification history so the same insight is not sent twice.

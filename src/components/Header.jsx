@@ -107,6 +107,7 @@ export default function Header() {
                 </div>
               )}
             </div>
+            <Link to="/programs" className="text-gray-900 hover:text-primary transition-colors font-medium">Programs</Link>
             <Link to="/insights" className="text-gray-900 hover:text-primary transition-colors font-medium">Insights</Link>
             <Link to="/about" className="text-gray-900 hover:text-primary transition-colors font-medium">About</Link>
             {authUser ? (
@@ -164,6 +165,7 @@ export default function Header() {
                 </div>
               )}
             </div>
+            <Link onClick={() => setIsMenuOpen(false)} to="/programs" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Programs</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/insights" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Insights</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/about" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">About</Link>
             {authUser ? (

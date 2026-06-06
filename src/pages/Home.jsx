@@ -17,13 +17,12 @@ export default function Home() {
     <div className="pt-16">
       <Hero />
       <ExpertiseSection />
+      <HomeMentors />
       <CompanyLogos />
       <AboutMagna />
       <HomeCapabilities />
       <DescribeProblemCTA />
-      <HomeMentors />
       <ValueProp />
-      <MagnaFramework />
     </div>
   )
 }

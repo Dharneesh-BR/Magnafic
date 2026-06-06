@@ -87,13 +87,18 @@ export default function HomeMentors() {
   const mentorsForScroller = mentors.length > 1 ? [...mentors, ...mentors] : mentors
 
   return (
-    <section className="bg-[#f7f9ff] px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <section className="relative overflow-hidden bg-[linear-gradient(145deg,#000047,#24238f_58%,#087f9d)] px-4 py-12 sm:px-6 lg:px-8">
+      <ExpertWorldMap />
+
+      <div className="relative mx-auto max-w-7xl">
         <div className="mb-8 flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20 backdrop-blur-sm">
             <User className="h-6 w-6" />
           </span>
-          <h2 className="text-2xl font-bold text-center text-gray-950 sm:text-3xl">Explore Experts</h2>
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-cyan-200">Global Expert Network</p>
+            <h2 className="text-2xl font-bold text-white sm:text-3xl">Explore Experts</h2>
+          </div>
         </div>
 
         <div
@@ -171,7 +176,6 @@ export default function HomeMentors() {
           </div>
         </div>
 
-        <ExpertWorldMap />
       </div>
     </section>
   )

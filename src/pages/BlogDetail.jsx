@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Calendar, Clock, FileText, Sparkles, Tag } from 'lucide-react'
-import { blogClient } from '../lib/sanityClient'
+import { ArrowLeft, Copy, Facebook, FileText, Linkedin, Share2, Sparkles, Tag, Twitter } from 'lucide-react'
+import { mentorClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
 import { absoluteUrl } from '../lib/seo'
 import MagnaLoader from '../components/MagnaLoader'
@@ -29,6 +29,14 @@ function getTypeLabel(type) {
   }
 }
 
+function formatCategory(category) {
+  if (!category) return 'Insight'
+  return category
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
 function renderSpan(child, markDefs = []) {
   const marks = child.marks || []
 
@@ -52,12 +60,14 @@ function renderSpan(child, markDefs = []) {
     }
 
     if (markDef?._type === 'link' && markDef.href) {
+      const openInNewTab = markDef.openInNewTab !== false && markDef.blank !== false
+
       return (
         <a
           key={mark}
           href={markDef.href}
-          target={markDef.blank === false ? undefined : '_blank'}
-          rel="noreferrer"
+          target={openInNewTab ? '_blank' : undefined}
+          rel={openInNewTab ? 'noreferrer' : undefined}
           className="font-semibold text-primary-600 underline decoration-primary-200 underline-offset-4 hover:text-primary-700"
         >
           {content}
@@ -92,6 +102,39 @@ function renderBlock(block) {
           <figcaption className="mt-4 text-center text-sm font-medium text-gray-500">{block.caption}</figcaption>
         )}
       </figure>
+    )
+  }
+
+  if (block._type === 'codeBlock') {
+    return (
+      <div key={block._key} className="my-10 overflow-hidden rounded-2xl bg-gray-950 shadow-xl shadow-primary-900/10">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+          <span>{block.filename || 'Code'}</span>
+          {block.language && <span>{block.language}</span>}
+        </div>
+        <pre className="overflow-x-auto p-5 text-sm leading-7 text-cyan-50">
+          <code>{block.code}</code>
+        </pre>
+      </div>
+    )
+  }
+
+  if (block._type === 'cta') {
+    const styleClasses = {
+      primary: 'bg-primary-600 text-white hover:bg-primary-700',
+      secondary: 'bg-cyan-100 text-primary-800 hover:bg-cyan-200',
+      outline: 'border border-primary-200 bg-white text-primary-700 hover:bg-primary-50',
+    }
+
+    return (
+      <div key={block._key} className="my-10">
+        <a
+          href={block.url}
+          className={`inline-flex rounded-full px-6 py-3 font-semibold shadow-lg shadow-primary-900/10 transition ${styleClasses[block.style] || styleClasses.primary}`}
+        >
+          {block.text}
+        </a>
+      </div>
     )
   }
 
@@ -163,6 +206,8 @@ export default function BlogDetail() {
   const [blog, setBlog] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [shareMenuOpen, setShareMenuOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -170,7 +215,7 @@ export default function BlogDetail() {
       setError('')
 
       try {
-        const query = `*[_type == "blog" && (slug.current == $slug || _id == $slug)][0] {
+        const query = `*[_type == "blog" && status == "published" && (slug.current == $slug || _id == $slug)][0] {
           _id,
           title,
           "slug": slug.current,
@@ -178,8 +223,13 @@ export default function BlogDetail() {
           type,
           category,
           publishedAt,
+          _updatedAt,
           readTime,
           "imageUrl": mainImage.asset->url,
+          capability->{
+            title,
+            "slug": slug.current
+          },
           "content": coalesce(
             content[]{..., asset->{url}},
             body[]{..., asset->{url}},
@@ -189,7 +239,7 @@ export default function BlogDetail() {
           "contentText": coalesce(string(content), string(body), string(articleBody))
         }`
 
-        const data = await blogClient.fetch(query, { slug })
+        const data = await mentorClient.fetch(query, { slug })
         setBlog(data)
       } catch (fetchError) {
         console.error('Error fetching blog:', fetchError)
@@ -203,6 +253,48 @@ export default function BlogDetail() {
   }, [slug])
 
   const content = useMemo(() => renderContent(blog?.content), [blog?.content])
+  const canNativeShare = typeof navigator !== 'undefined' && Boolean(navigator.share)
+
+  const handleShare = async (platform) => {
+    const path = `/insights/${blog.slug || blog._id}`
+    const url = absoluteUrl(path)
+    const linkedinUrl = `${url}?share=${encodeURIComponent((blog._updatedAt || blog.publishedAt || '').slice(0, 10) || 'latest')}`
+    const title = blog.title
+
+    try {
+      if (platform === 'native' && canNativeShare) {
+        await navigator.share({
+          title,
+          text: blog.excerpt || title,
+          url,
+        })
+        setShareMenuOpen(false)
+        return
+      }
+
+      if (platform === 'copy') {
+        await navigator.clipboard.writeText(url)
+        setCopied(true)
+        setShareMenuOpen(false)
+        window.setTimeout(() => setCopied(false), 1800)
+        return
+      }
+
+      const shareUrls = {
+        facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+        twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
+        linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(linkedinUrl)}`,
+      }
+
+      if (shareUrls[platform]) {
+        window.open(shareUrls[platform], '_blank', 'width=600,height=420')
+        setShareMenuOpen(false)
+      }
+    } catch (shareError) {
+      console.error('Error sharing insight:', shareError)
+      setShareMenuOpen(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -269,67 +361,98 @@ export default function BlogDetail() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(0,255,255,0.16),transparent_30%),radial-gradient(circle_at_82%_14%,rgba(255,255,255,0.12),transparent_26%)]"></div>
 
         <div className="relative mx-auto max-w-6xl">
-          <Link to="/insights" className="mb-10 inline-flex items-center rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-cyan-100 ring-1 ring-white/15 transition hover:bg-white/15 hover:text-white">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Insights
-          </Link>
+          <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
+            <Link to="/insights" className="inline-flex items-center rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-cyan-100 ring-1 ring-white/15 transition hover:bg-white/15 hover:text-white">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Insights
+            </Link>
 
-          <div className="grid gap-10 lg:grid-cols-[1fr_380px] lg:items-end">
-            <div>
-              <div className="mb-6 flex flex-wrap gap-3">
-                {blog.category && (
-                  <span className="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-bold text-primary-700 shadow-lg shadow-primary-950/10">
-                    <Tag className="mr-2 h-4 w-4" />
-                    {blog.category}
-                  </span>
-                )}
-                <span className="inline-flex items-center rounded-full bg-cyan-400/15 px-4 py-2 text-sm font-semibold text-cyan-100 ring-1 ring-cyan-200/20">
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  {getTypeLabel(blog.type)}
-                </span>
-              </div>
-
-              <h1 className="max-w-5xl text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">
-                {blog.title}
-              </h1>
-
-              {blog.excerpt && (
-                <p className="mt-5 max-w-3xl text-base leading-7 text-gray-200 md:text-xl md:leading-8">
-                  {blog.excerpt}
-                </p>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShareMenuOpen(open => !open)}
+                className="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-bold text-primary-700 shadow-lg shadow-primary-950/10 transition hover:bg-cyan-50"
+              >
+                <Share2 className="mr-2 h-4 w-4" />
+                {copied ? 'Copied' : 'Share'}
+              </button>
+              {shareMenuOpen && (
+                <div className="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-2xl border border-white/20 bg-white py-2 text-gray-700 shadow-2xl shadow-primary-950/20">
+                  {canNativeShare && (
+                    <button
+                      type="button"
+                      onClick={() => handleShare('native')}
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold hover:bg-gray-50"
+                    >
+                      <Share2 className="h-4 w-4 text-primary-600" />
+                      Share
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleShare('facebook')}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold hover:bg-gray-50"
+                  >
+                    <Facebook className="h-4 w-4 text-blue-600" />
+                    Facebook
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleShare('twitter')}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold hover:bg-gray-50"
+                  >
+                    <Twitter className="h-4 w-4 text-sky-500" />
+                    Twitter
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleShare('linkedin')}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold hover:bg-gray-50"
+                  >
+                    <Linkedin className="h-4 w-4 text-blue-700" />
+                    LinkedIn
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleShare('copy')}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold hover:bg-gray-50"
+                  >
+                    <Copy className="h-4 w-4 text-gray-600" />
+                    Copy link
+                  </button>
+                </div>
               )}
             </div>
+          </div>
 
-            <div className="rounded-3xl border border-white/15 bg-white/10 p-5 shadow-2xl shadow-primary-950/20 backdrop-blur">
-              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-cyan-100">Reading Brief</p>
-              <div className="space-y-4 text-sm text-gray-100">
-                {blog.publishedAt && (
-                  <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
-                    <span className="inline-flex items-center text-gray-300">
-                      <Calendar className="mr-2 h-4 w-4 text-cyan-200" />
-                      Published
-                    </span>
-                    <span className="text-right font-semibold">{formatDate(blog.publishedAt)}</span>
-                  </div>
-                )}
-                {blog.readTime && (
-                  <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
-                    <span className="inline-flex items-center text-gray-300">
-                      <Clock className="mr-2 h-4 w-4 text-cyan-200" />
-                      Read time
-                    </span>
-                    <span className="text-right font-semibold">{blog.readTime}</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between gap-4">
-                  <span className="inline-flex items-center text-gray-300">
-                    <FileText className="mr-2 h-4 w-4 text-cyan-200" />
-                    Format
-                  </span>
-                  <span className="text-right font-semibold">{getTypeLabel(blog.type)}</span>
-                </div>
-              </div>
+          <div>
+            <div className="mb-6 flex flex-wrap gap-3">
+              {blog.category && (
+                <span className="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-bold text-primary-700 shadow-lg shadow-primary-950/10">
+                  <Tag className="mr-2 h-4 w-4" />
+                  {formatCategory(blog.category)}
+                </span>
+              )}
+              {blog.capability?.title && (
+                <span className="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-bold text-primary-700 shadow-lg shadow-primary-950/10">
+                  {blog.capability.title}
+                </span>
+              )}
+              <span className="inline-flex items-center rounded-full bg-cyan-400/15 px-4 py-2 text-sm font-semibold text-cyan-100 ring-1 ring-cyan-200/20">
+                <Sparkles className="mr-2 h-4 w-4" />
+                {getTypeLabel(blog.type)}
+              </span>
             </div>
+
+            <h1 className="max-w-5xl text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">
+              {blog.title}
+            </h1>
+
+            {blog.excerpt && (
+              <p className="mt-5 max-w-3xl text-base leading-7 text-gray-200 md:text-xl md:leading-8">
+                {blog.excerpt}
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -353,7 +476,10 @@ export default function BlogDetail() {
               <p className="mb-4 text-sm font-bold uppercase tracking-[0.16em] text-gray-400">Insight</p>
               <div className="space-y-3 text-sm text-gray-600">
                 {blog.category && (
-                  <p className="rounded-2xl bg-primary-50 px-3 py-2 font-semibold text-primary-700">{blog.category}</p>
+                  <p className="rounded-2xl bg-primary-50 px-3 py-2 font-semibold text-primary-700">{formatCategory(blog.category)}</p>
+                )}
+                {blog.capability?.title && (
+                  <p className="rounded-2xl bg-cyan-50 px-3 py-2 font-semibold text-primary-700">{blog.capability.title}</p>
                 )}
                 {blog.publishedAt && <p>{formatDate(blog.publishedAt)}</p>}
                 {blog.readTime && <p>{blog.readTime}</p>}
