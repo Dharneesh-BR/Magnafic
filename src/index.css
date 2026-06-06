@@ -292,4 +292,156 @@
   .expert-scroller::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(90deg, #3534cd, #2563eb 48%, #00ffff);
   }
+
+  .expert-orbit-stage {
+    position: relative;
+    min-height: 23rem;
+    perspective: 1200px;
+  }
+
+  .expert-orbit-ring {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 5;
+    width: min(25rem, 108vw);
+    height: 7rem;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(153, 255, 255, 0.34);
+    border-radius: 9999px;
+    box-shadow:
+      0 0 38px rgba(0, 255, 255, 0.20),
+      inset 0 0 26px rgba(0, 255, 255, 0.12);
+  }
+
+  .expert-orbit-ring::before,
+  .expert-orbit-ring::after {
+    content: "";
+    position: absolute;
+    inset: 16%;
+    border: 1px dashed rgba(204, 255, 255, 0.24);
+    border-radius: inherit;
+  }
+
+  .expert-orbit-ring::after {
+    inset: 32%;
+    border-style: solid;
+    opacity: 0.45;
+  }
+
+  .expert-orbit-card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    will-change: transform, opacity;
+    filter: drop-shadow(0 22px 34px rgba(0, 0, 71, 0.28));
+  }
+
+  .expert-orbit-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 70;
+    display: inline-flex;
+    width: 2.5rem;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    transform: translateY(-50%);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    box-shadow: 0 18px 32px rgba(0, 0, 71, 0.28);
+    backdrop-filter: blur(12px);
+    transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
+  }
+
+  .expert-orbit-arrow:hover,
+  .expert-orbit-arrow:focus-visible {
+    background: #ffffff;
+    color: #3533cd;
+    transform: translateY(-50%) scale(1.06);
+    outline: none;
+  }
+
+  .expert-orbit-arrow--left {
+    left: 0;
+  }
+
+  .expert-orbit-arrow--right {
+    right: 0;
+  }
+
+  .expert-orbit-globe {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 30;
+    width: min(14.5rem, 64vw);
+    aspect-ratio: 1;
+    overflow: hidden;
+    transform: translate(-50%, -50%);
+    border-radius: 9999px;
+    background: transparent;
+    box-shadow:
+      0 0 84px rgba(0, 255, 255, 0.34),
+      0 0 28px rgba(255, 255, 255, 0.18);
+    pointer-events: none;
+  }
+
+  .expert-orbit-globe__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 28px rgba(0, 255, 255, 0.28));
+  }
+
+  @media (min-width: 640px) {
+    .expert-orbit-stage {
+      min-height: 30rem;
+    }
+
+    .expert-orbit-ring {
+      width: min(44rem, 98vw);
+      height: 12rem;
+    }
+
+    .expert-orbit-arrow {
+      width: 2.875rem;
+      height: 2.875rem;
+    }
+
+    .expert-orbit-globe {
+      width: min(24rem, 58vw);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .expert-orbit-stage {
+      min-height: 40rem;
+    }
+
+    .expert-orbit-ring {
+      width: min(62rem, 90vw);
+      height: 18rem;
+    }
+
+    .expert-orbit-arrow {
+      width: 3.25rem;
+      height: 3.25rem;
+    }
+
+    .expert-orbit-arrow--left {
+      left: max(0.75rem, calc(50% - 39rem));
+    }
+
+    .expert-orbit-arrow--right {
+      right: max(0.75rem, calc(50% - 39rem));
+    }
+
+    .expert-orbit-globe {
+      width: min(34rem, 54vw);
+    }
+  }
 }
