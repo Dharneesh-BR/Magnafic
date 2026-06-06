@@ -329,6 +329,19 @@
     opacity: 0.45;
   }
 
+  .expert-orbit-title {
+    position: absolute;
+    left: 50%;
+    top: 1.5rem;
+    z-index: 65;
+    width: min(22rem, calc(100vw - 2rem));
+    transform: translateX(-50%);
+    text-align: center;
+    line-height: 1.15;
+    text-shadow: 0 10px 24px rgba(0, 0, 71, 0.45);
+    pointer-events: none;
+  }
+
   .expert-orbit-card {
     position: absolute;
     left: 50%;
@@ -377,7 +390,7 @@
     left: 50%;
     top: 50%;
     z-index: 30;
-    width: min(14.5rem, 64vw);
+    width: min(36rem, 96vw);
     aspect-ratio: 1;
     overflow: hidden;
     transform: translate(-50%, -50%);
@@ -427,6 +440,11 @@
       height: 18rem;
     }
 
+    .expert-orbit-title {
+      top: 4rem;
+      width: min(44rem, 80vw);
+    }
+
     .expert-orbit-arrow {
       width: 3.25rem;
       height: 3.25rem;
@@ -441,7 +459,7 @@
     }
 
     .expert-orbit-globe {
-      width: min(34rem, 54vw);
+      width: min(60rem, 90vw);
     }
   }
 }

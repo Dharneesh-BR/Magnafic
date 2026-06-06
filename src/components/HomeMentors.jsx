@@ -209,13 +209,6 @@ export default function HomeMentors() {
       <ExpertWorldMap className="hidden" />
 
       <div className="relative mx-auto max-w-7xl">
-        <div className="relative mb-3 flex items-center justify-center gap-4">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-white sm:text-3xl">A Global Community of Elite Business Experts</h2>
-          </div>
-
-        </div>
-
         <div
           className="expert-orbit-stage"
           onMouseEnter={() => setIsOrbitPaused(true)}
@@ -223,6 +216,10 @@ export default function HomeMentors() {
           onFocus={() => setIsOrbitPaused(true)}
           onBlur={() => setIsOrbitPaused(false)}
         >
+          <h2 className="expert-orbit-title text-2xl font-bold text-white lg:text-3xl">
+            A Global Community of Elite Business Experts
+          </h2>
+
           <div className="expert-orbit-ring" />
 
           <button
