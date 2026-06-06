@@ -135,7 +135,7 @@ export default function HomeMentors() {
     const updateOrbitMetrics = () => {
       const width = window.innerWidth
       if (width < 640) {
-        setOrbitMetrics({ x: 132, y: 46, compact: true })
+        setOrbitMetrics({ x: 116, y: 46, compact: true })
       } else if (width < 1024) {
         setOrbitMetrics({ x: 220, y: 68, compact: true })
       } else {
@@ -167,26 +167,38 @@ export default function HomeMentors() {
     setOrbitPhase(current => (current + direction * orbitStep + Math.PI * 2) % (Math.PI * 2))
   }
   const orbitAngles = orbitMentors.map((_, index) => orbitPhase + ((Math.PI * 2) / orbitMentors.length) * index)
-  const frontCardIndex = orbitAngles.reduce((frontIndex, angle, index) => {
-    return Math.sin(angle) > Math.sin(orbitAngles[frontIndex]) ? index : frontIndex
-  }, 0)
+  const frontCardPosition = orbitStep
+    ? (((Math.PI / 2 - orbitPhase) / orbitStep) % orbitMentors.length + orbitMentors.length) % orbitMentors.length
+    : 0
   const orbitCards = orbitMentors.map((mentor, index) => {
     const angle = orbitAngles[index]
     const depth = (Math.sin(angle) + 1) / 2
     const isBehind = Math.sin(angle) < -0.12
-    const isHiddenOnCompact = orbitMetrics.compact && index !== frontCardIndex
-    const x = orbitMetrics.compact ? 0 : Math.cos(angle) * orbitMetrics.x
-    const y = orbitMetrics.compact ? 72 : Math.sin(angle) * orbitMetrics.y
-    const scale = (orbitMetrics.compact ? 0.52 : 0.68) + depth * (orbitMetrics.compact ? 0.22 : 0.28)
-    const opacity = isHiddenOnCompact || isBehind ? 0 : 0.78 + depth * 0.22
+    const compactOffsetRaw = index - frontCardPosition
+    const compactOffset = compactOffsetRaw > orbitMentors.length / 2
+      ? compactOffsetRaw - orbitMentors.length
+      : compactOffsetRaw < -orbitMentors.length / 2
+        ? compactOffsetRaw + orbitMentors.length
+        : compactOffsetRaw
+    const compactDistance = Math.abs(compactOffset)
+    const compactVisibility = Math.max(0, Math.min(1, 1.35 - compactDistance))
+    const isHiddenOnCompact = orbitMetrics.compact && compactVisibility <= 0
+    const x = orbitMetrics.compact ? compactOffset * orbitMetrics.x : Math.cos(angle) * orbitMetrics.x
+    const y = orbitMetrics.compact ? 34 - compactDistance * 16 : Math.sin(angle) * orbitMetrics.y
+    const scale = orbitMetrics.compact ? 0.9 - Math.min(compactDistance, 1.45) * 0.18 : 0.68 + depth * 0.28
+    const opacity = orbitMetrics.compact
+      ? compactVisibility
+      : (isBehind ? 0 : 0.78 + depth * 0.22)
 
     return {
       mentor,
       isBehind,
       style: {
         opacity,
-        pointerEvents: isHiddenOnCompact || isBehind ? 'none' : 'auto',
-        zIndex: isBehind ? 10 + Math.round(depth * 8) : 40 + Math.round(depth * 12),
+        pointerEvents: isHiddenOnCompact || (!orbitMetrics.compact && isBehind) ? 'none' : 'auto',
+        zIndex: orbitMetrics.compact
+          ? 60 - Math.round(compactDistance * 18)
+          : (isBehind ? 10 + Math.round(depth * 8) : 40 + Math.round(depth * 12)),
         transform: `translate(-50%, -50%) translate(${x}px, ${y}px) scale(${scale})`,
       },
     }
@@ -199,7 +211,7 @@ export default function HomeMentors() {
       <div className="relative mx-auto max-w-7xl">
         <div className="relative mb-3 flex items-center justify-center gap-4">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-white sm:text-3xl">Explore Experts</h2>
+            <h2 className="text-2xl font-bold text-white sm:text-3xl">A Global Community of Elite Business Experts</h2>
           </div>
 
         </div>
@@ -232,7 +244,7 @@ export default function HomeMentors() {
 
           {orbitCards.map(({ mentor, style }) => (
             <div key={mentor._id} className="expert-orbit-card" style={style}>
-              <ExpertCard mentor={mentor} compact className={orbitMetrics.compact ? 'h-[16.5rem] w-48' : 'h-[18.75rem] w-56'} />
+              <ExpertCard mentor={mentor} compact className={orbitMetrics.compact ? 'h-[18.5rem] w-52' : 'h-[18.75rem] w-56'} />
             </div>
           ))}
 
