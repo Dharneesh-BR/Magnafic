@@ -1,6 +1,4 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
-import { storage } from './firebase'
 import { mentorWriteClient } from './sanityClient'
 
 function dataUrlToBlob(dataUrl) {
@@ -95,20 +93,22 @@ export async function signMouDocument({ document, signatureDataUrl, consultant }
   const signedPdfBytes = await pdfDoc.save()
   const safeDocumentId = document._id.replace(/[^a-zA-Z0-9-]/g, '-')
   const timestamp = signedAt.getTime()
-  const signedPdfRef = ref(storage, `mou-documents/${safeDocumentId}/signed-${timestamp}.pdf`)
-  const signatureRef = ref(storage, `mou-documents/${safeDocumentId}/signature-${timestamp}.png`)
+  const signedPdfBlob = new Blob([signedPdfBytes], { type: 'application/pdf' })
+  const signatureBlob = dataUrlToBlob(signatureDataUrl)
 
-  await uploadBytes(signatureRef, dataUrlToBlob(signatureDataUrl), {
-    contentType: 'image/png',
-  })
-  await uploadBytes(signedPdfRef, new Blob([signedPdfBytes], { type: 'application/pdf' }), {
-    contentType: 'application/pdf',
-  })
-
-  const [signatureImageUrl, signedPdfUrl] = await Promise.all([
-    getDownloadURL(signatureRef),
-    getDownloadURL(signedPdfRef),
+  const [signatureAsset, signedPdfAsset] = await Promise.all([
+    mentorWriteClient.assets.upload('image', signatureBlob, {
+      filename: `signature-${safeDocumentId}-${timestamp}.png`,
+      contentType: 'image/png',
+    }),
+    mentorWriteClient.assets.upload('file', signedPdfBlob, {
+      filename: `signed-${safeDocumentId}-${timestamp}.pdf`,
+      contentType: 'application/pdf',
+    }),
   ])
+
+  const signatureImageUrl = signatureAsset.url
+  const signedPdfUrl = signedPdfAsset.url
 
   const auditEntry = {
     _type: 'object',

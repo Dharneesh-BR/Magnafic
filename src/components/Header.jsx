@@ -47,6 +47,7 @@ export default function Header() {
   const handleLogout = async () => {
     await clearAuthUser()
     setIsMenuOpen(false)
+    navigate('/')
   }
 
   const handleCapabilitySelect = (slug) => {

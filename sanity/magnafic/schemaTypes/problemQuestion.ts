@@ -75,6 +75,13 @@ export const problemQuestionSchema = defineType({
               description: 'Optional tag for reporting or matching, for example sales, branding, ops.',
             }),
             defineField({
+              name: 'capability',
+              title: 'Selected Capability',
+              type: 'reference',
+              description: 'Optional capability used to route this answer to the experts listed on that capability.',
+              to: [{ type: 'capabilities' }],
+            }),
+            defineField({
               name: 'nextQuestion',
               title: 'Next Question',
               type: 'reference',
@@ -87,14 +94,16 @@ export const problemQuestionSchema = defineType({
               title: 'label',
               value: 'value',
               routeTag: 'routeTag',
+              capability: 'capability.title',
               nextQuestion: 'nextQuestion.question',
             },
-            prepare({ title, value, routeTag, nextQuestion }) {
+            prepare({ title, value, routeTag, capability, nextQuestion }) {
               return {
                 title,
                 subtitle: [
                   value,
                   routeTag ? `tag: ${routeTag}` : '',
+                  capability ? `capability: ${capability}` : '',
                   nextQuestion ? `next: ${nextQuestion}` : 'ends flow',
                 ].filter(Boolean).join(' | '),
               }

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Building2, CheckCircle2, Lock, Mail, Phone, User, Eye, EyeOff, X } from 'lucide-react'
 import SEO from '../components/SEO'
 import { isProfessionalEmail, signupClient } from '../lib/auth'
+import { createProblemBriefFromStoredAnswers } from '../lib/dashboard'
 
 function getSignupErrorMessage(error) {
   switch (error?.code) {
@@ -32,6 +33,7 @@ export default function ClientSignup() {
     password: '',
   })
   const [error, setError] = useState('')
+  const [briefWarning, setBriefWarning] = useState('')
   const [signupComplete, setSignupComplete] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -53,6 +55,12 @@ export default function ClientSignup() {
 
     try {
       await signupClient(form)
+      try {
+        await createProblemBriefFromStoredAnswers()
+      } catch (briefError) {
+        console.error('Problem brief creation failed:', briefError)
+        setBriefWarning('Your account was created, but we could not save your problem brief. You can create it from your dashboard.')
+      }
       setSignupComplete(true)
     } catch (signupError) {
       console.error('Firebase signup failed:', signupError)
@@ -82,6 +90,11 @@ export default function ClientSignup() {
           <p className="mt-3 text-gray-600">
             Your account has been created successfully. Our team will contact you shortly.
           </p>
+          {briefWarning && (
+            <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+              {briefWarning}
+            </p>
+          )}
           <button
             type="button"
             onClick={() => navigate('/dashboard')}

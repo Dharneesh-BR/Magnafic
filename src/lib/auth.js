@@ -1,9 +1,12 @@
 import {
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
   updateProfile,
 } from 'firebase/auth'
 import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
@@ -132,6 +135,18 @@ export async function loginUser({ email, password, fallbackRole = 'client' }) {
 
 export async function sendAccountPasswordReset(email) {
   await sendPasswordResetEmail(auth, email)
+}
+
+export async function updateCurrentUserPassword({ currentPassword, newPassword }) {
+  const firebaseUser = auth.currentUser
+
+  if (!firebaseUser?.email) {
+    throw new Error('Please log in again before changing your password.')
+  }
+
+  const credential = EmailAuthProvider.credential(firebaseUser.email, currentPassword)
+  await reauthenticateWithCredential(firebaseUser, credential)
+  await updatePassword(firebaseUser, newPassword)
 }
 
 export async function hydrateAuthUser() {

@@ -38,7 +38,7 @@ VITE_SANITY_WRITE_TOKEN=your_sanity_write_token
 ```
 
 Never commit `.env`. Firebase web config is not a server secret, but environment-specific values should still be managed outside source control.
-`VITE_SANITY_WRITE_TOKEN` is required for the consultant document signing flow to update the signed PDF URL, status, timestamp, and audit trail in Sanity after Firebase Storage upload.
+`VITE_SANITY_WRITE_TOKEN` is required for the consultant document signing flow to upload the signed PDF/signature assets to Sanity and update the signed PDF URL, status, timestamp, and audit trail.
 
 ## Firebase Console Steps
 
@@ -65,10 +65,17 @@ service cloud.firestore {
       allow read: if request.auth != null
         && (
           request.auth.uid == userId ||
-          resource.data.email == request.auth.token.email
+          resource.data.email == request.auth.token.email ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
         );
       allow update: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null
+        && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
+        );
     }
 
     match /consultants/{userId} {
@@ -83,13 +90,23 @@ service cloud.firestore {
       allow read: if request.auth != null
         && (
           resource.data.clientId == request.auth.uid ||
-          resource.data.assignedConsultantId == request.auth.uid
+          resource.data.assignedConsultantId == request.auth.uid ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true ||
+          (
+            resource.data.keys().hasAny(['matchedExpertIds']) &&
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.sanityExpertId in resource.data.matchedExpertIds
+          )
         );
 
       allow update: if request.auth != null
         && resource.data.clientId == request.auth.uid;
 
-      allow delete: if false;
+      allow delete: if request.auth != null
+        && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
+        );
     }
   }
 }
@@ -99,7 +116,33 @@ If login succeeds in Firebase Auth but the console shows `Missing or insufficien
 
 Consultant accounts are admin-created, not self-created from the public site. Create the consultant in Firebase Authentication, then create `users/{uid}` in Firestore with `role: consultant`. You can optionally create `consultants/{uid}` for profile details; the Firebase Console and Admin SDK bypass the client-side `allow create: if false` rule.
 
-The dynamic dashboards also require the `clientBriefs` rule above. Clients create and read their own briefs through `clientId`; consultants read assigned briefs through `assignedConsultantId`.
+The dynamic dashboards also require the `clientBriefs` rule above. Clients create and read their own briefs through `clientId`; consultants read assigned briefs through `assignedConsultantId` or through `matchedExpertIds` when their `users/{uid}.sanityExpertId` is linked to a matching Sanity expert profile.
+
+For automatic opportunity routing, set the `Selected Capability` field on relevant Describe Your Problem answer options in Sanity. When a client chooses that option and signs up, the app creates a `clientBriefs` document with `capabilityId`, `capabilitySlug`, and `matchedExpertIds` from that capability's ordered experts.
+
+## Admin Dashboard
+
+The admin dashboard is available at `/admin` and does not render the public website header, footer, or pages. Create the admin in Firebase Authentication, then create `users/{uid}` in Firestore with either:
+
+```js
+{
+  name: 'Admin Name',
+  email: 'admin@company.com',
+  role: 'admin'
+}
+```
+
+or:
+
+```js
+{
+  name: 'Admin Name',
+  email: 'admin@company.com',
+  isAdmin: true
+}
+```
+
+The admin login form validates the signed-in user against this Firestore document before showing dashboard data.
 
 ## Consultant Onboarding
 
@@ -257,9 +300,42 @@ match /insightSubscribers/{subscriberId} {
 }
 ```
 
-To notify subscribers when a new Sanity insight is published, use a server-side trigger such as a Sanity webhook to a Firebase Cloud Function. The function should:
+Subscriber notification is handled by the Firebase Cloud Function in `functions/index.js`.
 
-1. Receive the published insight payload from Sanity.
-2. Read active documents from `insightSubscribers`.
-3. Send the email through your provider, for example EmailJS, SendGrid, Brevo, or Firebase Extensions.
-4. Record notification history so the same insight is not sent twice.
+### Deploy Insight Notifications
+
+Install and deploy the functions package:
+
+```bash
+cd functions
+npm install
+cd ..
+firebase deploy --only functions
+```
+
+Configure the function secrets/environment:
+
+```bash
+firebase functions:config:set \
+  sendgrid.key="SENDGRID_API_KEY" \
+  insights.from_email="notifications@magnafic.com" \
+  site.url="https://magnafic.com" \
+  sanity.webhook_secret="choose-a-long-random-secret"
+```
+
+Then redeploy functions after changing config:
+
+```bash
+firebase deploy --only functions
+```
+
+Create a Sanity webhook for published insights:
+
+- Dataset: `production`
+- Filter: `_type == "blog" && status == "published"`
+- Projection/body: full document payload is fine
+- Method: `POST`
+- URL: the deployed `notifyInsightSubscribers` function URL
+- Header: `x-sanity-webhook-secret: choose-a-long-random-secret`
+
+The function reads active documents from `insightSubscribers`, sends emails via SendGrid, and records one document per sent insight in `insightNotifications/{insightId}`. That prevents the same insight from being emailed twice.

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, MessageSquareText } from 'lucide-react'
 import SEO from '../components/SEO'
 import { mentorClient } from '../lib/sanityClient'
+import { PROBLEM_ANSWERS_KEY } from '../lib/dashboard'
 
 export default function DescribeProblem() {
   const navigate = useNavigate()
@@ -30,6 +31,11 @@ export default function DescribeProblem() {
             label,
             value,
             routeTag,
+            capability->{
+              _id,
+              "slug": slug.current,
+              title
+            },
             nextQuestion->{
               _id
             }
@@ -71,6 +77,7 @@ export default function DescribeProblem() {
         label: option.label,
         value: option.value || option.label,
         routeTag: option.routeTag || '',
+        capability: option.capability || null,
         nextQuestionId: option.nextQuestion?._id || '',
       },
     }))
@@ -91,7 +98,7 @@ export default function DescribeProblem() {
   }
 
   const startConversation = () => {
-    localStorage.setItem('magnafic-problem-answers', JSON.stringify(Object.values(answers)))
+    localStorage.setItem(PROBLEM_ANSWERS_KEY, JSON.stringify(Object.values(answers)))
     navigate('/signup')
   }
 

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertCircle, Award, BookOpen, BriefcaseBusiness, CalendarDays, FileText, Loader2, MapPin, UserRound, Users } from 'lucide-react'
+import { AlertCircle, Award, BookOpen, BriefcaseBusiness, CalendarDays, CalendarPlus, ChevronDown, FileText, Loader2, MapPin, UserRound, Users } from 'lucide-react'
 import { collection, limit, onSnapshot, query, where } from 'firebase/firestore'
 import SEO from '../components/SEO'
 import ConsultantDocuments from '../components/ConsultantDocuments'
-import { getAuthUser, setAuthUser } from '../lib/auth'
+import { getAuthUser, setAuthUser, updateCurrentUserPassword } from '../lib/auth'
 import { subscribeConsultantOpportunities } from '../lib/dashboard'
 import { db } from '../lib/firebase'
 import { mentorClient } from '../lib/sanityClient'
@@ -21,10 +21,47 @@ function formatDate(date) {
 
 function getDashboardError(error) {
   if (error?.code === 'permission-denied') {
-    return 'Firestore permissions are blocking consultant opportunities. Allow consultants to read briefs assigned to their uid.'
+    return 'Firestore permissions are blocking consultant opportunities. Allow consultants to read briefs assigned to their uid or matched to their Sanity expert id.'
   }
 
   return error?.message || 'Unable to load consultant dashboard data right now.'
+}
+
+function formatGoogleCalendarDate(date) {
+  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+}
+
+function getDefaultCallDates() {
+  const start = new Date()
+  start.setHours(start.getHours() + 1, 0, 0, 0)
+
+  const end = new Date(start)
+  end.setMinutes(end.getMinutes() + 30)
+
+  return `${formatGoogleCalendarDate(start)}/${formatGoogleCalendarDate(end)}`
+}
+
+function getGoogleCalendarUrl(item) {
+  const answerLines = (item.problemAnswers || [])
+    .map((answer) => `${answer.question}: ${answer.label || answer.value}`)
+    .filter(Boolean)
+
+  const details = [
+    `Client: ${item.clientName || 'Client'}`,
+    `Company: ${item.company || 'Not provided'}`,
+    `Capability: ${item.capability || 'Not provided'}`,
+    item.description ? `Context: ${item.description}` : '',
+    answerLines.length ? `Answers:\n${answerLines.join('\n')}` : '',
+  ].filter(Boolean).join('\n\n')
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `Magnafic client call - ${item.clientName || 'Client'}`,
+    dates: getDefaultCallDates(),
+    details,
+  })
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
 }
 
 export default function ConsultantDashboard() {
@@ -36,6 +73,16 @@ export default function ConsultantDashboard() {
   const [opportunities, setOpportunities] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [openOpportunityId, setOpenOpportunityId] = useState('')
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
+  const [passwordMessage, setPasswordMessage] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [updatingPassword, setUpdatingPassword] = useState(false)
 
   const menuItems = [
     { id: 'profile', label: 'Profile', icon: UserRound },
@@ -149,6 +196,7 @@ export default function ConsultantDashboard() {
     let unsubscribe = null
 
     try {
+      setLoading(true)
       unsubscribe = subscribeConsultantOpportunities(
         (items) => {
           setOpportunities(items)
@@ -158,7 +206,8 @@ export default function ConsultantDashboard() {
         (dashboardError) => {
           setError(getDashboardError(dashboardError))
           setLoading(false)
-        }
+        },
+        { sanityExpertId: user?.sanityExpertId }
       )
     } catch (dashboardError) {
       setError(getDashboardError(dashboardError))
@@ -166,13 +215,58 @@ export default function ConsultantDashboard() {
     }
 
     return () => unsubscribe?.()
-  }, [])
+  }, [user?.sanityExpertId])
 
   const stats = useMemo(() => ({
     opportunities: opportunities.length,
     scheduled: opportunities.filter((item) => item.status === 'scheduled').length,
     active: opportunities.filter((item) => item.status === 'active').length,
   }), [opportunities])
+
+  const updatePasswordField = (field, value) => {
+    setPasswordForm(current => ({ ...current, [field]: value }))
+    setPasswordMessage('')
+    setPasswordError('')
+  }
+
+  const handlePasswordUpdate = async (event) => {
+    event.preventDefault()
+    setPasswordMessage('')
+    setPasswordError('')
+
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters.')
+      return
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError('New password and confirm password do not match.')
+      return
+    }
+
+    setUpdatingPassword(true)
+
+    try {
+      await updateCurrentUserPassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      })
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      })
+      setShowPasswordForm(false)
+      setPasswordMessage('Password updated successfully.')
+    } catch (updateError) {
+      console.error('Consultant password update failed:', updateError)
+      setPasswordError(updateError?.code === 'auth/invalid-credential'
+        ? 'Old password is incorrect.'
+        : 'Unable to update password right now.')
+    } finally {
+      setUpdatingPassword(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f9ff] px-4 pt-28 pb-16 sm:px-6 lg:px-8">
@@ -265,6 +359,59 @@ export default function ConsultantDashboard() {
                         <p className="text-2xl font-bold text-gray-950">{expert.totalYearsOfExperience || '-'}</p>
                         <p className="mt-1 text-sm font-medium text-gray-500">Years experience</p>
                       </div>
+                      <div className="rounded-2xl bg-gray-50 p-4">
+                        <p className="text-sm font-semibold text-gray-500">Account security</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowPasswordForm(value => !value)
+                            setPasswordMessage('')
+                            setPasswordError('')
+                          }}
+                          className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-70"
+                        >
+                          {showPasswordForm ? 'Close form' : 'Reset password'}
+                        </button>
+                        {showPasswordForm && (
+                          <form className="mt-4 space-y-3" onSubmit={handlePasswordUpdate}>
+                            <input
+                              required
+                              type="password"
+                              value={passwordForm.currentPassword}
+                              onChange={event => updatePasswordField('currentPassword', event.target.value)}
+                              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                              placeholder="Old password"
+                            />
+                            <input
+                              required
+                              minLength={8}
+                              type="password"
+                              value={passwordForm.newPassword}
+                              onChange={event => updatePasswordField('newPassword', event.target.value)}
+                              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                              placeholder="New password"
+                            />
+                            <input
+                              required
+                              minLength={8}
+                              type="password"
+                              value={passwordForm.confirmPassword}
+                              onChange={event => updatePasswordField('confirmPassword', event.target.value)}
+                              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                              placeholder="Confirm new password"
+                            />
+                            <button
+                              type="submit"
+                              disabled={updatingPassword}
+                              className="inline-flex w-full items-center justify-center rounded-xl border border-primary-200 bg-white px-4 py-3 text-sm font-semibold text-primary-700 transition hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-70"
+                            >
+                              {updatingPassword ? 'Updating password...' : 'Submit'}
+                            </button>
+                          </form>
+                        )}
+                        {passwordMessage && <p className="mt-3 text-sm font-medium text-green-700">{passwordMessage}</p>}
+                        {passwordError && <p className="mt-3 text-sm font-medium text-red-700">{passwordError}</p>}
+                      </div>
                     </div>
 
                     {expert.keySkills?.length > 0 && (
@@ -312,7 +459,7 @@ export default function ConsultantDashboard() {
                   <div className="mb-6 flex items-center justify-between gap-4">
                     <div>
                       <h2 className="text-2xl font-bold text-gray-950">Assigned opportunities</h2>
-                      <p className="mt-2 max-w-3xl text-gray-600">Briefs appear here when their `assignedConsultantId` matches your Firebase uid.</p>
+                      <p className="mt-2 max-w-3xl text-gray-600">Briefs appear here when they are assigned to you or match a capability linked to your expert profile.</p>
                     </div>
                     {loading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
                   </div>
@@ -336,8 +483,48 @@ export default function ConsultantDashboard() {
                               {item.status || 'assigned'}
                             </span>
                           </div>
-                          <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-600">{item.description}</p>
-                          <p className="mt-4 text-xs font-medium text-gray-500">Created: {formatDate(item.createdAtDate)}</p>
+                          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <button
+                              type="button"
+                              onClick={() => setOpenOpportunityId(current => current === item.id ? '' : item.id)}
+                              className="inline-flex w-full items-center justify-between rounded-xl border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-800 transition hover:border-primary-200 hover:bg-primary-50 sm:w-auto sm:min-w-48"
+                              aria-expanded={openOpportunityId === item.id}
+                            >
+                              {item.clientName || 'Client'}
+                              <ChevronDown className={`ml-3 h-4 w-4 shrink-0 transition-transform ${openOpportunityId === item.id ? 'rotate-180' : ''}`} />
+                            </button>
+                            <p className="text-xs font-medium text-gray-500">Created: {formatDate(item.createdAtDate)}</p>
+                          </div>
+
+                          {openOpportunityId === item.id && (
+                            <div className="mt-4 rounded-2xl bg-gray-50 p-4">
+                              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="grid gap-2 text-sm text-gray-700 sm:grid-cols-2">
+                                  <p><span className="font-semibold text-gray-950">Client:</span> {item.clientName || 'Client'}</p>
+                                  <p><span className="font-semibold text-gray-950">Company:</span> {item.company || 'Not provided'}</p>
+                                </div>
+                                <a
+                                  href={getGoogleCalendarUrl(item)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex w-full items-center justify-center rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-700 sm:w-auto"
+                                >
+                                  <CalendarPlus className="mr-2 h-4 w-4" />
+                                  Schedule call
+                                </a>
+                              </div>
+                              {item.problemAnswers?.length > 0 && (
+                                <div className="mt-4 space-y-2">
+                                  {item.problemAnswers.map((answer) => (
+                                    <div key={answer.questionId} className="rounded-2xl bg-white px-3 py-2 text-sm">
+                                      <p className="font-semibold text-gray-950">{answer.question}</p>
+                                      <p className="mt-1 text-gray-600">{answer.label || answer.value}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </article>
                       ))}
                     </div>

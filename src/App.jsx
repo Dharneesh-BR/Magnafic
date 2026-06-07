@@ -24,6 +24,7 @@ import ClientDashboard from './pages/ClientDashboard'
 import ConsultantDashboard from './pages/ConsultantDashboard'
 import DashboardRedirect from './pages/DashboardRedirect'
 import ProtectedRoute from './components/ProtectedRoute'
+import AdminDashboard from './pages/AdminDashboard'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -37,6 +38,16 @@ function ScrollToTop() {
 
 function AppContent() {
   const location = useLocation()
+
+  if (location.pathname.startsWith('/admin')) {
+    return (
+      <ErrorBoundary resetKey={location.pathname}>
+        <Routes>
+          <Route path="/admin/*" element={<AdminDashboard />} />
+        </Routes>
+      </ErrorBoundary>
+    )
+  }
 
   return (
     <div className="min-h-screen">
