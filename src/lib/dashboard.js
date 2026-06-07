@@ -11,6 +11,7 @@ import { getAuthUser } from './auth'
 import { mentorClient } from './sanityClient'
 
 export const PROBLEM_ANSWERS_KEY = 'magnafic-problem-answers'
+export const REFERRED_EXPERT_KEY = 'magnafic-referred-expert-name'
 
 function requireCurrentUser() {
   const localUser = getAuthUser()
@@ -124,6 +125,7 @@ export async function createClientBrief({
   routeTags = [],
   source = 'manual',
   status = 'new',
+  referredExpertName = '',
 }) {
   const user = requireCurrentUser()
 
@@ -152,6 +154,7 @@ export async function createClientBrief({
     problemAnswers,
     routeTags: [...new Set((routeTags || []).filter(Boolean))],
     source,
+    referredExpertName,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
@@ -239,6 +242,7 @@ function buildProblemDescription(answers = []) {
 
 export async function createProblemBriefFromStoredAnswers() {
   const rawAnswers = localStorage.getItem(PROBLEM_ANSWERS_KEY)
+  const referredExpertName = localStorage.getItem(REFERRED_EXPERT_KEY) || ''
   if (!rawAnswers) return null
 
   const answers = JSON.parse(rawAnswers)
@@ -262,9 +266,11 @@ export async function createProblemBriefFromStoredAnswers() {
     routeTags,
     source: 'describe-your-problem',
     status: matchedExpertIds.length > 0 ? 'matching' : 'new',
+    referredExpertName,
   })
 
   localStorage.removeItem(PROBLEM_ANSWERS_KEY)
+  localStorage.removeItem(REFERRED_EXPERT_KEY)
 
   return {
     briefId,

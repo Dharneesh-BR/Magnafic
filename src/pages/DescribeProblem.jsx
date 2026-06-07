@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, MessageSquareText } from 'lucide-react'
 import SEO from '../components/SEO'
 import { mentorClient } from '../lib/sanityClient'
-import { PROBLEM_ANSWERS_KEY } from '../lib/dashboard'
+import { PROBLEM_ANSWERS_KEY, REFERRED_EXPERT_KEY } from '../lib/dashboard'
 
 export default function DescribeProblem() {
   const navigate = useNavigate()
@@ -11,6 +11,7 @@ export default function DescribeProblem() {
   const [currentQuestionId, setCurrentQuestionId] = useState('')
   const [questionHistory, setQuestionHistory] = useState([])
   const [answers, setAnswers] = useState({})
+  const [referredName, setReferredName] = useState('Magnafic Consultant')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -99,6 +100,7 @@ export default function DescribeProblem() {
 
   const startConversation = () => {
     localStorage.setItem(PROBLEM_ANSWERS_KEY, JSON.stringify(Object.values(answers)))
+    localStorage.setItem(REFERRED_EXPERT_KEY, referredName.trim() || 'Magnafic Consultant')
     navigate('/signup')
   }
 
@@ -150,6 +152,22 @@ export default function DescribeProblem() {
 
             {!loading && !error && currentQuestion && (
               <div>
+                {questionHistory.length === 0 && (
+                  <div className="mb-8 rounded-2xl bg-primary-50 px-4 py-4 ring-1 ring-primary-100">
+                    <label htmlFor="referred-name" className="block text-sm font-bold uppercase tracking-[0.14em] text-primary-700">
+                      Referred by
+                    </label>
+                    <input
+                      id="referred-name"
+                      type="text"
+                      value={referredName}
+                      onChange={event => setReferredName(event.target.value)}
+                      className="mt-3 w-full rounded-xl border border-primary-100 bg-white px-4 py-3 text-base font-semibold text-gray-950 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                      placeholder="Magnafic Consultant"
+                    />
+                  </div>
+                )}
+
                 <div className="mb-8">
                   <div className="mb-3 flex items-center justify-between gap-4 text-sm font-semibold text-gray-500">
                     <span>Question {questionHistory.length + 1}</span>

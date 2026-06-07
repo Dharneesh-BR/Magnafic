@@ -38,6 +38,7 @@ function ScrollToTop() {
 
 function AppContent() {
   const location = useLocation()
+  const isConsultantDashboard = location.pathname.startsWith('/dashboard/consultant')
 
   if (location.pathname.startsWith('/admin')) {
     return (
@@ -52,7 +53,7 @@ function AppContent() {
   return (
     <div className="min-h-screen">
       <SEO />
-      <Header />
+      {!isConsultantDashboard && <Header />}
       <main>
         <ErrorBoundary resetKey={location.pathname}>
           <Routes>
@@ -70,6 +71,7 @@ function AppContent() {
             <Route path="/dashboard" element={<DashboardRedirect />} />
             <Route path="/dashboard/client" element={<ProtectedRoute role="client"><ClientDashboard /></ProtectedRoute>} />
             <Route path="/dashboard/consultant" element={<ProtectedRoute role="consultant"><ConsultantDashboard /></ProtectedRoute>} />
+            <Route path="/dashboard/consultant/enquiry/:enquiryId" element={<ProtectedRoute role="consultant"><ConsultantDashboard /></ProtectedRoute>} />
             <Route path="/academy" element={<Academy />} />
             <Route path="/programs" element={<Programs />} />
             <Route path="/contact" element={<Contact />} />
