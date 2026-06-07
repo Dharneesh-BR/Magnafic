@@ -216,9 +216,12 @@ export default function HomeMentors() {
           onFocus={() => setIsOrbitPaused(true)}
           onBlur={() => setIsOrbitPaused(false)}
         >
-          <h2 className="expert-orbit-title text-2xl font-bold text-white lg:text-3xl">
-            A Global Community of Elite Business Experts
-          </h2>
+          <div className="expert-orbit-title text-white">
+            <img src="/favicon.png" alt="Magnafic icon" className="mx-auto h-10 w-10 object-contain sm:h-14 sm:w-14 lg:h-16 lg:w-16" />
+            <h2 className="text-xl font-bold leading-tight sm:text-2xl lg:text-3xl">
+              World's first, <br/>Global Community of Experts Offering End-to-End Consulting for FMCG and Consumer Goods Businesses
+            </h2>
+          </div>
 
           <div className="expert-orbit-ring" />
 

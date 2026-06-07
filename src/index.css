@@ -295,14 +295,14 @@
 
   .expert-orbit-stage {
     position: relative;
-    min-height: 26rem;
+    min-height: 38rem;
     perspective: 1200px;
   }
 
   .expert-orbit-ring {
     position: absolute;
     left: 50%;
-    top: 50%;
+    top: 62%;
     z-index: 5;
     width: min(25rem, 108vw);
     height: 7rem;
@@ -332,7 +332,7 @@
   .expert-orbit-title {
     position: absolute;
     left: 50%;
-    top: 1.5rem;
+    top: 0;
     z-index: 65;
     width: min(22rem, calc(100vw - 2rem));
     transform: translateX(-50%);
@@ -345,14 +345,14 @@
   .expert-orbit-card {
     position: absolute;
     left: 50%;
-    top: 50%;
+    top: 62%;
     will-change: transform, opacity;
     filter: drop-shadow(0 22px 34px rgba(0, 0, 71, 0.28));
   }
 
   .expert-orbit-arrow {
     position: absolute;
-    top: 50%;
+    top: 62%;
     z-index: 70;
     display: inline-flex;
     width: 2.5rem;
@@ -388,7 +388,7 @@
   .expert-orbit-globe {
     position: absolute;
     left: 50%;
-    top: 50%;
+    top: 62%;
     z-index: 30;
     width: min(36rem, 96vw);
     aspect-ratio: 1;
@@ -412,7 +412,7 @@
 
   @media (min-width: 640px) {
     .expert-orbit-stage {
-      min-height: 30rem;
+      min-height: 40rem;
     }
 
     .expert-orbit-ring {
@@ -432,7 +432,14 @@
 
   @media (min-width: 1024px) {
     .expert-orbit-stage {
-      min-height: 40rem;
+      min-height: 46rem;
+    }
+
+    .expert-orbit-ring,
+    .expert-orbit-card,
+    .expert-orbit-arrow,
+    .expert-orbit-globe {
+      top: 50%;
     }
 
     .expert-orbit-ring {
@@ -441,7 +448,7 @@
     }
 
     .expert-orbit-title {
-      top: 4rem;
+      top: 0;
       width: min(44rem, 80vw);
     }
 
