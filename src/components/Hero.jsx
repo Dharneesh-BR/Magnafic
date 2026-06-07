@@ -11,9 +11,9 @@ export default function Hero() {
 
       <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-8 lg:min-h-[calc(100vh-4rem)] lg:grid-cols-[1.04fr_.96fr] lg:gap-8">
         <div className="mx-auto max-w-xl text-center lg:mx-0 lg:text-left">
-          
+          <img src="/favicon.png" alt="Magnafic" className="mx-auto mt-8 h-16 w-16 object-contain sm:mt-4 sm:h-20 sm:w-20 lg:mx-0" />
 
-          <h1 className="mx-auto max-w-2xl pb-4 pt-12 text-4xl font-extrabold leading-[1.08] tracking-normal text-white lg:mx-0 sm:pt-6 sm:text-5xl lg:text-[2.75rem]">
+          <h1 className="mx-auto max-w-2xl pb-4 pt-5 text-4xl font-extrabold leading-[1.08] tracking-normal text-white lg:mx-0 sm:pt-4 sm:text-5xl lg:text-[2.75rem]">
             Top 1% <br/>
             <span className="text-cyan">Elite Consultants</span>  <br className="sm:hidden" />
             for Scaling <br className="sm:hidden" /> Consumer Products Business

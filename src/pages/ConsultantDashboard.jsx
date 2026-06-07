@@ -123,6 +123,7 @@ export default function ConsultantDashboard() {
   const [passwordError, setPasswordError] = useState('')
   const [updatingPassword, setUpdatingPassword] = useState(false)
   const [isMenuExpanded, setIsMenuExpanded] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [acceptingEnquiry, setAcceptingEnquiry] = useState(false)
   const [acceptError, setAcceptError] = useState('')
   const navigate = useNavigate()
@@ -395,46 +396,29 @@ export default function ConsultantDashboard() {
                 </div>
               </div>
 
-              <div className="mt-3 flex flex-col items-end gap-2 sm:mt-8 sm:flex-row sm:items-center">
-                <span className="inline-flex w-fit items-center rounded-full bg-green-200 px-3 py-1.5 text-xs font-semibold text-green-800 sm:px-4 sm:py-2 sm:text-sm">
-                  <CheckCircle2 className="mr-1.5 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
-                  {availabilityLabel(expert?.availabilityStatus)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPasswordForm(value => !value)
-                    setPasswordMessage('')
-                    setPasswordError('')
-                  }}
-                  className="inline-flex w-fit items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-primary-200 hover:text-primary-700 sm:px-4 sm:py-2 sm:text-sm"
-                >
-                  <KeyRound className="mr-1.5 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
-                  {showPasswordForm ? 'Close reset' : 'Reset password'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="inline-flex w-fit items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-primary-200 hover:text-primary-700 sm:px-4 sm:py-2 sm:text-sm"
-                >
-                  <LogOut className="mr-1.5 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
-                  Logout
-                </button>
+              <span className="mt-3 inline-flex w-fit max-w-[10rem] items-center rounded-full bg-green-200 px-3 py-1.5 text-xs font-semibold text-green-800 sm:mt-8 sm:max-w-none sm:px-4 sm:py-2 sm:text-sm">
+                <CheckCircle2 className="mr-1.5 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
+                <span className="break-words leading-tight">{availabilityLabel(expert?.availabilityStatus)}</span>
+              </span>
+            </div>
+
+            <div className="mt-4 gap-5 lg:flex lg:items-start lg:justify-between">
+              <div className="text-left">
+                <h2 className="break-words text-2xl font-semibold leading-tight text-[#000047] sm:text-3xl">{dashboardName}</h2>
+                <p className="mt-2 break-words text-base font-medium leading-6 text-[#000047] sm:text-lg sm:leading-7">{dashboardHeadline}</p>
+                {dashboardCompany && <p className="mt-1 break-words text-sm font-medium text-gray-700 sm:text-base">{dashboardCompany}</p>}
+              </div>
+
+              <div className="mt-5 flex flex-col items-stretch gap-3 sm:items-end lg:mt-0">
                 <button
                   type="button"
                   onClick={handleReferClient}
-                  className="inline-flex w-fit items-center rounded-full bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-primary-900/15 transition hover:bg-primary-700 sm:px-4 sm:py-2 sm:text-sm"
+                  className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#000047] via-primary-600 to-cyan-400 px-5 py-4 text-base font-extrabold text-white shadow-xl shadow-primary-900/20 transition hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-cyan-500/25 sm:w-fit sm:min-w-64"
                 >
-                  <UserPlus className="mr-1.5 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
-                  Refer the client
+                  <UserPlus className="mr-2 h-5 w-5" />
+                  Refer client
                 </button>
               </div>
-            </div>
-
-            <div className="mt-4 text-left">
-              <h2 className="break-words text-2xl font-semibold leading-tight text-[#000047] sm:text-3xl">{dashboardName}</h2>
-              <p className="mt-2 break-words text-base font-medium leading-6 text-[#000047] sm:text-lg sm:leading-7">{dashboardHeadline}</p>
-              {dashboardCompany && <p className="mt-1 break-words text-sm font-medium text-gray-700 sm:text-base">{dashboardCompany}</p>}
             </div>
 
             {showPasswordForm && (
@@ -496,6 +480,18 @@ export default function ConsultantDashboard() {
               }
             }}
           >
+            <div className="mb-3 grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center lg:hidden">
+              <span aria-hidden="true"></span>
+              <p className="text-center text-lg font-extrabold uppercase tracking-[0.18em] text-white">Menu</p>
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(value => !value)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/15"
+                aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+              >
+                {isMobileMenuOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
+              </button>
+            </div>
             <div className={`mb-3 hidden items-center lg:flex ${isMenuExpanded ? 'justify-between px-2' : 'justify-center'}`}>
               {isMenuExpanded && <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-100/70">Menu</p>}
               <button
@@ -507,12 +503,16 @@ export default function ConsultantDashboard() {
                 {isMenuExpanded ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
               </button>
             </div>
-            <nav className="space-y-2">
+            <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} lg:block`}>
+            <nav className="grid grid-cols-2 gap-2 lg:block lg:space-y-2">
               {menuItems.map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setActiveView(item.id)}
+                  onClick={() => {
+                    setActiveView(item.id)
+                    setIsMobileMenuOpen(false)
+                  }}
                   title={item.label}
                   className={`flex w-full items-center rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
                     activeView === item.id
@@ -525,6 +525,37 @@ export default function ConsultantDashboard() {
                 </button>
               ))}
             </nav>
+            <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/10 pt-4 lg:block lg:space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPasswordForm(value => !value)
+                  setPasswordMessage('')
+                  setPasswordError('')
+                }}
+                title="Reset password"
+                className={`flex w-full items-center rounded-xl px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white ${
+                  isMenuExpanded ? 'gap-3 lg:justify-start' : 'gap-3 lg:justify-center'
+                }`}
+              >
+                <KeyRound className="h-5 w-5" />
+                <span className={`${isMenuExpanded ? 'lg:inline' : 'lg:hidden'}`}>
+                  {showPasswordForm ? 'Close reset' : 'Reset password'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                title="Logout"
+                className={`flex w-full items-center rounded-xl px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white ${
+                  isMenuExpanded ? 'gap-3 lg:justify-start' : 'gap-3 lg:justify-center'
+                }`}
+              >
+                <LogOut className="h-5 w-5" />
+                <span className={`${isMenuExpanded ? 'lg:inline' : 'lg:hidden'}`}>Logout</span>
+              </button>
+            </div>
+            </div>
           </aside>
 
           <div className="min-w-0">
@@ -627,7 +658,7 @@ export default function ConsultantDashboard() {
                   </section>
                 ) : (
                   <>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
                   {[
                     { icon: ClipboardList, label: 'Assigned Enquiry', value: stats.opportunities, gradient: 'from-[#000047] via-primary-600 to-cyan-400' },
                     { icon: BadgeCheck, label: 'Accepted Enquiry', value: stats.accepted, gradient: 'from-emerald-700 via-teal-600 to-cyan-400' },
@@ -636,18 +667,20 @@ export default function ConsultantDashboard() {
                     { icon: CircleDollarSign, label: 'Project Payments', value: 'INR 0', gradient: 'from-cyan-950 via-sky-700 to-cyan-400', wide: true },
                     { icon: Handshake, label: 'Referal Payments', value: 'INR 0', gradient: 'from-fuchsia-900 via-primary-600 to-cyan-400', wide: true },
                   ].map(item => (
-                    <section key={item.label} className={`group relative flex min-h-[13rem] flex-col overflow-hidden rounded-2xl bg-gradient-to-br ${item.gradient} p-6 text-white shadow-xl shadow-primary-900/15 ring-1 ring-white/25 transition duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-cyan-500/25 ${item.wide ? 'xl:col-span-2' : ''}`}>
+                    <section key={item.label} className={`group relative flex min-h-[6.5rem] flex-col overflow-hidden rounded-2xl bg-gradient-to-br ${item.gradient} p-4 text-white shadow-xl shadow-primary-900/15 ring-1 ring-white/25 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/25 ${item.wide ? 'col-span-2 xl:col-span-2' : ''}`}>
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.22),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.16),transparent_44%)] opacity-85"></div>
                       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-white/80 via-cyan-200 to-white/20"></div>
-                      <span className="relative mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/16 text-white shadow-lg shadow-primary-950/20 ring-1 ring-white/25 backdrop-blur">
-                        <item.icon className="h-7 w-7" />
+                      <div className="absolute -right-8 -bottom-8 h-24 w-24 rounded-full border-2 border-white/35 transition duration-300 group-hover:scale-110 group-hover:border-white/60"></div>
+                      <div className="absolute right-3 bottom-3 h-12 w-12 rounded-full border-2 border-cyan-100/70 transition duration-300 group-hover:translate-x-0.5 group-hover:scale-105"></div>
+                      <span className="absolute bottom-5 right-5 z-10 flex h-8 w-8 items-center justify-center text-white drop-shadow-[0_4px_10px_rgba(0,0,71,0.35)] transition group-hover:scale-110">
+                        <item.icon className="h-6 w-6" />
                       </span>
 
-                      <div className="relative">
-                        <p className="max-w-[16rem] text-xl font-extrabold leading-tight sm:text-2xl">{item.label}</p>
+                      <div className="relative pr-10">
+                        <p className="max-w-[16rem] text-sm font-extrabold leading-tight sm:text-base">{item.label}</p>
                       </div>
 
-                      <span className="relative mt-auto inline-flex w-fit max-w-full items-center text-4xl font-black leading-none text-white drop-shadow-[0_6px_18px_rgba(0,0,71,0.35)] transition group-hover:scale-105 sm:text-5xl">
+                      <span className="relative mt-auto inline-flex w-fit max-w-full items-center text-2xl font-black leading-none text-white drop-shadow-[0_6px_18px_rgba(0,0,71,0.35)] transition group-hover:scale-105 sm:text-3xl">
                         {loading && typeof item.value === 'number' ? '-' : item.value}
                       </span>
                     </section>
@@ -670,7 +703,38 @@ export default function ConsultantDashboard() {
                     </div>
                   ) : (
                     <div className="overflow-hidden rounded-2xl border border-gray-100">
-                        <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm lg:text-base">
+                      <div className="bg-white lg:hidden">
+                        <div className="grid grid-cols-[1.2fr_1fr_0.9fr] bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600 px-3 py-3 text-xs font-extrabold uppercase tracking-wide text-white">
+                          <span>Client</span>
+                          <span>Expertise</span>
+                          <span className="text-right">Action</span>
+                        </div>
+                        {opportunities.map((item) => {
+                          return (
+                            <div key={item.id} className="grid grid-cols-[1.2fr_1fr_0.9fr] items-center border-b border-gray-100 text-sm last:border-b-0">
+                              <div className="min-w-0 bg-blue-50/80 px-3 py-3">
+                                <p className="break-words font-bold leading-5 text-gray-950">{item.clientName || 'Client'}</p>
+                                <p className="mt-1 break-words text-xs font-medium leading-4 text-gray-600">{item.company || 'Not provided'}</p>
+                              </div>
+                              <div className="min-w-0 bg-cyan-50/80 px-3 py-3">
+                                <p className="break-words font-bold leading-5 text-primary-700">{item.capability || 'Not provided'}</p>
+                                <p className="mt-1 break-words text-xs font-medium leading-4 text-gray-600">{item.city || item.clientCity || item.location || 'No city'}</p>
+                              </div>
+                              <div className="bg-blue-50/80 px-2 py-3 text-right">
+                                <Link
+                                  to={`/dashboard/consultant/enquiry/${item.id}`}
+                                  className="inline-flex items-center justify-center rounded-lg bg-primary-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-primary-700"
+                                >
+                                  <Eye className="mr-1 h-3.5 w-3.5" />
+                                  View
+                                </Link>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                        <table className="hidden w-full table-fixed divide-y divide-gray-100 text-left text-sm lg:table lg:text-base">
                           <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
                             <tr className="text-xs font-extrabold uppercase tracking-wide text-white lg:text-sm">
                               <th className="break-words px-2 py-4 lg:px-3">Client Name</th>

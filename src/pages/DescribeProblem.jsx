@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, MessageSquareText } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react'
 import SEO from '../components/SEO'
 import { mentorClient } from '../lib/sanityClient'
 import { PROBLEM_ANSWERS_KEY, REFERRED_EXPERT_KEY } from '../lib/dashboard'
@@ -11,7 +11,6 @@ export default function DescribeProblem() {
   const [currentQuestionId, setCurrentQuestionId] = useState('')
   const [questionHistory, setQuestionHistory] = useState([])
   const [answers, setAnswers] = useState({})
-  const [referredName, setReferredName] = useState('Magnafic Consultant')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -63,7 +62,6 @@ export default function DescribeProblem() {
   const currentQuestion = questions.find(question => question._id === currentQuestionId)
   const selectedAnswer = currentQuestion ? answers[currentQuestion._id] : null
   const nextButtonLabel = selectedAnswer?.nextQuestionId || !selectedAnswer ? 'Next' : 'Complete'
-  const isComplete = questions.length > 0 && !currentQuestionId && Object.keys(answers).length > 0
   const progress = useMemo(() => {
     if (!questions.length) return 0
     return Math.min(((questionHistory.length + (currentQuestion ? 1 : 0)) / questions.length) * 100, 100)
@@ -86,8 +84,19 @@ export default function DescribeProblem() {
 
   const goNext = () => {
     if (!selectedAnswer) return
+
+    if (!selectedAnswer.nextQuestionId) {
+      localStorage.setItem(PROBLEM_ANSWERS_KEY, JSON.stringify(Object.values({
+        ...answers,
+        [currentQuestion._id]: selectedAnswer,
+      })))
+      localStorage.setItem(REFERRED_EXPERT_KEY, 'Magnafic Consultant')
+      navigate('/signup')
+      return
+    }
+
     setQuestionHistory(history => [...history, currentQuestion._id])
-    setCurrentQuestionId(selectedAnswer.nextQuestionId || '')
+    setCurrentQuestionId(selectedAnswer.nextQuestionId)
   }
 
   const goBack = () => {
@@ -96,12 +105,6 @@ export default function DescribeProblem() {
 
     setQuestionHistory(history => history.slice(0, -1))
     setCurrentQuestionId(previousQuestionId)
-  }
-
-  const startConversation = () => {
-    localStorage.setItem(PROBLEM_ANSWERS_KEY, JSON.stringify(Object.values(answers)))
-    localStorage.setItem(REFERRED_EXPERT_KEY, referredName.trim() || 'Magnafic Consultant')
-    navigate('/signup')
   }
 
   return (
@@ -116,16 +119,14 @@ export default function DescribeProblem() {
 
         <section className="overflow-hidden rounded-3xl bg-white shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100">
           <div className="bg-[#000047] px-5 py-7 text-white sm:px-8 sm:py-10">
-            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
-              <MessageSquareText className="h-6 w-6 text-cyan" />
+            <div className="mb-5 flex justify-center">
+              <img src="/favicon.png" alt="Magnafic" className="h-8 w-8 object-contain" />
             </div>
             <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
-              {isComplete ? 'Thank you!' : 'Describe your problem'}
+              Describe your problem
             </h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-cyan-50 sm:text-lg">
-              {isComplete
-                ? 'Your responses have been captured successfully.'
-                : 'Answer a few quick questions so we can understand your business challenge before starting the conversation.'}
+              Answer a few quick questions so we can understand your business challenge before starting the conversation.
             </p>
           </div>
 
@@ -152,22 +153,6 @@ export default function DescribeProblem() {
 
             {!loading && !error && currentQuestion && (
               <div>
-                {questionHistory.length === 0 && (
-                  <div className="mb-8 rounded-2xl bg-primary-50 px-4 py-4 ring-1 ring-primary-100">
-                    <label htmlFor="referred-name" className="block text-sm font-bold uppercase tracking-[0.14em] text-primary-700">
-                      Referred by
-                    </label>
-                    <input
-                      id="referred-name"
-                      type="text"
-                      value={referredName}
-                      onChange={event => setReferredName(event.target.value)}
-                      className="mt-3 w-full rounded-xl border border-primary-100 bg-white px-4 py-3 text-base font-semibold text-gray-950 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-                      placeholder="Magnafic Consultant"
-                    />
-                  </div>
-                )}
-
                 <div className="mb-8">
                   <div className="mb-3 flex items-center justify-between gap-4 text-sm font-semibold text-gray-500">
                     <span>Question {questionHistory.length + 1}</span>
@@ -228,23 +213,6 @@ export default function DescribeProblem() {
               </div>
             )}
 
-            {!loading && !error && isComplete && (
-              <div className="text-center">
-                <CheckCircle2 className="mx-auto mb-5 h-14 w-14 text-green-500" />
-                <h2 className="text-3xl font-bold text-gray-950">You are ready to start</h2>
-                <p className="mx-auto mt-3 max-w-2xl text-gray-600">
-                  We have captured your responses. Log in to continue and start the conversation with Magnafic.
-                </p>
-                <button
-                  type="button"
-                  onClick={startConversation}
-                  className="mt-8 inline-flex items-center justify-center rounded-full bg-primary-600 px-7 py-3 font-semibold text-white transition hover:bg-primary-700"
-                >
-                  Start conversation
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </button>
-              </div>
-            )}
           </div>
         </section>
       </div>

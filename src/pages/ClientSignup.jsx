@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Building2, CheckCircle2, Lock, Mail, Phone, User, Eye, EyeOff, X } from 'lucide-react'
+import { ArrowRight, Building2, Lock, Mail, MapPin, Phone, User, Eye, EyeOff } from 'lucide-react'
 import SEO from '../components/SEO'
 import { isProfessionalEmail, signupClient } from '../lib/auth'
 import { createProblemBriefFromStoredAnswers } from '../lib/dashboard'
@@ -28,13 +28,12 @@ export default function ClientSignup() {
   const [form, setForm] = useState({
     name: '',
     company: '',
+    city: '',
     phone: '',
     email: '',
     password: '',
   })
   const [error, setError] = useState('')
-  const [briefWarning, setBriefWarning] = useState('')
-  const [signupComplete, setSignupComplete] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const updateField = (field, value) => {
@@ -59,9 +58,8 @@ export default function ClientSignup() {
         await createProblemBriefFromStoredAnswers()
       } catch (briefError) {
         console.error('Problem brief creation failed:', briefError)
-        setBriefWarning('Your account was created, but we could not save your problem brief. You can create it from your dashboard.')
       }
-      setSignupComplete(true)
+      navigate('/dashboard')
     } catch (signupError) {
       console.error('Firebase signup failed:', signupError)
       setError(getSignupErrorMessage(signupError))
@@ -73,38 +71,6 @@ export default function ClientSignup() {
   return (
     <div className="min-h-screen bg-[#f7f9ff] px-4 pt-28 pb-16 sm:px-6 lg:px-8">
       <SEO title="Client Signup" description="Create a Magnafic client account with a professional company email." path="/signup" noIndex />
-      {signupComplete ? (
-        <div className="relative mx-auto max-w-xl rounded-3xl bg-white p-8 text-center shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100">
-          <button
-            type="button"
-            onClick={() => navigate('/dashboard')}
-            className="absolute right-4 top-4 rounded-full p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-            aria-label="Close message and go to dashboard"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-50">
-            <CheckCircle2 className="h-9 w-9 text-green-600" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-950">Thank you</h1>
-          <p className="mt-3 text-gray-600">
-            Your account has been created successfully. Our team will contact you shortly.
-          </p>
-          {briefWarning && (
-            <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-              {briefWarning}
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={() => navigate('/dashboard')}
-            className="mt-8 inline-flex items-center justify-center rounded-full bg-primary-600 px-6 py-3 font-semibold text-white transition hover:bg-primary-700"
-          >
-            Go to dashboard
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </button>
-        </div>
-      ) : (
       <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1fr_440px] lg:items-center">
         <section>
           <span className="mb-5 inline-flex rounded-full bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700">
@@ -167,6 +133,20 @@ export default function ClientSignup() {
             </div>
 
             <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">City</label>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <input
+                  required
+                  value={form.city}
+                  onChange={event => updateField('city', event.target.value)}
+                  className="w-full rounded-xl border border-gray-300 py-3 pl-12 pr-4 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                  placeholder="City"
+                />
+              </div>
+            </div>
+
+            <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">Contact number</label>
               <div className="relative">
                 <Phone className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -203,7 +183,7 @@ export default function ClientSignup() {
             {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
 
             <button type="submit" disabled={submitting} className="flex w-full items-center justify-center rounded-xl bg-primary-600 py-3 font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-70">
-              {submitting ? 'Creating account...' : 'Create client account'}
+              {submitting ? 'Submitting...' : 'Submit'}
               <ArrowRight className="ml-2 h-5 w-5" />
             </button>
           </form>
@@ -216,7 +196,6 @@ export default function ClientSignup() {
           </p>
         </section>
       </div>
-      )}
     </div>
   )
 }

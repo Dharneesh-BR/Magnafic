@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, X, ChevronDown } from 'lucide-react'
+import { Menu, X, ChevronDown, UserCircle } from 'lucide-react'
 import { clearAuthUser, getAuthUser } from '../lib/auth'
 import { mentorClient } from '../lib/sanityClient'
 
@@ -71,10 +71,37 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 bg-white z-50 border-b border-gray-200 shadow-sm">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <Link to="/" className="flex items-center space-x-2">
+        <div className="grid h-16 grid-cols-[3rem_minmax(0,1fr)_3.75rem] items-center md:flex md:justify-between">
+          <button
+            className="justify-self-start p-2 text-[#000047] transition hover:text-primary-700 md:hidden"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={isMenuOpen}
+          >
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+
+          <Link to="/" className="flex items-center justify-center space-x-2 md:justify-start">
             <img src="/Magnafic.png" alt="Mind Magna Logo" className="h-6 w-auto brightness-125 sm:h-7" />
           </Link>
+
+          {authUser ? (
+            <Link
+              to="/dashboard"
+              className="justify-self-end p-2 text-[#000047] transition hover:text-primary-700 md:hidden"
+              aria-label="Go to dashboard"
+            >
+              <UserCircle className="h-7 w-7" />
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              className="justify-self-end p-2 text-[#000047] transition hover:text-primary-700 md:hidden"
+              aria-label="Login"
+            >
+              <UserCircle className="h-7 w-7" />
+            </Link>
+          )}
           
           <div className="hidden md:flex items-center space-x-6">
             {showHomeLink && (
@@ -125,14 +152,6 @@ export default function Header() {
             )}
           </div>
 
-          <button
-            className="rounded-xl border border-[#000047] bg-[#000047] p-2 text-white shadow-sm transition hover:border-primary-700 hover:bg-primary-700 md:hidden"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={isMenuOpen}
-          >
-            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
         </div>
 
         {isMenuOpen && (
@@ -176,11 +195,7 @@ export default function Header() {
                   Logout
                 </button>
               </>
-            ) : (
-              <Link onClick={() => setIsMenuOpen(false)} to="/login" className="block rounded-2xl bg-gradient-primary px-6 py-3 text-center font-semibold text-white hover:shadow-glow-combined">
-                Login
-              </Link>
-            )}
+            ) : null}
           </div>
         )}
       </nav>
