@@ -40,6 +40,21 @@ function getAcceptedDate(item) {
   return toDate(item.acceptedAt) || item.acceptedAtDate || (['accepted', 'scheduled', 'active', 'closed', 'completed'].includes(item.status) ? item.updatedAtDate : null)
 }
 
+const MONTH_OPTIONS = [
+  { value: 0, label: 'January' },
+  { value: 1, label: 'February' },
+  { value: 2, label: 'March' },
+  { value: 3, label: 'April' },
+  { value: 4, label: 'May' },
+  { value: 5, label: 'June' },
+  { value: 6, label: 'July' },
+  { value: 7, label: 'August' },
+  { value: 8, label: 'September' },
+  { value: 9, label: 'October' },
+  { value: 10, label: 'November' },
+  { value: 11, label: 'December' },
+]
+
 function initials(name = '') {
   return name
     .split(' ')
@@ -126,6 +141,8 @@ export default function ConsultantDashboard() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [acceptingEnquiry, setAcceptingEnquiry] = useState(false)
   const [acceptError, setAcceptError] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth())
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear())
   const navigate = useNavigate()
 
   const menuItems = [
@@ -261,12 +278,32 @@ export default function ConsultantDashboard() {
     return () => unsubscribe?.()
   }, [user?.sanityExpertId])
 
+  const yearOptions = useMemo(() => {
+    const years = new Set([new Date().getFullYear()])
+
+    opportunities.forEach((item) => {
+      const year = item.createdAtDate?.getFullYear?.()
+      if (year) years.add(year)
+    })
+
+    return [...years].sort((a, b) => b - a)
+  }, [opportunities])
+
+  const filteredOpportunities = useMemo(() => (
+    opportunities.filter((item) => {
+      const createdDate = item.createdAtDate
+      if (!createdDate) return false
+
+      return createdDate.getMonth() === Number(selectedMonth) && createdDate.getFullYear() === Number(selectedYear)
+    })
+  ), [opportunities, selectedMonth, selectedYear])
+
   const stats = useMemo(() => ({
-    opportunities: opportunities.length,
-    accepted: opportunities.filter((item) => ['accepted', 'scheduled'].includes(item.status)).length,
-    active: opportunities.filter((item) => item.status === 'active').length,
-    closed: opportunities.filter((item) => ['closed', 'completed'].includes(item.status)).length,
-  }), [opportunities])
+    opportunities: filteredOpportunities.length,
+    accepted: filteredOpportunities.filter((item) => ['accepted', 'scheduled'].includes(item.status)).length,
+    active: filteredOpportunities.filter((item) => item.status === 'active').length,
+    closed: filteredOpportunities.filter((item) => ['closed', 'completed'].includes(item.status)).length,
+  }), [filteredOpportunities])
 
   const updatePasswordField = (field, value) => {
     setPasswordForm(current => ({ ...current, [field]: value }))
@@ -658,6 +695,38 @@ export default function ConsultantDashboard() {
                   </section>
                 ) : (
                   <>
+                <section className="mb-5 rounded-3xl bg-white p-4 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-5">
+                  <div className="relative flex flex-col gap-4 lg:min-h-20 lg:justify-center">
+                    <h2 className="text-center text-2xl font-bold text-gray-950">Dashboard</h2>
+                    <div className="grid grid-cols-2 gap-3 sm:mx-auto lg:absolute lg:right-0 lg:top-1/2 lg:mx-0 lg:-translate-y-1/2">
+                      <label className="block">
+                        <span className="mb-2 block text-sm font-semibold text-gray-600">Month</span>
+                        <select
+                          value={selectedMonth}
+                          onChange={event => setSelectedMonth(Number(event.target.value))}
+                          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                        >
+                          {MONTH_OPTIONS.map((month) => (
+                            <option key={month.value} value={month.value}>{month.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 block text-sm font-semibold text-gray-600">Year</span>
+                        <select
+                          value={selectedYear}
+                          onChange={event => setSelectedYear(Number(event.target.value))}
+                          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                        >
+                          {yearOptions.map((year) => (
+                            <option key={year} value={year}>{year}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                </section>
+
                 <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
                   {[
                     { icon: ClipboardList, label: 'Assigned Enquiry', value: stats.opportunities, gradient: 'from-[#000047] via-primary-600 to-cyan-400' },
@@ -693,11 +762,11 @@ export default function ConsultantDashboard() {
                     {loading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
                   </div>
 
-                  {!loading && opportunities.length === 0 ? (
+                  {!loading && filteredOpportunities.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
                       <Users className="mx-auto mb-4 h-10 w-10 text-primary-500" />
-                      <h3 className="text-lg font-bold text-gray-950">No assigned opportunities yet</h3>
-                      <p className="mt-2 text-sm text-gray-600">Approved consultant assignments will appear here automatically.</p>
+                      <h3 className="text-lg font-bold text-gray-950">No enquiries for this period</h3>
+                      <p className="mt-2 text-sm text-gray-600">Choose another month or year to view more enquiries.</p>
                     </div>
                   ) : (
                     <div className="overflow-hidden rounded-2xl border border-gray-100">
@@ -707,7 +776,7 @@ export default function ConsultantDashboard() {
                           <span>Expertise</span>
                           <span className="text-right">Action</span>
                         </div>
-                        {opportunities.map((item) => {
+                        {filteredOpportunities.map((item) => {
                           return (
                             <div key={item.id} className="grid grid-cols-[1.2fr_1fr_0.9fr] items-center border-b border-gray-100 text-sm last:border-b-0">
                               <div className="min-w-0 bg-blue-50/80 px-3 py-3">
@@ -745,7 +814,7 @@ export default function ConsultantDashboard() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 bg-white">
-                            {opportunities.map((item) => {
+                            {filteredOpportunities.map((item) => {
                               const acceptedDate = getAcceptedDate(item)
                               return (
                                 <tr key={item.id} className="transition hover:bg-primary-50/50">

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { collection, deleteDoc, doc, getDoc, onSnapshot } from 'firebase/firestore'
-import { AlertCircle, BriefcaseBusiness, ChevronDown, LayoutDashboard, Eye, EyeOff, Loader2, Lock, LogOut, Mail, ShieldCheck, Trash2, Users } from 'lucide-react'
+import { AlertCircle, BriefcaseBusiness, LayoutDashboard, Eye, EyeOff, Loader2, Lock, LogOut, Mail, ShieldCheck, Trash2, Users } from 'lucide-react'
 import SEO from '../components/SEO'
 import { auth, db } from '../lib/firebase'
 import { mentorClient } from '../lib/sanityClient'
@@ -62,11 +62,12 @@ export default function AdminDashboard() {
   const [usersData, setUsersData] = useState([])
   const [briefs, setBriefs] = useState([])
   const [capabilitiesByExpertId, setCapabilitiesByExpertId] = useState({})
+  const [sanityExpertsById, setSanityExpertsById] = useState({})
   const [dataLoading, setDataLoading] = useState(false)
   const [dataError, setDataError] = useState('')
   const [activeView, setActiveView] = useState('dashboard')
-  const [openClientBriefId, setOpenClientBriefId] = useState('')
   const [removingClientId, setRemovingClientId] = useState('')
+  const [questionnaireDetails, setQuestionnaireDetails] = useState(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -138,9 +139,12 @@ export default function AdminDashboard() {
         }`)
 
         const nextCapabilitiesByExpertId = {}
+        const nextSanityExpertsById = {}
         ;(capabilities || []).forEach((capability) => {
           ;(capability.orderedExperts || []).forEach((expert) => {
             if (!expert?._id) return
+
+            nextSanityExpertsById[expert._id] = expert.fullName
 
             if (!nextCapabilitiesByExpertId[expert._id]) {
               nextCapabilitiesByExpertId[expert._id] = []
@@ -155,6 +159,7 @@ export default function AdminDashboard() {
         })
 
         setCapabilitiesByExpertId(nextCapabilitiesByExpertId)
+        setSanityExpertsById(nextSanityExpertsById)
       } catch (capabilityError) {
         console.error('Admin capability lookup failed:', capabilityError)
         setDataError('Admin dashboard loaded, but consultant capabilities could not be fetched from Sanity.')
@@ -192,10 +197,11 @@ export default function AdminDashboard() {
 
       return {
         ...consultant,
+        sanityName: consultant.sanityExpertId ? sanityExpertsById[consultant.sanityExpertId] || '' : '',
         capabilities: consultant.sanityExpertId ? capabilitiesByExpertId[consultant.sanityExpertId] || [] : [],
         attachedBriefs,
       }
-    }), [briefs, capabilitiesByExpertId, usersData])
+    }), [briefs, capabilitiesByExpertId, sanityExpertsById, usersData])
 
   const clients = useMemo(() => usersData
     .filter((item) => item.role === 'client')
@@ -254,6 +260,13 @@ export default function AdminDashboard() {
     } finally {
       setRemovingClientId('')
     }
+  }
+
+  const openQuestionnaireDetails = (title, attachedBriefs) => {
+    setQuestionnaireDetails({
+      title,
+      briefs: attachedBriefs || [],
+    })
   }
 
   if (checkingAuth) {
@@ -422,96 +435,57 @@ export default function AdminDashboard() {
                     No clients found.
                   </div>
                 ) : (
-                  <div className="grid gap-4 xl:grid-cols-2">
-                    {clients.map((client) => (
-                      <article key={client.id} className="rounded-2xl border border-gray-100 p-4">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="min-w-0">
-                            <h3 className="break-words text-lg font-bold text-gray-950">{client.name || client.email || 'Unnamed client'}</h3>
-                            <p className="mt-1 break-words text-sm text-gray-600">{client.email || 'No email'}</p>
-                          </div>
-                          <div className="flex shrink-0 flex-wrap gap-2">
-                            <span className="w-fit rounded-full bg-primary-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-700">
-                              {client.attachedBriefs.length} briefs
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveClient(client)}
-                              disabled={removingClientId === client.id}
-                              className="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              {removingClientId === client.id ? (
-                                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                              )}
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 grid gap-2 rounded-2xl bg-gray-50 p-3 text-sm text-gray-700 sm:grid-cols-2">
-                          <p><span className="font-semibold text-gray-950">Company:</span> {client.company || 'Not provided'}</p>
-                          <p><span className="font-semibold text-gray-950">Phone:</span> {client.phone || 'Not provided'}</p>
-                        </div>
-
-                        <div className="mt-5">
-                          <p className="text-sm font-bold text-gray-950">Attached briefs</p>
-                          {client.attachedBriefs.length > 0 ? (
-                            <div className="mt-2 space-y-2">
-                              {client.attachedBriefs.map((brief) => (
-                                <div key={brief.id} className="overflow-hidden rounded-2xl bg-gray-50 text-sm">
-                                  <button
-                                    type="button"
-                                    onClick={() => setOpenClientBriefId(current => current === brief.id ? '' : brief.id)}
-                                    className="flex w-full flex-col gap-3 px-3 py-3 text-left transition hover:bg-primary-50 sm:flex-row sm:items-center sm:justify-between"
-                                    aria-expanded={openClientBriefId === brief.id}
-                                  >
-                                    <span className="min-w-0">
-                                      <span className="block break-words font-semibold text-gray-950">{brief.title || 'Untitled brief'}</span>
-                                      <span className="mt-1 block font-medium text-primary-700">{brief.capability || 'General consulting'}</span>
-                                    </span>
-                                    <span className="flex shrink-0 items-center gap-3">
-                                      <span className="w-fit rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-wide text-gray-600">
-                                        {brief.status || 'new'}
-                                      </span>
-                                      <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${openClientBriefId === brief.id ? 'rotate-180' : ''}`} />
-                                    </span>
-                                  </button>
-
-                                  {openClientBriefId === brief.id && (
-                                    <div className="border-t border-gray-100 px-3 py-3">
-                                      <p className="text-xs text-gray-500">Created: {formatDateTime(brief.createdAt)}</p>
-                                      {brief.description && (
-                                        <p className="mt-3 rounded-xl bg-white px-3 py-2 leading-6 text-gray-600">{brief.description}</p>
-                                      )}
-                                      {brief.problemAnswers?.length > 0 && (
-                                        <div className="mt-3 space-y-2">
-                                          {brief.problemAnswers.map((answer) => (
-                                            <div key={answer.questionId || `${brief.id}-${answer.question}`} className="rounded-xl bg-white px-3 py-2">
-                                              <p className="font-semibold text-gray-950">{answer.question}</p>
-                                              <p className="mt-1 text-gray-600">{answer.label || answer.value}</p>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                      <div className="mt-3 grid gap-2 text-xs text-gray-500 sm:grid-cols-2">
-                                        <p className="break-words">Brief ID: {brief.id}</p>
-                                        <p className="break-words">Capability ID: {brief.capabilityId || 'Not provided'}</p>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="mt-2 text-sm text-gray-500">No briefs attached yet.</p>
-                          )}
-                        </div>
-
-                        <p className="mt-4 break-words text-xs text-gray-500">Firebase UID: {client.id}</p>
-                      </article>
-                    ))}
+                  <div className="overflow-hidden rounded-2xl border border-gray-100">
+                    <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm lg:text-base">
+                      <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
+                        <tr className="text-xs font-extrabold uppercase tracking-wide text-white lg:text-sm">
+                          <th className="break-words px-2 py-4 lg:px-3">Client Name</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Email</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Company</th>
+                          <th className="break-words px-2 py-4 lg:px-3">City</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Phone</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Briefs</th>
+                          <th className="break-words px-2 py-4 text-right lg:px-3">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {clients.map((client) => (
+                          <tr key={client.id} className="transition hover:bg-primary-50/50">
+                            <td className="break-words bg-blue-50/80 px-2 py-4 font-bold leading-6 text-gray-950 lg:px-3">{client.name || 'Unnamed client'}</td>
+                            <td className="break-words bg-cyan-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{client.email || 'No email'}</td>
+                            <td className="break-words bg-blue-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{client.company || 'Not provided'}</td>
+                            <td className="break-words bg-cyan-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{client.city || 'Not provided'}</td>
+                            <td className="break-words bg-blue-50/80 px-2 py-4 font-medium leading-6 text-gray-700 lg:px-3">{client.phone || 'Not provided'}</td>
+                            <td className="break-words bg-cyan-50/80 px-2 py-4 font-bold leading-6 text-primary-700 lg:px-3">{client.attachedBriefs.length}</td>
+                            <td className="bg-blue-50/80 px-2 py-4 text-right lg:px-3">
+                              <div className="flex flex-wrap justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openQuestionnaireDetails(client.name || client.email || 'Client', client.attachedBriefs)}
+                                className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
+                              >
+                                <Eye className="mr-2 h-4 w-4" />
+                                View
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveClient(client)}
+                                disabled={removingClientId === client.id}
+                                className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {removingClientId === client.id ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                )}
+                                Remove
+                              </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </section>
@@ -532,72 +506,122 @@ export default function AdminDashboard() {
                 No consultants found.
               </div>
             ) : (
-              <div className="grid gap-4 xl:grid-cols-2">
-                {consultants.map((consultant) => (
-                  <article key={consultant.id} className="rounded-2xl border border-gray-100 p-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                        <h3 className="break-words text-lg font-bold text-gray-950">{consultant.name || consultant.email || 'Unnamed consultant'}</h3>
-                        <p className="mt-1 break-words text-sm text-gray-600">{consultant.email || 'No email'}</p>
-                    </div>
-                      <span className="w-fit rounded-full bg-primary-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-700">
-                        {consultant.attachedBriefs.length} clients
-                    </span>
-                  </div>
-
-                    <div className="mt-4">
-                      <p className="text-sm font-bold text-gray-950">Connected capabilities</p>
-                      {consultant.capabilities.length > 0 ? (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {consultant.capabilities.map((capability) => (
-                            <span key={capability.id} className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                              {capability.title}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="mt-2 text-sm text-gray-500">No connected capabilities found.</p>
-                      )}
-                    </div>
-
-                    <div className="mt-5">
-                      <p className="text-sm font-bold text-gray-950">Attached clients</p>
-                      {consultant.attachedBriefs.length > 0 ? (
-                        <div className="mt-2 space-y-2">
-                          {consultant.attachedBriefs.map((brief) => (
-                            <div key={brief.id} className="rounded-2xl bg-gray-50 px-3 py-3 text-sm">
-                              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                                <div>
-                                  <p className="font-semibold text-gray-950">{brief.clientName || 'Client'}</p>
-                                  <p className="mt-1 text-gray-600">{brief.company || 'Company not provided'}</p>
-                                </div>
-                                <span className="w-fit rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-wide text-gray-600">
-                                  {brief.status || 'new'}
-                                </span>
-                              </div>
-                              <p className="mt-2 font-medium text-primary-700">{brief.capability || 'General consulting'}</p>
-                              <p className="mt-1 text-xs text-gray-500">Created: {formatDateTime(brief.createdAt)}</p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="mt-2 text-sm text-gray-500">No clients attached yet.</p>
-                      )}
-                    </div>
-
-                    <div className="mt-4 space-y-1 text-xs text-gray-500">
-                      <p className="break-words">Firebase UID: {consultant.id}</p>
-                      <p className="break-words">Sanity expert: {consultant.sanityExpertId || 'Not linked'}</p>
-                    </div>
-                </article>
-              ))}
-            </div>
+              <div className="overflow-hidden rounded-2xl border border-gray-100">
+                <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm lg:text-base">
+                  <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
+                    <tr className="text-xs font-extrabold uppercase tracking-wide text-white lg:text-sm">
+                      <th className="break-words px-2 py-4 lg:px-3">Consultant Name</th>
+                      <th className="break-words px-2 py-4 lg:px-3">Email</th>
+                      <th className="break-words px-2 py-4 lg:px-3">Capabilities</th>
+                      <th className="break-words px-2 py-4 lg:px-3">Attached Clients</th>
+                      <th className="break-words px-2 py-4 text-right lg:px-3">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 bg-white">
+                    {consultants.map((consultant) => (
+                      <tr key={consultant.id} className="transition hover:bg-primary-50/50">
+                        <td className="break-words bg-blue-50/80 px-2 py-4 font-bold leading-6 text-gray-950 lg:px-3">{consultant.sanityName || consultant.name || 'Unnamed consultant'}</td>
+                        <td className="break-words bg-cyan-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{consultant.email || 'No email'}</td>
+                        <td className="break-words bg-blue-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">
+                          {consultant.capabilities.length > 0
+                            ? consultant.capabilities.map((capability) => capability.title).join(', ')
+                            : 'No connected capabilities'}
+                        </td>
+                        <td className="break-words bg-cyan-50/80 px-2 py-4 font-bold leading-6 text-primary-700 lg:px-3">{consultant.attachedBriefs.length}</td>
+                        <td className="bg-blue-50/80 px-2 py-4 text-right lg:px-3">
+                          <button
+                            type="button"
+                            onClick={() => openQuestionnaireDetails(consultant.sanityName || consultant.name || consultant.email || 'Consultant', consultant.attachedBriefs)}
+                            className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </section>
             )}
           </div>
         </div>
       </div>
+      {questionnaireDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/60 px-4 py-6">
+          <section className="max-h-[88vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl shadow-primary-950/30 sm:p-7">
+            <div className="mb-6 flex flex-col gap-4 border-b border-gray-100 pb-5 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-600">Questionnaire Details</p>
+                <h2 className="mt-2 break-words text-2xl font-bold text-gray-950">{questionnaireDetails.title}</h2>
+                <p className="mt-1 text-sm font-medium text-gray-500">{questionnaireDetails.briefs.length} attached questionnaire{questionnaireDetails.briefs.length === 1 ? '' : 's'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuestionnaireDetails(null)}
+                className="inline-flex items-center justify-center rounded-xl bg-gray-100 px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+
+            {questionnaireDetails.briefs.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
+                <h3 className="font-bold text-gray-950">No questionnaire available</h3>
+                <p className="mt-2 text-sm text-gray-600">There are no attached questionnaire responses for this record yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {questionnaireDetails.briefs.map((brief) => (
+                  <article key={brief.id} className="overflow-hidden rounded-2xl border border-gray-100">
+                    <div className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600 px-5 py-4 text-white">
+                      <h3 className="break-words text-xl font-bold">{brief.clientName || brief.title || 'Client questionnaire'}</h3>
+                      <p className="mt-1 break-words text-sm font-semibold text-white/85">{brief.company || 'Company not provided'} - {brief.city || brief.clientCity || brief.location || 'City not provided'}</p>
+                    </div>
+
+                    <div className="grid gap-3 p-5 text-sm font-medium text-gray-700 sm:grid-cols-2 lg:grid-cols-4">
+                      <p className="rounded-2xl bg-blue-50 p-4 ring-1 ring-blue-100"><span className="block font-bold text-blue-950">Expertise</span>{brief.capability || 'Not provided'}</p>
+                      <p className="rounded-2xl bg-cyan-50 p-4 ring-1 ring-cyan-100"><span className="block font-bold text-cyan-950">Created</span>{formatDateTime(brief.createdAt)}</p>
+                      <p className="rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100"><span className="block font-bold text-emerald-950">Accepted</span>{formatDateTime(brief.acceptedAt)}</p>
+                      <p className="rounded-2xl bg-indigo-50 p-4 ring-1 ring-indigo-100"><span className="block font-bold text-indigo-950">Status</span>{brief.status || 'new'}</p>
+                    </div>
+
+                    {brief.description && (
+                      <div className="px-5 pb-4">
+                        <p className="rounded-2xl bg-gray-50 p-4 text-sm font-medium leading-6 text-gray-700 ring-1 ring-gray-100">{brief.description}</p>
+                      </div>
+                    )}
+
+                    {brief.problemAnswers?.length > 0 ? (
+                      <div className="space-y-3 px-5 pb-5">
+                        {brief.problemAnswers.map((answer, index) => (
+                          <div
+                            key={answer.questionId || `${brief.id}-${answer.question}-${index}`}
+                            className={`rounded-2xl px-5 py-4 ring-1 ${
+                              index % 2 === 0
+                                ? 'bg-blue-50/80 ring-blue-100'
+                                : 'bg-cyan-50/80 ring-cyan-100'
+                            }`}
+                          >
+                            <p className="text-base font-bold leading-7 text-gray-950">{answer.question}</p>
+                            <p className="mt-2 text-base font-medium leading-7 text-gray-700">{answer.label || answer.value || 'Not answered'}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="px-5 pb-5">
+                        <p className="rounded-2xl border border-dashed border-gray-200 p-5 text-center text-sm font-medium text-gray-600">No questionnaire answers available.</p>
+                      </div>
+                    )}
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
     </div>
   )
 }
