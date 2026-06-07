@@ -120,7 +120,7 @@ export default function DescribeProblem() {
         <section className="overflow-hidden rounded-3xl bg-white shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100">
           <div className="bg-[#000047] px-5 py-7 text-white sm:px-8 sm:py-10">
             <div className="mb-5 flex justify-center">
-              <img src="/favicon.png" alt="Magnafic" className="h-8 w-8 object-contain" />
+              <img src="/favicon.png" alt="Magnafic" className="h-12 w-12 object-contain" />
             </div>
             <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
               Describe your problem

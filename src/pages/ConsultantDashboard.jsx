@@ -470,7 +470,7 @@ export default function ConsultantDashboard() {
           isMenuExpanded ? 'lg:grid-cols-[260px_minmax(0,1fr)]' : 'lg:grid-cols-[88px_minmax(0,1fr)]'
         }`}>
           <aside
-            className="rounded-2xl bg-[#000047] p-3 shadow-xl shadow-primary-900/15 ring-1 ring-white/10 transition-all duration-300"
+            className="rounded-2xl bg-white p-3 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition-all duration-300"
             onMouseEnter={() => setIsMenuExpanded(true)}
             onMouseLeave={() => setIsMenuExpanded(false)}
             onFocus={() => setIsMenuExpanded(true)}
@@ -482,22 +482,22 @@ export default function ConsultantDashboard() {
           >
             <div className="mb-3 grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center lg:hidden">
               <span aria-hidden="true"></span>
-              <p className="text-center text-lg font-extrabold uppercase tracking-[0.18em] text-white">Menu</p>
+              <p className="text-center text-lg font-extrabold uppercase tracking-[0.18em] text-[#000047]">Menu</p>
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(value => !value)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/15"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-[#000047] transition hover:bg-primary-100"
                 aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               >
                 {isMobileMenuOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
               </button>
             </div>
             <div className={`mb-3 hidden items-center lg:flex ${isMenuExpanded ? 'justify-between px-2' : 'justify-center'}`}>
-              {isMenuExpanded && <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-100/70">Menu</p>}
+              {isMenuExpanded && <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">Menu</p>}
               <button
                 type="button"
                 onClick={() => setIsMenuExpanded(value => !value)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-white/75 transition hover:bg-white/10 hover:text-white"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-500 transition hover:bg-primary-50 hover:text-primary-700"
                 aria-label={isMenuExpanded ? 'Collapse menu' : 'Expand menu'}
               >
                 {isMenuExpanded ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
@@ -516,8 +516,8 @@ export default function ConsultantDashboard() {
                   title={item.label}
                   className={`flex w-full items-center rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
                     activeView === item.id
-                      ? 'bg-white text-[#000047] shadow-lg shadow-cyan-500/15'
-                      : 'text-white/80 hover:bg-white/10 hover:text-white'
+                      ? 'bg-[#000047] text-white shadow-lg shadow-primary-900/15'
+                      : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'
                   } ${isMenuExpanded ? 'gap-3 lg:justify-start' : 'gap-3 lg:justify-center'}`}
                 >
                   <item.icon className="h-5 w-5" />
@@ -525,7 +525,7 @@ export default function ConsultantDashboard() {
                 </button>
               ))}
             </nav>
-            <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/10 pt-4 lg:block lg:space-y-2">
+            <div className="mt-4 grid grid-cols-2 gap-2 border-t border-gray-100 pt-4 lg:block lg:space-y-2">
               <button
                 type="button"
                 onClick={() => {
@@ -534,7 +534,7 @@ export default function ConsultantDashboard() {
                   setPasswordError('')
                 }}
                 title="Reset password"
-                className={`flex w-full items-center rounded-xl px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white ${
+                className={`flex w-full items-center rounded-xl px-4 py-3 text-left text-sm font-semibold text-gray-700 transition hover:bg-primary-50 hover:text-primary-700 ${
                   isMenuExpanded ? 'gap-3 lg:justify-start' : 'gap-3 lg:justify-center'
                 }`}
               >
@@ -547,7 +547,7 @@ export default function ConsultantDashboard() {
                 type="button"
                 onClick={handleLogout}
                 title="Logout"
-                className={`flex w-full items-center rounded-xl px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white ${
+                className={`flex w-full items-center rounded-xl px-4 py-3 text-left text-sm font-semibold text-gray-700 transition hover:bg-primary-50 hover:text-primary-700 ${
                   isMenuExpanded ? 'gap-3 lg:justify-start' : 'gap-3 lg:justify-center'
                 }`}
               >
@@ -665,13 +665,11 @@ export default function ConsultantDashboard() {
                     { icon: FolderCheck, label: 'Active Projects', value: stats.active, gradient: 'from-indigo-800 via-blue-600 to-cyan-400' },
                     { icon: BriefcaseBusiness, label: 'Closed Projects', value: stats.closed, gradient: 'from-slate-900 via-slate-600 to-cyan-400' },
                     { icon: CircleDollarSign, label: 'Project Payments', value: 'INR 0', gradient: 'from-cyan-950 via-sky-700 to-cyan-400', wide: true },
-                    { icon: Handshake, label: 'Referal Payments', value: 'INR 0', gradient: 'from-fuchsia-900 via-primary-600 to-cyan-400', wide: true },
+                    { icon: Handshake, label: 'Referral Payments', value: 'INR 0', gradient: 'from-cyan-950 via-sky-700 to-cyan-400', wide: true },
                   ].map(item => (
                     <section key={item.label} className={`group relative flex min-h-[6.5rem] flex-col overflow-hidden rounded-2xl bg-gradient-to-br ${item.gradient} p-4 text-white shadow-xl shadow-primary-900/15 ring-1 ring-white/25 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/25 ${item.wide ? 'col-span-2 xl:col-span-2' : ''}`}>
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.22),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.16),transparent_44%)] opacity-85"></div>
                       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-white/80 via-cyan-200 to-white/20"></div>
-                      <div className="absolute -right-8 -bottom-8 h-24 w-24 rounded-full border-2 border-white/35 transition duration-300 group-hover:scale-110 group-hover:border-white/60"></div>
-                      <div className="absolute right-3 bottom-3 h-12 w-12 rounded-full border-2 border-cyan-100/70 transition duration-300 group-hover:translate-x-0.5 group-hover:scale-105"></div>
                       <span className="absolute bottom-5 right-5 z-10 flex h-8 w-8 items-center justify-center text-white drop-shadow-[0_4px_10px_rgba(0,0,71,0.35)] transition group-hover:scale-110">
                         <item.icon className="h-6 w-6" />
                       </span>
