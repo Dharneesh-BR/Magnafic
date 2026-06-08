@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { collection, deleteDoc, doc, getDoc, onSnapshot } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { AlertCircle, BriefcaseBusiness, LayoutDashboard, Eye, EyeOff, Loader2, Lock, LogOut, Mail, ShieldCheck, Trash2, Users } from 'lucide-react'
 import SEO from '../components/SEO'
 import { auth, db } from '../lib/firebase'
@@ -67,6 +67,7 @@ export default function AdminDashboard() {
   const [dataError, setDataError] = useState('')
   const [activeView, setActiveView] = useState('dashboard')
   const [removingClientId, setRemovingClientId] = useState('')
+  const [detachingBriefId, setDetachingBriefId] = useState('')
   const [questionnaireDetails, setQuestionnaireDetails] = useState(null)
 
   useEffect(() => {
@@ -262,11 +263,68 @@ export default function AdminDashboard() {
     }
   }
 
-  const openQuestionnaireDetails = (title, attachedBriefs) => {
+  const openQuestionnaireDetails = (title, attachedBriefs, options = {}) => {
     setQuestionnaireDetails({
       title,
       briefs: attachedBriefs || [],
+      ownerType: options.ownerType || '',
+      consultant: options.consultant || null,
     })
+  }
+
+  const handleDetachClientFromConsultant = async (brief) => {
+    const consultant = questionnaireDetails?.consultant
+    if (!consultant || !brief?.id) return
+
+    const clientLabel = brief.clientName || brief.company || 'this client'
+    const consultantLabel = consultant.sanityName || consultant.name || consultant.email || 'this consultant'
+    const confirmed = window.confirm(`Remove ${clientLabel} from ${consultantLabel}? The client and questionnaire will remain in the admin dashboard.`)
+    if (!confirmed) return
+
+    setDetachingBriefId(brief.id)
+    setDataError('')
+
+    try {
+      const isAssignedToConsultant = brief.assignedConsultantId === consultant.id
+      const isMatchedToConsultant = Boolean(
+        consultant.sanityExpertId &&
+        Array.isArray(brief.matchedExpertIds) &&
+        brief.matchedExpertIds.includes(consultant.sanityExpertId)
+      )
+      const remainingMatchedExpertIds = Array.isArray(brief.matchedExpertIds)
+        ? brief.matchedExpertIds.filter((expertId) => expertId !== consultant.sanityExpertId)
+        : []
+
+      const updatePayload = {
+        matchedExpertIds: remainingMatchedExpertIds,
+        updatedAt: serverTimestamp(),
+      }
+
+      if (isAssignedToConsultant) {
+        updatePayload.assignedConsultantId = null
+      }
+
+      if (brief.status === 'accepted' && (isAssignedToConsultant || isMatchedToConsultant)) {
+        updatePayload.status = remainingMatchedExpertIds.length > 0 ? 'matching' : 'new'
+        updatePayload.acceptedAt = null
+      }
+
+      await updateDoc(doc(db, 'clientBriefs', brief.id), updatePayload)
+
+      setQuestionnaireDetails((current) => {
+        if (!current) return current
+
+        return {
+          ...current,
+          briefs: current.briefs.filter((item) => item.id !== brief.id),
+        }
+      })
+    } catch (detachError) {
+      console.error('Admin consultant client detach failed:', detachError)
+      setDataError(getAdminError(detachError))
+    } finally {
+      setDetachingBriefId('')
+    }
   }
 
   if (checkingAuth) {
@@ -531,7 +589,11 @@ export default function AdminDashboard() {
                         <td className="bg-blue-50/80 px-2 py-4 text-right lg:px-3">
                           <button
                             type="button"
-                            onClick={() => openQuestionnaireDetails(consultant.sanityName || consultant.name || consultant.email || 'Consultant', consultant.attachedBriefs)}
+                            onClick={() => openQuestionnaireDetails(
+                              consultant.sanityName || consultant.name || consultant.email || 'Consultant',
+                              consultant.attachedBriefs,
+                              { ownerType: 'consultant', consultant }
+                            )}
                             className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
                           >
                             <Eye className="mr-2 h-4 w-4" />
@@ -576,9 +638,26 @@ export default function AdminDashboard() {
               <div className="space-y-5">
                 {questionnaireDetails.briefs.map((brief) => (
                   <article key={brief.id} className="overflow-hidden rounded-2xl border border-gray-100">
-                    <div className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600 px-5 py-4 text-white">
-                      <h3 className="break-words text-xl font-bold">{brief.clientName || brief.title || 'Client questionnaire'}</h3>
-                      <p className="mt-1 break-words text-sm font-semibold text-white/85">{brief.company || 'Company not provided'} - {brief.city || brief.clientCity || brief.location || 'City not provided'}</p>
+                    <div className="flex flex-col gap-4 bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600 px-5 py-4 text-white sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h3 className="break-words text-xl font-bold">{brief.clientName || brief.title || 'Client questionnaire'}</h3>
+                        <p className="mt-1 break-words text-sm font-semibold text-white/85">{brief.company || 'Company not provided'} - {brief.city || brief.clientCity || brief.location || 'City not provided'}</p>
+                      </div>
+                      {questionnaireDetails.ownerType === 'consultant' && (
+                        <button
+                          type="button"
+                          onClick={() => handleDetachClientFromConsultant(brief)}
+                          disabled={detachingBriefId === brief.id}
+                          className="inline-flex shrink-0 items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"
+                        >
+                          {detachingBriefId === brief.id ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="mr-2 h-4 w-4" />
+                          )}
+                          Remove client
+                        </button>
+                      )}
                     </div>
 
                     <div className="grid gap-3 p-5 text-sm font-medium text-gray-700 sm:grid-cols-2 lg:grid-cols-4">

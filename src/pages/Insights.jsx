@@ -41,6 +41,14 @@ export default function Insights() {
           capability->{
             title,
             "slug": slug.current
+          },
+          experts[]->{
+            _id,
+            fullName,
+            "imageUrl": profileImage.asset->url,
+            headline,
+            currentDesignation,
+            designation
           }
         }`
         const videosQuery = `*[_type == "youtubeVideos"] | order(featured desc, publishedAt desc, title asc) {
@@ -287,6 +295,32 @@ export default function Insights() {
                             </>
                           )}
                         </div>
+                        {item.experts?.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-6 py-3">
+                            {item.experts.map((expert) => (
+                              <div key={expert._id} className="min-w-0">
+                                <span className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.14em] text-gray-800">Author</span>
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-base font-bold text-primary-700 ring-1 ring-primary-100">
+                                    {expert.imageUrl ? (
+                                      <img src={expert.imageUrl} alt={expert.fullName} className="h-full w-full object-cover object-center" />
+                                    ) : (
+                                      <span>{expert.fullName?.split(' ').map((name) => name[0]).join('').slice(0, 2).toUpperCase()}</span>
+                                    )}
+                                  </div>
+                                  <span className="min-w-0">
+                                    <span className="block truncate text-sm font-bold text-primary-700">{expert.fullName}</span>
+                                    {(expert.headline || expert.currentDesignation || expert.designation) && (
+                                      <span className="mt-1 block line-clamp-2 text-xs font-medium leading-5 text-gray-600">
+                                        {expert.headline || expert.currentDesignation || expert.designation}
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         <div className="p-6">
                           <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
                             <span className="flex items-center">
