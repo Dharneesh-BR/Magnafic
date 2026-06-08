@@ -5,6 +5,7 @@ import ValueProp from '../components/ValueProp'
 import AboutMagna from '../components/AboutMagna'
 import HomeCapabilities from '../components/HomeCapabilities'
 import HomeMentors from '../components/HomeMentors'
+import HomeInsightsCarousel from '../components/HomeInsightsCarousel'
 import DescribeProblemCTA from '../components/DescribeProblemCTA'
 import ExpertiseSection from '../components/ExpertiseSection'
 import CompanyLogos from '../components/CompanyLogos'
@@ -20,6 +21,7 @@ export default function Home() {
       <CompanyLogos />
       <AboutMagna />
       <HomeCapabilities />
+      <HomeInsightsCarousel />
       <DescribeProblemCTA />
       <ValueProp />
     </div>
