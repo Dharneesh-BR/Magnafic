@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Copy, Facebook, FileText, Linkedin, Share2, Sparkles, Tag, Twitter } from 'lucide-react'
+import { ArrowLeft, Building2, Copy, Facebook, FileText, Linkedin, MapPin, Share2, Sparkles, Tag, Twitter, UserRound } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
 import { absoluteUrl } from '../lib/seo'
@@ -201,6 +201,51 @@ function renderContent(blocks = []) {
   return rendered
 }
 
+function ExpertInsightCard({ expert }) {
+  const headline = expert.headline || expert.currentDesignation || expert.designation || 'Expert Mentor'
+  const company = expert.currentCompany || expert.company
+  const location = expert.location || expert.city
+  const profilePath = expert.slug ? `/experts/${expert.slug}` : `/experts/${expert._id}`
+
+  return (
+    <Link
+      to={profilePath}
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:border-cyan-200 hover:shadow-xl hover:shadow-primary-900/10 sm:flex-row"
+    >
+      <div className="relative flex h-56 shrink-0 items-end justify-center bg-gradient-to-br from-cyan-100 via-sky-100 to-primary-100 sm:h-auto sm:w-44">
+        {expert.imageUrl ? (
+          <img src={expert.imageUrl} alt={expert.fullName} className="h-full w-full object-contain object-bottom p-3" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-primary-600">
+            <UserRound className="h-16 w-16" />
+          </div>
+        )}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col justify-center p-5 sm:p-6">
+        <h3 className="break-words text-xl font-bold leading-tight text-gray-950">{expert.fullName}</h3>
+        <p className="mt-2 break-words text-sm font-semibold leading-6 text-primary-700">{headline}</p>
+        <div className="mt-4 space-y-2 text-sm font-medium text-gray-600">
+          {company && (
+            <p className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary-500" />
+              <span>{company}</span>
+            </p>
+          )}
+          {location && (
+            <p className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary-500" />
+              <span>{location}</span>
+            </p>
+          )}
+        </div>
+        <span className="mt-5 inline-flex w-fit items-center rounded-full bg-primary-50 px-4 py-2 text-sm font-bold text-primary-700 transition group-hover:bg-primary-600 group-hover:text-white">
+          View profile
+        </span>
+      </div>
+    </Link>
+  )
+}
+
 export default function BlogDetail() {
   const { slug } = useParams()
   const [blog, setBlog] = useState(null)
@@ -229,6 +274,19 @@ export default function BlogDetail() {
           capability->{
             title,
             "slug": slug.current
+          },
+          experts[]->{
+            _id,
+            fullName,
+            "slug": slug.current,
+            "imageUrl": profileImage.asset->url,
+            headline,
+            currentDesignation,
+            designation,
+            currentCompany,
+            company,
+            location,
+            city
           },
           "content": coalesce(
             content[]{..., asset->{url}},
@@ -495,6 +553,19 @@ export default function BlogDetail() {
                 <p className="text-lg leading-9 text-gray-700">
                   {blog.contentText || blog.excerpt || 'This insight does not have any published content yet.'}
                 </p>
+              )}
+
+              {blog.experts?.length > 0 && (
+                <section className="mt-14 border-t border-gray-200 pt-10">
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-gray-950">Author</h2>
+                  </div>
+                  <div className="grid gap-5">
+                    {blog.experts.map((expert) => (
+                      <ExpertInsightCard key={expert._id} expert={expert} />
+                    ))}
+                  </div>
+                </section>
               )}
 
               <div className="mt-14 border-t border-gray-200 pt-8">

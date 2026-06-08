@@ -111,6 +111,22 @@ export const blogSchema = defineType({
       description: 'Connect this insight to a capability so it appears on that capability detail page.',
     }),
     defineField({
+      name: 'experts',
+      title: 'Experts',
+      type: 'array',
+      description: 'Select one or more mentors to show at the end of this insight.',
+      of: [
+        defineArrayMember({
+          type: 'reference',
+          to: [{ type: 'mentor' }],
+          options: {
+            disableNew: true,
+          },
+        }),
+      ],
+      validation: (Rule) => Rule.unique(),
+    }),
+    defineField({
       name: 'tags',
       title: 'Tags',
       type: 'array',
