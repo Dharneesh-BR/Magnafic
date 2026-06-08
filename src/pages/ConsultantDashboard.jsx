@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertCircle, ArrowLeft, BadgeCheck, BriefcaseBusiness, CalendarPlus, CheckCircle2, CircleDollarSign, ClipboardList, Eye, FileText, FolderCheck, Handshake, KeyRound, Loader2, LogOut, MapPin, PanelLeftClose, PanelLeftOpen, Timer, UserPlus, Users } from 'lucide-react'
-import { collection, doc, limit, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
+import { addDoc, collection, doc, limit, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import SEO from '../components/SEO'
 import ConsultantDocuments from '../components/ConsultantDocuments'
@@ -81,43 +81,6 @@ function getDashboardError(error) {
   return error?.message || 'Unable to load consultant dashboard data right now.'
 }
 
-function formatGoogleCalendarDate(date) {
-  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
-}
-
-function getDefaultCallDates() {
-  const start = new Date()
-  start.setHours(start.getHours() + 1, 0, 0, 0)
-
-  const end = new Date(start)
-  end.setMinutes(end.getMinutes() + 30)
-
-  return `${formatGoogleCalendarDate(start)}/${formatGoogleCalendarDate(end)}`
-}
-
-function getGoogleCalendarUrl(item) {
-  const answerLines = (item.problemAnswers || [])
-    .map((answer) => `${answer.question}: ${answer.label || answer.value}`)
-    .filter(Boolean)
-
-  const details = [
-    `Client: ${item.clientName || 'Client'}`,
-    `Company: ${item.company || 'Not provided'}`,
-    `Capability: ${item.capability || 'Not provided'}`,
-    item.description ? `Context: ${item.description}` : '',
-    answerLines.length ? `Answers:\n${answerLines.join('\n')}` : '',
-  ].filter(Boolean).join('\n\n')
-
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: `Magnafic client call - ${item.clientName || 'Client'}`,
-    dates: getDefaultCallDates(),
-    details,
-  })
-
-  return `https://calendar.google.com/calendar/render?${params.toString()}`
-}
-
 export default function ConsultantDashboard() {
   const { enquiryId } = useParams()
   const [user, setUser] = useState(() => getAuthUser())
@@ -140,7 +103,22 @@ export default function ConsultantDashboard() {
   const [isMenuExpanded, setIsMenuExpanded] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [acceptingEnquiry, setAcceptingEnquiry] = useState(false)
+  const [requestingSchedule, setRequestingSchedule] = useState(false)
   const [acceptError, setAcceptError] = useState('')
+  const [scheduleMessage, setScheduleMessage] = useState('')
+  const [showReferralForm, setShowReferralForm] = useState(false)
+  const [referralCapabilities, setReferralCapabilities] = useState([])
+  const [referralForm, setReferralForm] = useState({
+    clientName: '',
+    company: '',
+    businessEmail: '',
+    capabilityId: '',
+    preferredConsultantId: '',
+    problem: '',
+  })
+  const [submittingReferral, setSubmittingReferral] = useState(false)
+  const [referralMessage, setReferralMessage] = useState('')
+  const [referralError, setReferralError] = useState('')
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear())
   const navigate = useNavigate()
@@ -278,6 +256,30 @@ export default function ConsultantDashboard() {
     return () => unsubscribe?.()
   }, [user?.sanityExpertId])
 
+  useEffect(() => {
+    const fetchReferralCapabilities = async () => {
+      try {
+        const data = await mentorClient.fetch(`*[_type == "capabilities"] | order(coalesce(displayOrder, 9999) asc, title asc) {
+          _id,
+          title,
+          "slug": slug.current,
+          orderedExperts[]->{
+            _id,
+            fullName,
+            headline,
+            currentDesignation,
+            currentCompany
+          }
+        }`)
+        setReferralCapabilities(data || [])
+      } catch (capabilityError) {
+        console.error('Referral capabilities fetch failed:', capabilityError)
+      }
+    }
+
+    fetchReferralCapabilities()
+  }, [])
+
   const yearOptions = useMemo(() => {
     const years = new Set([new Date().getFullYear()])
 
@@ -304,6 +306,11 @@ export default function ConsultantDashboard() {
     active: filteredOpportunities.filter((item) => item.status === 'active').length,
     closed: filteredOpportunities.filter((item) => ['closed', 'completed'].includes(item.status)).length,
   }), [filteredOpportunities])
+
+  const selectedReferralCapability = useMemo(
+    () => referralCapabilities.find((capability) => capability._id === referralForm.capabilityId),
+    [referralCapabilities, referralForm.capabilityId]
+  )
 
   const updatePasswordField = (field, value) => {
     setPasswordForm(current => ({ ...current, [field]: value }))
@@ -356,7 +363,86 @@ export default function ConsultantDashboard() {
   }
 
   const handleReferClient = () => {
-    navigate('/describe-your-problem')
+    setShowReferralForm(true)
+    setReferralMessage('')
+    setReferralError('')
+  }
+
+  const updateReferralField = (field, value) => {
+    setReferralForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'capabilityId' ? { preferredConsultantId: '' } : {}),
+    }))
+    setReferralMessage('')
+    setReferralError('')
+  }
+
+  const handleReferralSubmit = async (event) => {
+    event.preventDefault()
+    setReferralMessage('')
+    setReferralError('')
+
+    if (!selectedReferralCapability) {
+      setReferralError('Please select the expertise required.')
+      return
+    }
+
+    const preferredConsultant = (selectedReferralCapability.orderedExperts || [])
+      .find((mentor) => mentor._id === referralForm.preferredConsultantId)
+    setSubmittingReferral(true)
+
+    try {
+      await addDoc(collection(db, 'clientBriefs'), {
+        title: `${selectedReferralCapability.title} referral`,
+        clientName: referralForm.clientName.trim(),
+        company: referralForm.company.trim(),
+        clientEmail: referralForm.businessEmail.trim(),
+        businessEmail: referralForm.businessEmail.trim(),
+        capability: selectedReferralCapability.title,
+        capabilityId: selectedReferralCapability._id,
+        capabilitySlug: selectedReferralCapability.slug || '',
+        preferredConsultantId: preferredConsultant?._id || '',
+        preferredConsultantName: preferredConsultant?.fullName || '',
+        matchedExpertIds: [],
+        description: referralForm.problem.trim(),
+        problemAnswers: [
+          {
+            question: 'What problem are they trying to solve, and what are they looking for?',
+            value: referralForm.problem.trim(),
+            label: referralForm.problem.trim(),
+          },
+        ],
+        source: 'consultant-referral',
+        status: 'referral-pending',
+        referralStatus: 'pending-admin-allocation',
+        referredBy: {
+          uid: user?.uid || '',
+          name: dashboardName,
+          email: user?.email || '',
+          sanityExpertId: user?.sanityExpertId || '',
+        },
+        referredExpertName: dashboardName,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+
+      setReferralForm({
+        clientName: '',
+        company: '',
+        businessEmail: '',
+        capabilityId: '',
+        preferredConsultantId: '',
+        problem: '',
+      })
+      setReferralMessage('Referral submitted successfully.')
+      setShowReferralForm(false)
+    } catch (submitError) {
+      console.error('Referral submit failed:', submitError)
+      setReferralError('Unable to submit the referral right now.')
+    } finally {
+      setSubmittingReferral(false)
+    }
   }
 
   const handleAcceptEnquiry = async () => {
@@ -364,6 +450,7 @@ export default function ConsultantDashboard() {
 
     setAcceptingEnquiry(true)
     setAcceptError('')
+    setScheduleMessage('')
 
     try {
       await updateDoc(doc(db, 'clientBriefs', selectedOpportunity.id), {
@@ -376,6 +463,34 @@ export default function ConsultantDashboard() {
       setAcceptError('Unable to accept this enquiry right now.')
     } finally {
       setAcceptingEnquiry(false)
+    }
+  }
+
+  const handleRequestScheduleCall = async () => {
+    if (!selectedOpportunity?.id) return
+
+    setRequestingSchedule(true)
+    setAcceptError('')
+    setScheduleMessage('')
+
+    try {
+      await updateDoc(doc(db, 'clientBriefs', selectedOpportunity.id), {
+        scheduleRequestStatus: 'requested',
+        scheduleRequestedAt: serverTimestamp(),
+        scheduleRequestedBy: {
+          uid: user?.uid || '',
+          name: dashboardName,
+          email: user?.email || '',
+          sanityExpertId: user?.sanityExpertId || '',
+        },
+        updatedAt: serverTimestamp(),
+      })
+      setScheduleMessage('Schedule request sent to admin.')
+    } catch (scheduleError) {
+      console.error('Consultant schedule request failed:', scheduleError)
+      setAcceptError('Unable to send the schedule request right now.')
+    } finally {
+      setRequestingSchedule(false)
     }
   }
 
@@ -455,6 +570,11 @@ export default function ConsultantDashboard() {
                   <UserPlus className="mr-2 h-5 w-5" />
                   Refer client
                 </button>
+                {referralMessage && (
+                  <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-100">
+                    {referralMessage}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -635,22 +755,32 @@ export default function ConsultantDashboard() {
                               <CheckCircle2 className="mr-2 h-4 w-4" />
                               {selectedOpportunity.status === 'accepted' ? 'Accepted' : acceptingEnquiry ? 'Accepting...' : 'Accept'}
                             </button>
-                            <a
-                              href={getGoogleCalendarUrl(selectedOpportunity)}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              type="button"
+                              onClick={handleRequestScheduleCall}
+                              disabled={requestingSchedule || ['requested', 'scheduled'].includes(selectedOpportunity.scheduleRequestStatus)}
                               className="inline-flex items-center justify-center rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-700"
                             >
                               <CalendarPlus className="mr-2 h-4 w-4" />
-                              Schedule call
-                            </a>
+                              {selectedOpportunity.scheduleRequestStatus === 'scheduled'
+                                ? 'Call scheduled'
+                                : selectedOpportunity.scheduleRequestStatus === 'requested'
+                                  ? 'Requested'
+                                  : requestingSchedule
+                                    ? 'Requesting...'
+                                    : 'Schedule call'}
+                            </button>
                           </div>
                         </div>
 
-                        {acceptError && (
-                          <div className="mb-6 flex gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                        {(acceptError || scheduleMessage) && (
+                          <div className={`mb-6 flex gap-3 rounded-2xl px-4 py-3 text-sm font-medium ${
+                            acceptError
+                              ? 'border border-red-100 bg-red-50 text-red-700'
+                              : 'border border-emerald-100 bg-emerald-50 text-emerald-700'
+                          }`}>
                             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-                            <p>{acceptError}</p>
+                            <p>{acceptError || scheduleMessage}</p>
                           </div>
                         )}
 
@@ -659,6 +789,7 @@ export default function ConsultantDashboard() {
                           <p className="rounded-2xl bg-cyan-50 p-4 ring-1 ring-cyan-100"><span className="block font-semibold text-cyan-950">Created</span>{formatDateTime(selectedOpportunity.createdAtDate)}</p>
                           <p className="rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100"><span className="block font-semibold text-emerald-950">Accepted</span>{formatDateTime(getAcceptedDate(selectedOpportunity))}</p>
                           <p className="rounded-2xl bg-indigo-50 p-4 ring-1 ring-indigo-100"><span className="block font-semibold text-indigo-950">Status</span>{selectedOpportunity.status || 'assigned'}</p>
+                          <p className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100"><span className="block font-semibold text-amber-950">Call</span>{selectedOpportunity.scheduledCallAt ? formatDateTime(toDate(selectedOpportunity.scheduledCallAt)) : selectedOpportunity.scheduleRequestStatus || 'Not requested'}</p>
                         </div>
 
                         {selectedOpportunity.problemAnswers?.length > 0 ? (
@@ -852,6 +983,143 @@ export default function ConsultantDashboard() {
           </div>
         </div>
       </div>
+      {showReferralForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/60 px-4 py-6">
+          <section className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl shadow-primary-950/30 sm:p-7">
+            <div className="mb-6 flex flex-col gap-4 border-b border-gray-100 pb-5 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-600">Referral</p>
+                <h2 className="mt-2 text-2xl font-bold text-gray-950">Refer client</h2>
+                <p className="mt-1 text-sm text-gray-500">Share client details so Magnafic can match the right expert.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReferralForm(false)}
+                className="inline-flex items-center justify-center rounded-xl bg-gray-100 px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+
+            {referralError && (
+              <div className="mb-5 flex gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                <p>{referralError}</p>
+              </div>
+            )}
+
+            <form className="grid gap-4" onSubmit={handleReferralSubmit}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-gray-700">Client name</span>
+                  <input
+                    required
+                    type="text"
+                    value={referralForm.clientName}
+                    onChange={(event) => updateReferralField('clientName', event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                    placeholder="Client name"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-gray-700">Company</span>
+                  <input
+                    required
+                    type="text"
+                    value={referralForm.company}
+                    onChange={(event) => updateReferralField('company', event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                    placeholder="Company"
+                  />
+                </label>
+              </div>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Business email ID</span>
+                <input
+                  required
+                  type="email"
+                  value={referralForm.businessEmail}
+                  onChange={(event) => updateReferralField('businessEmail', event.target.value)}
+                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                  placeholder="client@company.com"
+                />
+              </label>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-gray-700">Expertise</span>
+                  <select
+                    required
+                    value={referralForm.capabilityId}
+                    onChange={(event) => updateReferralField('capabilityId', event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                  >
+                    <option value="">Select expertise</option>
+                    {referralCapabilities.map((capability) => (
+                      <option key={capability._id} value={capability._id}>{capability.title}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-gray-700">Preferred consultant</span>
+                  <select
+                    value={referralForm.preferredConsultantId}
+                    onChange={(event) => updateReferralField('preferredConsultantId', event.target.value)}
+                    disabled={!selectedReferralCapability}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+                  >
+                    <option value="">{selectedReferralCapability ? 'Auto match' : 'Select expertise first'}</option>
+                    {(selectedReferralCapability?.orderedExperts || []).map((mentor) => (
+                      <option key={mentor._id} value={mentor._id}>
+                        {mentor.fullName}{mentor.currentCompany ? ` - ${mentor.currentCompany}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Define their problem and what they are looking for</span>
+                <textarea
+                  required
+                  rows={5}
+                  value={referralForm.problem}
+                  onChange={(event) => updateReferralField('problem', event.target.value)}
+                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                  placeholder="Describe the client problem, goals, and support needed."
+                />
+              </label>
+
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowReferralForm(false)}
+                  className="inline-flex items-center justify-center rounded-xl bg-gray-100 px-5 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReferral}
+                  className="inline-flex items-center justify-center rounded-xl bg-primary-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {submittingReferral ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit referral'
+                  )}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   )
 }

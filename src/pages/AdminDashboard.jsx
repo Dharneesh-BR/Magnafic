@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore'
-import { AlertCircle, BriefcaseBusiness, LayoutDashboard, Eye, EyeOff, Loader2, Lock, LogOut, Mail, ShieldCheck, Trash2, Users } from 'lucide-react'
+import { AlertCircle, BriefcaseBusiness, CalendarPlus, LayoutDashboard, Eye, EyeOff, Loader2, Lock, LogOut, Mail, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import SEO from '../components/SEO'
 import { auth, db } from '../lib/firebase'
 import { mentorClient } from '../lib/sanityClient'
@@ -17,6 +18,49 @@ function formatDateTime(value) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date)
+}
+
+function toDate(value) {
+  return value?.toDate?.() || value || null
+}
+
+function formatDateTimeInput(value) {
+  const date = toDate(value)
+  if (!date) return ''
+
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+  return offsetDate.toISOString().slice(0, 16)
+}
+
+function formatGoogleCalendarDate(date) {
+  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+}
+
+function getScheduledCallCalendarUrl(brief, scheduledDate) {
+  const start = new Date(scheduledDate)
+  const end = new Date(start)
+  end.setMinutes(end.getMinutes() + 30)
+
+  const answerLines = (brief.problemAnswers || [])
+    .map((answer) => `${answer.question}: ${answer.label || answer.value}`)
+    .filter(Boolean)
+
+  const details = [
+    `Client: ${brief.clientName || 'Client'}`,
+    `Company: ${brief.company || 'Not provided'}`,
+    `Capability: ${brief.capability || 'Not provided'}`,
+    brief.description ? `Context: ${brief.description}` : '',
+    answerLines.length ? `Answers:\n${answerLines.join('\n')}` : '',
+  ].filter(Boolean).join('\n\n')
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `Magnafic client call - ${brief.clientName || 'Client'}`,
+    dates: `${formatGoogleCalendarDate(start)}/${formatGoogleCalendarDate(end)}`,
+    details,
+  })
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
 }
 
 function normalizeDocument(documentSnapshot) {
@@ -52,6 +96,8 @@ function getAdminError(error) {
 }
 
 export default function AdminDashboard() {
+  const location = useLocation()
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -68,7 +114,26 @@ export default function AdminDashboard() {
   const [activeView, setActiveView] = useState('dashboard')
   const [removingClientId, setRemovingClientId] = useState('')
   const [detachingBriefId, setDetachingBriefId] = useState('')
+  const [schedulingBriefId, setSchedulingBriefId] = useState('')
+  const [allocatingReferralId, setAllocatingReferralId] = useState('')
+  const [scheduleDrafts, setScheduleDrafts] = useState({})
+  const [allocationDrafts, setAllocationDrafts] = useState({})
   const [questionnaireDetails, setQuestionnaireDetails] = useState(null)
+  const adminPath = location.pathname.replace(/\/+$/, '') || '/admin'
+  const clientDetailsMatch = adminPath.match(/^\/admin\/clients\/([^/]+)$/)
+  const clientBriefMatch = adminPath.match(/^\/admin\/clients\/([^/]+)\/briefs\/([^/]+)$/)
+  const genericBriefMatch = adminPath.match(/^\/admin\/briefs\/([^/]+)$/)
+  const consultantClientsMatch = adminPath.match(/^\/admin\/consultants\/([^/]+)\/clients$/)
+  const consultantBriefMatch = adminPath.match(/^\/admin\/consultants\/([^/]+)\/clients\/([^/]+)$/)
+  const routeClientId = decodeURIComponent(clientBriefMatch?.[1] || clientDetailsMatch?.[1] || '')
+  const routeConsultantId = decodeURIComponent(consultantBriefMatch?.[1] || consultantClientsMatch?.[1] || '')
+  const routeBriefId = decodeURIComponent(consultantBriefMatch?.[2] || clientBriefMatch?.[2] || genericBriefMatch?.[1] || '')
+  const isClientDetailsPage = Boolean(clientDetailsMatch)
+  const isClientBriefPage = Boolean(clientBriefMatch)
+  const isGenericBriefPage = Boolean(genericBriefMatch)
+  const isConsultantClientsPage = Boolean(consultantClientsMatch)
+  const isConsultantBriefPage = Boolean(consultantBriefMatch)
+  const isAdminDetailPage = isClientDetailsPage || isClientBriefPage || isGenericBriefPage || isConsultantClientsPage || isConsultantBriefPage
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -170,12 +235,40 @@ export default function AdminDashboard() {
     fetchConsultantCapabilities()
   }, [adminProfile])
 
+  useEffect(() => {
+    if (isConsultantClientsPage || isConsultantBriefPage) {
+      setActiveView('consultants')
+    }
+    if (isClientDetailsPage || isClientBriefPage) {
+      setActiveView('clients')
+    }
+    if (isGenericBriefPage) {
+      setActiveView('referralRequests')
+    }
+  }, [isClientBriefPage, isClientDetailsPage, isConsultantBriefPage, isConsultantClientsPage, isGenericBriefPage])
+
   const stats = useMemo(() => ({
     users: usersData.length,
     clients: usersData.filter((item) => item.role === 'client').length,
     consultants: usersData.filter((item) => item.role === 'consultant').length,
     briefs: briefs.length,
   }), [briefs.length, usersData])
+
+  const scheduleRequests = useMemo(() => briefs
+    .filter((brief) => ['requested', 'scheduled'].includes(brief.scheduleRequestStatus))
+    .sort((a, b) => {
+      const aTime = toDate(a.scheduleRequestedAt)?.getTime?.() || 0
+      const bTime = toDate(b.scheduleRequestedAt)?.getTime?.() || 0
+      return bTime - aTime
+    }), [briefs])
+
+  const referralRequests = useMemo(() => briefs
+    .filter((brief) => brief.source === 'consultant-referral')
+    .sort((a, b) => {
+      const aTime = toDate(a.createdAt)?.getTime?.() || 0
+      const bTime = toDate(b.createdAt)?.getTime?.() || 0
+      return bTime - aTime
+    }), [briefs])
 
   const sortedBriefs = useMemo(() => [...briefs].sort((a, b) => {
     const aTime = a.createdAt?.toDate?.()?.getTime?.() || 0
@@ -211,6 +304,25 @@ export default function AdminDashboard() {
       ...client,
       attachedBriefs: briefs.filter((brief) => brief.clientId === client.id || brief.clientEmail === client.email),
     })), [briefs, usersData])
+
+  const selectedRouteConsultant = useMemo(
+    () => consultants.find((consultant) => consultant.id === routeConsultantId),
+    [consultants, routeConsultantId]
+  )
+
+  const selectedRouteClient = useMemo(
+    () => clients.find((client) => client.id === routeClientId),
+    [clients, routeClientId]
+  )
+
+  const selectedRouteBrief = useMemo(
+    () => (
+      selectedRouteConsultant?.attachedBriefs.find((brief) => brief.id === routeBriefId) ||
+      selectedRouteClient?.attachedBriefs.find((brief) => brief.id === routeBriefId) ||
+      briefs.find((brief) => brief.id === routeBriefId)
+    ),
+    [briefs, routeBriefId, selectedRouteClient, selectedRouteConsultant]
+  )
 
   const handleLogin = async (event) => {
     event.preventDefault()
@@ -272,8 +384,8 @@ export default function AdminDashboard() {
     })
   }
 
-  const handleDetachClientFromConsultant = async (brief) => {
-    const consultant = questionnaireDetails?.consultant
+  const handleDetachClientFromConsultant = async (brief, consultantOverride) => {
+    const consultant = consultantOverride || questionnaireDetails?.consultant
     if (!consultant || !brief?.id) return
 
     const clientLabel = brief.clientName || brief.company || 'this client'
@@ -324,6 +436,99 @@ export default function AdminDashboard() {
       setDataError(getAdminError(detachError))
     } finally {
       setDetachingBriefId('')
+    }
+  }
+
+  const updateScheduleDraft = (briefId, value) => {
+    setScheduleDrafts((current) => ({
+      ...current,
+      [briefId]: value,
+    }))
+  }
+
+  const updateAllocationDraft = (briefId, value) => {
+    setAllocationDrafts((current) => ({
+      ...current,
+      [briefId]: value,
+    }))
+  }
+
+  const getDefaultAllocationConsultantId = (brief) => {
+    if (brief.assignedConsultantId) return brief.assignedConsultantId
+
+    const preferredConsultant = consultants.find((consultant) => (
+      consultant.sanityExpertId && consultant.sanityExpertId === brief.preferredConsultantId
+    ))
+
+    return preferredConsultant?.id || ''
+  }
+
+  const handleAllocateReferral = async (brief) => {
+    const selectedConsultantId = allocationDrafts[brief.id] || getDefaultAllocationConsultantId(brief)
+    const consultant = consultants.find((item) => item.id === selectedConsultantId)
+
+    if (!consultant) {
+      setDataError('Please select a consultant before allocating this referral.')
+      return
+    }
+
+    setAllocatingReferralId(brief.id)
+    setDataError('')
+
+    try {
+      await updateDoc(doc(db, 'clientBriefs', brief.id), {
+        assignedConsultantId: consultant.id,
+        matchedExpertIds: consultant.sanityExpertId ? [consultant.sanityExpertId] : [],
+        allocatedConsultantName: consultant.sanityName || consultant.name || consultant.email || '',
+        allocatedConsultantEmail: consultant.email || '',
+        allocatedConsultantSanityId: consultant.sanityExpertId || '',
+        referralStatus: 'allocated',
+        status: 'matching',
+        allocatedAt: serverTimestamp(),
+        allocatedByAdminId: adminProfile?.id || adminProfile?.uid || '',
+        allocatedByAdminEmail: adminProfile?.email || '',
+        updatedAt: serverTimestamp(),
+      })
+    } catch (allocationError) {
+      console.error('Admin referral allocation failed:', allocationError)
+      setDataError(getAdminError(allocationError))
+    } finally {
+      setAllocatingReferralId('')
+    }
+  }
+
+  const handleAdminScheduleCall = async (brief) => {
+    const draftValue = scheduleDrafts[brief.id] || formatDateTimeInput(brief.scheduledCallAt)
+    if (!draftValue) {
+      setDataError('Please select a call date and time before scheduling.')
+      return
+    }
+
+    const scheduledDate = new Date(draftValue)
+    if (Number.isNaN(scheduledDate.getTime())) {
+      setDataError('Please select a valid call date and time.')
+      return
+    }
+
+    setSchedulingBriefId(brief.id)
+    setDataError('')
+
+    try {
+      await updateDoc(doc(db, 'clientBriefs', brief.id), {
+        scheduleRequestStatus: 'scheduled',
+        scheduledCallAt: scheduledDate,
+        scheduledByAdminId: adminProfile?.id || adminProfile?.uid || '',
+        scheduledByAdminEmail: adminProfile?.email || '',
+        status: 'scheduled',
+        updatedAt: serverTimestamp(),
+      })
+
+      window.open(getScheduledCallCalendarUrl(brief, scheduledDate), '_blank', 'width=720,height=640')
+    } catch (scheduleError) {
+      console.error('Admin schedule call failed:', scheduleError)
+      setDataError(getAdminError(scheduleError))
+    } finally {
+      setSchedulingBriefId('')
     }
   }
 
@@ -442,11 +647,16 @@ export default function AdminDashboard() {
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
                 { id: 'clients', label: 'Clients', icon: Users },
                 { id: 'consultants', label: 'Consultants', icon: ShieldCheck },
+                { id: 'referralRequests', label: 'Referrals', icon: UserPlus },
+                { id: 'scheduleCalls', label: 'Schedule Calls', icon: CalendarPlus },
               ].map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setActiveView(item.id)}
+                  onClick={() => {
+                    setActiveView(item.id)
+                    navigate('/admin')
+                  }}
                   className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
                     activeView === item.id
                       ? 'bg-primary-600 text-white shadow-lg shadow-primary-900/15'
@@ -461,7 +671,334 @@ export default function AdminDashboard() {
           </aside>
 
           <div className="min-w-0">
-            {activeView === 'dashboard' && (
+            {isClientDetailsPage && (
+              <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
+                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <Link to="/admin" className="mb-3 inline-flex text-sm font-bold text-primary-700 transition hover:text-primary-900">
+                      Back to clients
+                    </Link>
+                    <h2 className="text-2xl font-bold text-gray-950">
+                      {selectedRouteClient?.name || selectedRouteClient?.email || 'Client'}
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {selectedRouteClient ? `${selectedRouteClient.attachedBriefs.length} attached briefs` : 'Client not found'}
+                    </p>
+                  </div>
+                  {dataLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
+                </div>
+
+                {!selectedRouteClient ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
+                    This client could not be found.
+                  </div>
+                ) : selectedRouteClient.attachedBriefs.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
+                    No briefs are attached to this client.
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-2xl border border-gray-100">
+                    <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm lg:text-base">
+                      <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
+                        <tr className="text-xs font-extrabold uppercase tracking-wide text-white lg:text-sm">
+                          <th className="break-words px-2 py-4 lg:px-3">Brief</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Company</th>
+                          <th className="break-words px-2 py-4 lg:px-3">City</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Expertise</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Status</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Created</th>
+                          <th className="break-words px-2 py-4 text-right lg:px-3">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {selectedRouteClient.attachedBriefs.map((brief) => (
+                          <tr key={brief.id} className="transition hover:bg-primary-50/50">
+                            <td className="break-words bg-blue-50/80 px-2 py-4 font-bold leading-6 text-gray-950 lg:px-3">{brief.title || brief.clientName || 'Client questionnaire'}</td>
+                            <td className="break-words bg-cyan-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{brief.company || 'Not provided'}</td>
+                            <td className="break-words bg-blue-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{brief.city || brief.clientCity || brief.location || selectedRouteClient.city || 'Not provided'}</td>
+                            <td className="break-words bg-cyan-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{brief.capability || 'Not provided'}</td>
+                            <td className="break-words bg-blue-50/80 px-2 py-4 font-bold leading-6 text-primary-700 lg:px-3">{brief.status || 'new'}</td>
+                            <td className="break-words bg-cyan-50/80 px-2 py-4 font-medium leading-6 text-gray-700 lg:px-3">{formatDateTime(brief.createdAt)}</td>
+                            <td className="bg-blue-50/80 px-2 py-4 text-right lg:px-3">
+                              <Link
+                                to={`/admin/clients/${encodeURIComponent(selectedRouteClient.id)}/briefs/${encodeURIComponent(brief.id)}`}
+                                className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
+                              >
+                                <Eye className="mr-2 h-4 w-4" />
+                                View brief
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {isClientBriefPage && (
+              <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
+                <Link
+                  to={`/admin/clients/${encodeURIComponent(routeClientId)}`}
+                  className="mb-6 inline-flex text-sm font-bold text-primary-700 transition hover:text-primary-900"
+                >
+                  Back to client briefs
+                </Link>
+
+                {!selectedRouteClient || !selectedRouteBrief ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
+                    This brief could not be found for the selected client.
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-6 border-b border-gray-100 pb-6">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-600">Brief Detail</p>
+                      <h2 className="mt-2 break-words text-2xl font-bold text-gray-950">{selectedRouteBrief.clientName || selectedRouteBrief.title || selectedRouteClient.name || 'Client questionnaire'}</h2>
+                      <p className="mt-2 break-words text-sm text-gray-600">{selectedRouteBrief.company || selectedRouteClient.company || 'Company not provided'} - {selectedRouteBrief.city || selectedRouteBrief.clientCity || selectedRouteBrief.location || selectedRouteClient.city || 'City not provided'}</p>
+                    </div>
+
+                    <div className="mb-6 grid gap-3 text-sm font-medium text-gray-700 sm:grid-cols-2 lg:grid-cols-4">
+                      <p className="rounded-2xl bg-blue-50 p-4 ring-1 ring-blue-100"><span className="block font-bold text-blue-950">Expertise</span>{selectedRouteBrief.capability || 'Not provided'}</p>
+                      <p className="rounded-2xl bg-cyan-50 p-4 ring-1 ring-cyan-100"><span className="block font-bold text-cyan-950">Created</span>{formatDateTime(selectedRouteBrief.createdAt)}</p>
+                      <p className="rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100"><span className="block font-bold text-emerald-950">Accepted</span>{formatDateTime(selectedRouteBrief.acceptedAt)}</p>
+                      <p className="rounded-2xl bg-indigo-50 p-4 ring-1 ring-indigo-100"><span className="block font-bold text-indigo-950">Status</span>{selectedRouteBrief.status || 'new'}</p>
+                    </div>
+
+                    {selectedRouteBrief.description && (
+                      <p className="mb-6 rounded-2xl bg-gray-50 p-5 text-sm font-medium leading-6 text-gray-700 ring-1 ring-gray-100">{selectedRouteBrief.description}</p>
+                    )}
+
+                    {selectedRouteBrief.problemAnswers?.length > 0 ? (
+                      <div className="space-y-3">
+                        {selectedRouteBrief.problemAnswers.map((answer, index) => (
+                          <div
+                            key={answer.questionId || `${selectedRouteBrief.id}-${answer.question}-${index}`}
+                            className={`rounded-2xl px-5 py-4 ring-1 ${
+                              index % 2 === 0
+                                ? 'bg-blue-50/80 ring-blue-100'
+                                : 'bg-cyan-50/80 ring-cyan-100'
+                            }`}
+                          >
+                            <p className="text-base font-bold leading-7 text-gray-950">{answer.question}</p>
+                            <p className="mt-2 text-base font-medium leading-7 text-gray-700">{answer.label || answer.value || 'Not answered'}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm font-medium text-gray-600">No questionnaire answers available.</p>
+                    )}
+                  </>
+                )}
+              </section>
+            )}
+
+            {isGenericBriefPage && (
+              <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
+                <Link to="/admin" className="mb-6 inline-flex text-sm font-bold text-primary-700 transition hover:text-primary-900">
+                  Back to admin
+                </Link>
+
+                {!selectedRouteBrief ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
+                    This brief could not be found.
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-6 border-b border-gray-100 pb-6">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-600">Brief Detail</p>
+                      <h2 className="mt-2 break-words text-2xl font-bold text-gray-950">{selectedRouteBrief.clientName || selectedRouteBrief.title || 'Client questionnaire'}</h2>
+                      <p className="mt-2 break-words text-sm text-gray-600">{selectedRouteBrief.company || 'Company not provided'} - {selectedRouteBrief.businessEmail || selectedRouteBrief.clientEmail || 'Email not provided'}</p>
+                    </div>
+
+                    <div className="mb-6 grid gap-3 text-sm font-medium text-gray-700 sm:grid-cols-2 lg:grid-cols-4">
+                      <p className="rounded-2xl bg-blue-50 p-4 ring-1 ring-blue-100"><span className="block font-bold text-blue-950">Expertise</span>{selectedRouteBrief.capability || 'Not provided'}</p>
+                      <p className="rounded-2xl bg-cyan-50 p-4 ring-1 ring-cyan-100"><span className="block font-bold text-cyan-950">Created</span>{formatDateTime(selectedRouteBrief.createdAt)}</p>
+                      <p className="rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100"><span className="block font-bold text-emerald-950">Preferred</span>{selectedRouteBrief.preferredConsultantName || 'Auto match'}</p>
+                      <p className="rounded-2xl bg-indigo-50 p-4 ring-1 ring-indigo-100"><span className="block font-bold text-indigo-950">Status</span>{selectedRouteBrief.referralStatus || selectedRouteBrief.status || 'new'}</p>
+                    </div>
+
+                    {selectedRouteBrief.description && (
+                      <p className="mb-6 rounded-2xl bg-gray-50 p-5 text-sm font-medium leading-6 text-gray-700 ring-1 ring-gray-100">{selectedRouteBrief.description}</p>
+                    )}
+
+                    {selectedRouteBrief.problemAnswers?.length > 0 ? (
+                      <div className="space-y-3">
+                        {selectedRouteBrief.problemAnswers.map((answer, index) => (
+                          <div
+                            key={answer.questionId || `${selectedRouteBrief.id}-${answer.question}-${index}`}
+                            className={`rounded-2xl px-5 py-4 ring-1 ${
+                              index % 2 === 0
+                                ? 'bg-blue-50/80 ring-blue-100'
+                                : 'bg-cyan-50/80 ring-cyan-100'
+                            }`}
+                          >
+                            <p className="text-base font-bold leading-7 text-gray-950">{answer.question}</p>
+                            <p className="mt-2 text-base font-medium leading-7 text-gray-700">{answer.label || answer.value || 'Not answered'}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm font-medium text-gray-600">No questionnaire answers available.</p>
+                    )}
+                  </>
+                )}
+              </section>
+            )}
+
+            {isConsultantClientsPage && (
+              <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
+                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <Link to="/admin" className="mb-3 inline-flex text-sm font-bold text-primary-700 transition hover:text-primary-900">
+                      Back to consultants
+                    </Link>
+                    <h2 className="text-2xl font-bold text-gray-950">
+                      {selectedRouteConsultant?.sanityName || selectedRouteConsultant?.name || selectedRouteConsultant?.email || 'Consultant'}
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {selectedRouteConsultant ? `${selectedRouteConsultant.attachedBriefs.length} attached clients` : 'Consultant not found'}
+                    </p>
+                  </div>
+                  {dataLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
+                </div>
+
+                {!selectedRouteConsultant ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
+                    This consultant could not be found.
+                  </div>
+                ) : selectedRouteConsultant.attachedBriefs.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
+                    No clients are attached to this consultant.
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-2xl border border-gray-100">
+                    <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm lg:text-base">
+                      <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
+                        <tr className="text-xs font-extrabold uppercase tracking-wide text-white lg:text-sm">
+                          <th className="break-words px-2 py-4 lg:px-3">Client Name</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Company</th>
+                          <th className="break-words px-2 py-4 lg:px-3">City</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Expertise</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Status</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Created</th>
+                          <th className="break-words px-2 py-4 text-right lg:px-3">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {selectedRouteConsultant.attachedBriefs.map((brief) => (
+                          <tr key={brief.id} className="transition hover:bg-primary-50/50">
+                            <td className="break-words bg-blue-50/80 px-2 py-4 font-bold leading-6 text-gray-950 lg:px-3">{brief.clientName || 'Client'}</td>
+                            <td className="break-words bg-cyan-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{brief.company || 'Not provided'}</td>
+                            <td className="break-words bg-blue-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{brief.city || brief.clientCity || brief.location || 'Not provided'}</td>
+                            <td className="break-words bg-cyan-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{brief.capability || 'Not provided'}</td>
+                            <td className="break-words bg-blue-50/80 px-2 py-4 font-bold leading-6 text-primary-700 lg:px-3">{brief.status || 'new'}</td>
+                            <td className="break-words bg-cyan-50/80 px-2 py-4 font-medium leading-6 text-gray-700 lg:px-3">{formatDateTime(brief.createdAt)}</td>
+                            <td className="bg-blue-50/80 px-2 py-4 text-right lg:px-3">
+                              <div className="flex flex-wrap justify-end gap-2">
+                                <Link
+                                  to={`/admin/consultants/${encodeURIComponent(selectedRouteConsultant.id)}/clients/${encodeURIComponent(brief.id)}`}
+                                  className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View brief
+                                </Link>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDetachClientFromConsultant(brief, selectedRouteConsultant)}
+                                  disabled={detachingBriefId === brief.id}
+                                  className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {detachingBriefId === brief.id ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                  )}
+                                  Remove client
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {isConsultantBriefPage && (
+              <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
+                <Link
+                  to={`/admin/consultants/${encodeURIComponent(routeConsultantId)}/clients`}
+                  className="mb-6 inline-flex text-sm font-bold text-primary-700 transition hover:text-primary-900"
+                >
+                  Back to client list
+                </Link>
+
+                {!selectedRouteConsultant || !selectedRouteBrief ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
+                    This brief could not be found for the selected consultant.
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-6 flex flex-col gap-4 border-b border-gray-100 pb-6 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-600">Brief Detail</p>
+                        <h2 className="mt-2 break-words text-2xl font-bold text-gray-950">{selectedRouteBrief.clientName || selectedRouteBrief.title || 'Client questionnaire'}</h2>
+                        <p className="mt-2 break-words text-sm text-gray-600">{selectedRouteBrief.company || 'Company not provided'} - {selectedRouteBrief.city || selectedRouteBrief.clientCity || selectedRouteBrief.location || 'City not provided'}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDetachClientFromConsultant(selectedRouteBrief, selectedRouteConsultant)}
+                        disabled={detachingBriefId === selectedRouteBrief.id}
+                        className="inline-flex items-center justify-center rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {detachingBriefId === selectedRouteBrief.id ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="mr-2 h-4 w-4" />
+                        )}
+                        Remove client
+                      </button>
+                    </div>
+
+                    <div className="mb-6 grid gap-3 text-sm font-medium text-gray-700 sm:grid-cols-2 lg:grid-cols-4">
+                      <p className="rounded-2xl bg-blue-50 p-4 ring-1 ring-blue-100"><span className="block font-bold text-blue-950">Expertise</span>{selectedRouteBrief.capability || 'Not provided'}</p>
+                      <p className="rounded-2xl bg-cyan-50 p-4 ring-1 ring-cyan-100"><span className="block font-bold text-cyan-950">Created</span>{formatDateTime(selectedRouteBrief.createdAt)}</p>
+                      <p className="rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100"><span className="block font-bold text-emerald-950">Accepted</span>{formatDateTime(selectedRouteBrief.acceptedAt)}</p>
+                      <p className="rounded-2xl bg-indigo-50 p-4 ring-1 ring-indigo-100"><span className="block font-bold text-indigo-950">Status</span>{selectedRouteBrief.status || 'new'}</p>
+                    </div>
+
+                    {selectedRouteBrief.description && (
+                      <p className="mb-6 rounded-2xl bg-gray-50 p-5 text-sm font-medium leading-6 text-gray-700 ring-1 ring-gray-100">{selectedRouteBrief.description}</p>
+                    )}
+
+                    {selectedRouteBrief.problemAnswers?.length > 0 ? (
+                      <div className="space-y-3">
+                        {selectedRouteBrief.problemAnswers.map((answer, index) => (
+                          <div
+                            key={answer.questionId || `${selectedRouteBrief.id}-${answer.question}-${index}`}
+                            className={`rounded-2xl px-5 py-4 ring-1 ${
+                              index % 2 === 0
+                                ? 'bg-blue-50/80 ring-blue-100'
+                                : 'bg-cyan-50/80 ring-cyan-100'
+                            }`}
+                          >
+                            <p className="text-base font-bold leading-7 text-gray-950">{answer.question}</p>
+                            <p className="mt-2 text-base font-medium leading-7 text-gray-700">{answer.label || answer.value || 'Not answered'}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm font-medium text-gray-600">No questionnaire answers available.</p>
+                    )}
+                  </>
+                )}
+              </section>
+            )}
+
+            {!isAdminDetailPage && activeView === 'dashboard' && (
               <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                 {[
                   { icon: Users, label: 'Total users', value: stats.users },
@@ -478,7 +1015,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {activeView === 'clients' && (
+            {!isAdminDetailPage && activeView === 'clients' && (
               <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
                 <div className="mb-6 flex items-center justify-between gap-4">
                   <div>
@@ -517,14 +1054,13 @@ export default function AdminDashboard() {
                             <td className="break-words bg-cyan-50/80 px-2 py-4 font-bold leading-6 text-primary-700 lg:px-3">{client.attachedBriefs.length}</td>
                             <td className="bg-blue-50/80 px-2 py-4 text-right lg:px-3">
                               <div className="flex flex-wrap justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() => openQuestionnaireDetails(client.name || client.email || 'Client', client.attachedBriefs)}
+                              <Link
+                                to={`/admin/clients/${encodeURIComponent(client.id)}`}
                                 className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
                               >
                                 <Eye className="mr-2 h-4 w-4" />
                                 View
-                              </button>
+                              </Link>
                               <button
                                 type="button"
                                 onClick={() => handleRemoveClient(client)}
@@ -549,7 +1085,183 @@ export default function AdminDashboard() {
               </section>
             )}
 
-            {activeView === 'consultants' && (
+            {!isAdminDetailPage && activeView === 'referralRequests' && (
+              <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
+                <div className="mb-6 flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-950">Referral Requests</h2>
+                    <p className="mt-1 text-sm text-gray-500">{referralRequests.length} consultant submitted referrals.</p>
+                  </div>
+                  {dataLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
+                </div>
+
+                {referralRequests.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
+                    No referral requests found.
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-2xl border border-gray-100">
+                    <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm lg:text-base">
+                      <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
+                        <tr className="text-xs font-extrabold uppercase tracking-wide text-white lg:text-sm">
+                          <th className="break-words px-2 py-4 lg:px-3">Client</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Company</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Email</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Expertise</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Referred By</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Preferred</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Allocate To</th>
+                          <th className="break-words px-2 py-4 text-right lg:px-3">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {referralRequests.map((brief) => {
+                          const allocationValue = allocationDrafts[brief.id] ?? getDefaultAllocationConsultantId(brief)
+
+                          return (
+                            <tr key={brief.id} className="transition hover:bg-primary-50/50">
+                              <td className="break-words bg-blue-50/80 px-2 py-4 font-bold leading-6 text-gray-950 lg:px-3">{brief.clientName || 'Client'}</td>
+                              <td className="break-words bg-cyan-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{brief.company || 'Not provided'}</td>
+                              <td className="break-words bg-blue-50/80 px-2 py-4 font-medium leading-6 text-gray-700 lg:px-3">{brief.businessEmail || brief.clientEmail || 'Not provided'}</td>
+                              <td className="break-words bg-cyan-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{brief.capability || 'Not provided'}</td>
+                              <td className="break-words bg-blue-50/80 px-2 py-4 font-medium leading-6 text-gray-700 lg:px-3">{brief.referredBy?.name || brief.referredExpertName || 'Consultant'}</td>
+                              <td className="break-words bg-cyan-50/80 px-2 py-4 font-medium leading-6 text-gray-700 lg:px-3">{brief.preferredConsultantName || 'Auto match'}</td>
+                              <td className="bg-blue-50/80 px-2 py-4 lg:px-3">
+                                <select
+                                  value={allocationValue}
+                                  onChange={(event) => updateAllocationDraft(brief.id, event.target.value)}
+                                  disabled={brief.referralStatus === 'allocated'}
+                                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+                                >
+                                  <option value="">Select consultant</option>
+                                  {consultants.map((consultant) => (
+                                    <option key={consultant.id} value={consultant.id}>
+                                      {consultant.sanityName || consultant.name || consultant.email}
+                                    </option>
+                                  ))}
+                                </select>
+                                {brief.allocatedConsultantName && (
+                                  <p className="mt-2 break-words text-xs font-semibold text-emerald-700">Allocated: {brief.allocatedConsultantName}</p>
+                                )}
+                              </td>
+                              <td className="bg-cyan-50/80 px-2 py-4 text-right lg:px-3">
+                                <div className="flex flex-wrap justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAllocateReferral(brief)}
+                                    disabled={allocatingReferralId === brief.id || brief.referralStatus === 'allocated'}
+                                    className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                  >
+                                    {allocatingReferralId === brief.id ? (
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <UserPlus className="mr-2 h-4 w-4" />
+                                    )}
+                                    {brief.referralStatus === 'allocated' ? 'Allocated' : 'Allocate'}
+                                  </button>
+                                  <Link
+                                    to={`/admin/briefs/${encodeURIComponent(brief.id)}`}
+                                    className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-primary-700 ring-1 ring-primary-100 transition hover:bg-primary-50"
+                                  >
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Brief
+                                  </Link>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {!isAdminDetailPage && activeView === 'scheduleCalls' && (
+              <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
+                <div className="mb-6 flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-950">Schedule Calls</h2>
+                    <p className="mt-1 text-sm text-gray-500">{scheduleRequests.length} consultant scheduling requests.</p>
+                  </div>
+                  {dataLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
+                </div>
+
+                {scheduleRequests.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
+                    No schedule requests found.
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-2xl border border-gray-100">
+                    <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm lg:text-base">
+                      <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
+                        <tr className="text-xs font-extrabold uppercase tracking-wide text-white lg:text-sm">
+                          <th className="break-words px-2 py-4 lg:px-3">Client</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Company</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Expertise</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Consultant</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Requested</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Call Time</th>
+                          <th className="break-words px-2 py-4 text-right lg:px-3">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {scheduleRequests.map((brief) => {
+                          const scheduledInputValue = scheduleDrafts[brief.id] ?? formatDateTimeInput(brief.scheduledCallAt)
+                          return (
+                            <tr key={brief.id} className="transition hover:bg-primary-50/50">
+                              <td className="break-words bg-blue-50/80 px-2 py-4 font-bold leading-6 text-gray-950 lg:px-3">{brief.clientName || 'Client'}</td>
+                              <td className="break-words bg-cyan-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{brief.company || 'Not provided'}</td>
+                              <td className="break-words bg-blue-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{brief.capability || 'Not provided'}</td>
+                              <td className="break-words bg-cyan-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{brief.scheduleRequestedBy?.name || 'Consultant'}</td>
+                              <td className="break-words bg-blue-50/80 px-2 py-4 font-medium leading-6 text-gray-700 lg:px-3">{formatDateTime(brief.scheduleRequestedAt)}</td>
+                              <td className="bg-cyan-50/80 px-2 py-4 lg:px-3">
+                                <input
+                                  type="datetime-local"
+                                  value={scheduledInputValue}
+                                  onChange={(event) => updateScheduleDraft(brief.id, event.target.value)}
+                                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                                />
+                                {brief.scheduledCallAt && (
+                                  <p className="mt-2 break-words text-xs font-semibold text-emerald-700">Scheduled: {formatDateTime(brief.scheduledCallAt)}</p>
+                                )}
+                              </td>
+                              <td className="bg-blue-50/80 px-2 py-4 text-right lg:px-3">
+                                <div className="flex flex-wrap justify-end gap-2">
+                                  <Link
+                                    to={`/admin/briefs/${encodeURIComponent(brief.id)}`}
+                                    className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-primary-700 ring-1 ring-primary-100 transition hover:bg-primary-50"
+                                  >
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Brief
+                                  </Link>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAdminScheduleCall(brief)}
+                                    disabled={schedulingBriefId === brief.id}
+                                    className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                  >
+                                    {schedulingBriefId === brief.id ? (
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <CalendarPlus className="mr-2 h-4 w-4" />
+                                    )}
+                                    Schedule
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {!isAdminDetailPage && activeView === 'consultants' && (
           <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
             <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -589,11 +1301,7 @@ export default function AdminDashboard() {
                         <td className="bg-blue-50/80 px-2 py-4 text-right lg:px-3">
                           <button
                             type="button"
-                            onClick={() => openQuestionnaireDetails(
-                              consultant.sanityName || consultant.name || consultant.email || 'Consultant',
-                              consultant.attachedBriefs,
-                              { ownerType: 'consultant', consultant }
-                            )}
+                            onClick={() => navigate(`/admin/consultants/${encodeURIComponent(consultant.id)}/clients`)}
                             className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
                           >
                             <Eye className="mr-2 h-4 w-4" />

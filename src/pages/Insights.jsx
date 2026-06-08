@@ -127,6 +127,19 @@ export default function Insights() {
       .join(' ')
   }
 
+  const getTypeLabel = (type) => {
+    switch (type) {
+      case 'research':
+        return 'Research'
+      case 'case-study':
+        return 'Case Study'
+      case 'article':
+        return 'Article'
+      default:
+        return 'Insight'
+    }
+  }
+
   const handleShare = (platform, item) => {
     const url = absoluteUrl(`/insights/${item.slug || item._id}`)
     const linkedinUrl = `${url}?share=${encodeURIComponent((item._updatedAt || item.publishedAt || '').slice(0, 10) || 'latest')}`
@@ -277,31 +290,49 @@ export default function Insights() {
               {filteredContent.length > 0 && (
                 <div className="mb-16">
                   <h2 className="text-2xl font-bold text-gray-900 mb-6">Articles & Insights</h2>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                     {filteredContent.map((item) => (
-                      <article key={item._id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow group">
-                        <div className={`h-48 ${getGradientByType(item.type)} flex items-center justify-center`}>
+                      <article key={item._id} className="group overflow-hidden rounded-[1.5rem] bg-white shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/12">
+                        <Link to={`/insights/${item.slug || item._id}`} className={`relative block min-h-[28rem] overflow-hidden ${getGradientByType(item.type)}`}>
                           {getImageUrl(item.imageUrl) ? (
                             <img
                               src={getImageUrl(item.imageUrl)}
                               alt={item.title}
-                              className="w-full h-full object-cover"
+                              className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
                             />
                           ) : (
-                            <>
+                            <div className="absolute inset-0 flex items-center justify-center">
                               {item.type === 'research' && <Lightbulb className="h-16 w-16 text-white/80" />}
                               {item.type === 'article' && <FileText className="h-16 w-16 text-white/80" />}
                               {item.type === 'case-study' && <Briefcase className="h-16 w-16 text-white/80" />}
-                            </>
+                            </div>
                           )}
-                        </div>
+                          <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/5 to-black/35"></div>
+
+                          <div className="absolute left-5 right-5 top-5">
+                            <span className="inline-flex max-w-full items-center rounded-2xl border border-white bg-black/35 px-4 py-2.5 text-xs font-extrabold uppercase tracking-wide text-white shadow-lg backdrop-blur-sm">
+                              <span className="truncate">{item.capability?.title || formatCategory(item.category)}</span>
+                            </span>
+                          </div>
+
+                          <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-white/90 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-md">
+                            <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-extrabold uppercase tracking-wide text-gray-800">
+                              <span>{getTypeLabel(item.type)}</span>
+                              {item.publishedAt && <span>{formatDate(item.publishedAt)}</span>}
+                              {item.readTime && <span className="font-bold text-gray-600">{item.readTime}</span>}
+                            </div>
+                            <h3 className="text-2xl font-semibold leading-tight text-gray-950">
+                              {item.title}
+                            </h3>
+                          </div>
+                        </Link>
                         {item.experts?.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-6 py-3">
+                          <div className="border-x border-b border-gray-100 px-5 py-4">
                             {item.experts.map((expert) => (
                               <div key={expert._id} className="min-w-0">
-                                <span className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.14em] text-gray-800">Author</span>
-                                <div className="flex min-w-0 items-center gap-2">
-                                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-base font-bold text-primary-700 ring-1 ring-primary-100">
+                                <span className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.16em] text-gray-900">Author</span>
+                                <div className="flex min-w-0 items-center gap-3">
+                                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-sm font-bold text-primary-700 ring-1 ring-primary-100">
                                     {expert.imageUrl ? (
                                       <img src={expert.imageUrl} alt={expert.fullName} className="h-full w-full object-cover object-center" />
                                     ) : (
@@ -309,7 +340,7 @@ export default function Insights() {
                                     )}
                                   </div>
                                   <span className="min-w-0">
-                                    <span className="block truncate text-sm font-bold text-primary-700">{expert.fullName}</span>
+                                    <span className="block truncate text-sm font-bold text-gray-950">{expert.fullName}</span>
                                     {(expert.headline || expert.currentDesignation || expert.designation) && (
                                       <span className="mt-1 block line-clamp-2 text-xs font-medium leading-5 text-gray-600">
                                         {expert.headline || expert.currentDesignation || expert.designation}
@@ -321,80 +352,6 @@ export default function Insights() {
                             ))}
                           </div>
                         )}
-                        <div className="p-6">
-                          <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
-                            <span className="flex items-center">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              {formatDate(item.publishedAt)}
-                            </span>
-                            <span className="flex items-center">
-                              <Clock className="h-4 w-4 mr-1" />
-                              {item.readTime}
-                            </span>
-                          </div>
-                          <div className="mb-3 flex flex-wrap gap-2">
-                            <span className="inline-block rounded-full bg-primary-100 px-3 py-1 text-sm font-medium text-primary-700">
-                              {formatCategory(item.category)}
-                            </span>
-                            {item.capability?.title && (
-                              <span className="inline-block rounded-full bg-cyan-100 px-3 py-1 text-sm font-medium text-primary-700">
-                                {item.capability.title}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex justify-end mb-2">
-                            <div className="relative">
-                              <button
-                                onClick={() => setShareMenuOpen(shareMenuOpen === item._id ? null : item._id)}
-                                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                              >
-                                <Share2 className="h-5 w-5 text-gray-600" />
-                              </button>
-                              {shareMenuOpen === item._id && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
-                                  <button
-                                    onClick={() => handleShare('facebook', item)}
-                                    className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-3"
-                                  >
-                                    <Facebook className="h-4 w-4 text-blue-600" />
-                                    <span className="text-sm text-gray-700">Share on Facebook</span>
-                                  </button>
-                                  <button
-                                    onClick={() => handleShare('twitter', item)}
-                                    className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-3"
-                                  >
-                                    <Twitter className="h-4 w-4 text-blue-400" />
-                                    <span className="text-sm text-gray-700">Share on Twitter</span>
-                                  </button>
-                                  <button
-                                    onClick={() => handleShare('linkedin', item)}
-                                    className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-3"
-                                  >
-                                    <Linkedin className="h-4 w-4 text-blue-700" />
-                                    <span className="text-sm text-gray-700">Share on LinkedIn</span>
-                                  </button>
-                                  <button
-                                    onClick={() => handleShare('copy', item)}
-                                    className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-3"
-                                  >
-                                    <Share2 className="h-4 w-4 text-gray-600" />
-                                    <span className="text-sm text-gray-700">Copy Link</span>
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">
-                            {item.title}
-                          </h3>
-                          <p className="text-gray-600 mb-4">{item.excerpt}</p>
-                          <Link
-                            to={`/insights/${item.slug || item._id}`}
-                            className="inline-flex items-center text-primary-600 font-semibold group-hover:text-primary-700"
-                          >
-                            Read More &rarr;
-                          </Link>
-                        </div>
                       </article>
                     ))}
                   </div>
