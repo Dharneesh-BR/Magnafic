@@ -76,7 +76,7 @@ export default function ServiceDetail() {
         setService(data)
 
         if (data?.capability?._id) {
-          const insightsQuery = `*[_type == "blog" && status == "published" && capability._ref == $capabilityId] | order(featured desc, publishedAt desc) {
+          const insightsQuery = `*[_type == "blog" && status != "archived" && capability._ref == $capabilityId] | order(featured desc, publishedAt desc) {
             _id,
             title,
             "slug": slug.current,

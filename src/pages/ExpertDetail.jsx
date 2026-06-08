@@ -580,7 +580,7 @@ export default function ExpertDetail() {
           .filter(Boolean)
 
         if (capabilityIds.length > 0) {
-          const insightsQuery = `*[_type == "blog" && status == "published" && capability._ref in $capabilityIds] | order(featured desc, publishedAt desc) {
+          const insightsQuery = `*[_type == "blog" && status != "archived" && capability._ref in $capabilityIds] | order(featured desc, publishedAt desc) {
             _id,
             title,
             "slug": slug.current,

@@ -55,13 +55,37 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://magnafic.com/insights/fmcg-playbook-is-changing-from-sales-forecasts-to-predictive-intelligence</loc>
+    <lastmod>2026-06-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://magnafic.com/insights/what-is-a-sales-mindset-and-why-does-it-matter</loc>
-    <lastmod>2026-06-07</lastmod>
+    <lastmod>2026-06-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://magnafic.com/insights/is-your-fmcg-brand-ready-for-the-2026-kenyan-consumer</loc>
+    <lastmod>2026-06-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://magnafic.com/insights/the-ai-distribution-revolution-kenyas-predictive-fmcg-supply-chain</loc>
+    <lastmod>2026-06-08</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://magnafic.com/insights/how-ai-can-reshape-distributed-sales-channels-in-emerging-markets</loc>
+    <lastmod>2026-06-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://magnafic.com/experts/shantanu-paknikar</loc>
     <lastmod>2026-06-08</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -75,6 +99,12 @@
   <url>
     <loc>https://magnafic.com/experts/sunil-s-devdhar</loc>
     <lastmod>2026-06-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://magnafic.com/experts/nabil-benjeddou</loc>
+    <lastmod>2026-06-08</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -103,7 +133,19 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://magnafic.com/experts/subodh-pitkar</loc>
+    <lastmod>2026-06-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://magnafic.com/experts/elecstima-ongaga</loc>
+    <lastmod>2026-06-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://magnafic.com/experts/abhijit-sen-gupta</loc>
     <lastmod>2026-06-08</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore'
-import { AlertCircle, BriefcaseBusiness, CalendarPlus, LayoutDashboard, Eye, EyeOff, Loader2, Lock, LogOut, Mail, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react'
+import { arrayUnion, collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { AlertCircle, BriefcaseBusiness, CalendarPlus, CircleDollarSign, HandCoins, LayoutDashboard, Eye, EyeOff, Loader2, Lock, LogOut, Mail, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import SEO from '../components/SEO'
 import { auth, db } from '../lib/firebase'
@@ -30,6 +30,20 @@ function formatDateTimeInput(value) {
 
   const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
   return offsetDate.toISOString().slice(0, 16)
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0)
+}
+
+function getPaymentTotal(payments) {
+  if (!Array.isArray(payments)) return 0
+
+  return payments.reduce((total, payment) => total + (Number(payment?.amount) || 0), 0)
 }
 
 function formatGoogleCalendarDate(date) {
@@ -119,6 +133,8 @@ export default function AdminDashboard() {
   const [scheduleDrafts, setScheduleDrafts] = useState({})
   const [allocationDrafts, setAllocationDrafts] = useState({})
   const [questionnaireDetails, setQuestionnaireDetails] = useState(null)
+  const [paymentDraft, setPaymentDraft] = useState(null)
+  const [savingPayment, setSavingPayment] = useState(false)
   const adminPath = location.pathname.replace(/\/+$/, '') || '/admin'
   const clientDetailsMatch = adminPath.match(/^\/admin\/clients\/([^/]+)$/)
   const clientBriefMatch = adminPath.match(/^\/admin\/clients\/([^/]+)\/briefs\/([^/]+)$/)
@@ -252,6 +268,12 @@ export default function AdminDashboard() {
     clients: usersData.filter((item) => item.role === 'client').length,
     consultants: usersData.filter((item) => item.role === 'consultant').length,
     briefs: briefs.length,
+    projectPayments: usersData
+      .filter((item) => item.role === 'consultant')
+      .reduce((total, consultant) => total + getPaymentTotal(consultant.projectPayments), 0),
+    referralPayments: usersData
+      .filter((item) => item.role === 'consultant')
+      .reduce((total, consultant) => total + getPaymentTotal(consultant.referralPayments), 0),
   }), [briefs.length, usersData])
 
   const scheduleRequests = useMemo(() => briefs
@@ -529,6 +551,59 @@ export default function AdminDashboard() {
       setDataError(getAdminError(scheduleError))
     } finally {
       setSchedulingBriefId('')
+    }
+  }
+
+  const openPaymentDraft = (consultant, paymentType) => {
+    setDataError('')
+    setPaymentDraft({
+      consultant,
+      paymentType,
+      amount: '',
+      paidAt: new Date().toISOString().slice(0, 10),
+      note: '',
+    })
+  }
+
+  const updatePaymentDraft = (field, value) => {
+    setPaymentDraft((current) => current ? { ...current, [field]: value } : current)
+  }
+
+  const handleSavePayment = async (event) => {
+    event.preventDefault()
+    if (!paymentDraft?.consultant?.id) return
+
+    const amount = Number(paymentDraft.amount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setDataError('Please enter a valid payment amount.')
+      return
+    }
+
+    setSavingPayment(true)
+    setDataError('')
+
+    const paymentField = paymentDraft.paymentType === 'referral' ? 'referralPayments' : 'projectPayments'
+    const paymentEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      amount,
+      paidAt: paymentDraft.paidAt || new Date().toISOString().slice(0, 10),
+      note: paymentDraft.note.trim(),
+      createdAt: new Date().toISOString(),
+      createdByAdminId: adminProfile?.id || adminProfile?.uid || '',
+      createdByAdminEmail: adminProfile?.email || '',
+    }
+
+    try {
+      await updateDoc(doc(db, 'users', paymentDraft.consultant.id), {
+        [paymentField]: arrayUnion(paymentEntry),
+        updatedAt: serverTimestamp(),
+      })
+      setPaymentDraft(null)
+    } catch (paymentError) {
+      console.error('Admin consultant payment update failed:', paymentError)
+      setDataError(getAdminError(paymentError))
+    } finally {
+      setSavingPayment(false)
     }
   }
 
@@ -999,17 +1074,22 @@ export default function AdminDashboard() {
             )}
 
             {!isAdminDetailPage && activeView === 'dashboard' && (
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {[
-                  { icon: Users, label: 'Total users', value: stats.users },
-                  { icon: Users, label: 'Clients', value: stats.clients },
-                  { icon: ShieldCheck, label: 'Consultants', value: stats.consultants },
-                  { icon: BriefcaseBusiness, label: 'Client briefs', value: stats.briefs },
+                  { icon: Users, label: 'Total users', value: stats.users, tone: 'from-[#000047] via-primary-700 to-cyan-500' },
+                  { icon: Users, label: 'Clients', value: stats.clients, tone: 'from-blue-900 via-blue-600 to-cyan-400' },
+                  { icon: ShieldCheck, label: 'Consultants', value: stats.consultants, tone: 'from-indigo-900 via-primary-700 to-sky-500' },
+                  { icon: BriefcaseBusiness, label: 'Client briefs', value: stats.briefs, tone: 'from-slate-900 via-slate-600 to-cyan-400' },
+                  { icon: CircleDollarSign, label: 'Total project payment', value: formatCurrency(stats.projectPayments), tone: 'from-emerald-800 via-teal-600 to-cyan-400' },
+                  { icon: HandCoins, label: 'Total referral payment', value: formatCurrency(stats.referralPayments), tone: 'from-cyan-950 via-sky-700 to-cyan-400' },
                 ].map((item) => (
-                  <section key={item.label} className="rounded-[1.5rem] bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
-                    <item.icon className="mb-5 h-7 w-7 text-primary-600" />
-                    <p className="text-3xl font-bold text-gray-950">{dataLoading ? '-' : item.value}</p>
-                    <p className="mt-1 text-sm font-medium text-gray-500">{item.label}</p>
+                  <section key={item.label} className={`group relative min-h-[9rem] overflow-hidden rounded-2xl bg-gradient-to-br ${item.tone} p-6 text-white shadow-xl shadow-primary-900/15 ring-1 ring-white/25 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/25`}>
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.22),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.14),transparent_42%)] opacity-90"></div>
+                    <item.icon className="absolute bottom-5 right-5 h-8 w-8 text-white/90 drop-shadow-[0_6px_16px_rgba(0,0,71,0.28)] transition group-hover:scale-110" />
+                    <div className="relative pr-12">
+                      <p className="text-3xl font-black leading-tight text-white drop-shadow-[0_6px_18px_rgba(0,0,71,0.26)]">{dataLoading ? '-' : item.value}</p>
+                      <p className="mt-2 text-sm font-extrabold leading-5 text-white/90">{item.label}</p>
+                    </div>
                   </section>
                 ))}
               </div>
@@ -1276,37 +1356,69 @@ export default function AdminDashboard() {
                 No consultants found.
               </div>
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-gray-100">
-                <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm lg:text-base">
+              <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+                <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm">
+                  <colgroup>
+                    <col className="w-[20%]" />
+                    <col className="w-[22%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[20%]" />
+                  </colgroup>
                   <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
-                    <tr className="text-xs font-extrabold uppercase tracking-wide text-white lg:text-sm">
-                      <th className="break-words px-2 py-4 lg:px-3">Consultant Name</th>
-                      <th className="break-words px-2 py-4 lg:px-3">Email</th>
-                      <th className="break-words px-2 py-4 lg:px-3">Capabilities</th>
-                      <th className="break-words px-2 py-4 lg:px-3">Attached Clients</th>
-                      <th className="break-words px-2 py-4 text-right lg:px-3">Action</th>
+                    <tr className="text-xs font-extrabold uppercase tracking-wide text-white">
+                      <th className="px-4 py-4">Consultant Name</th>
+                      <th className="px-4 py-4">Capabilities</th>
+                      <th className="px-4 py-4">Clients</th>
+                      <th className="px-4 py-4">Project Paid</th>
+                      <th className="px-4 py-4">Referral Paid</th>
+                      <th className="px-4 py-4 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 bg-white">
                     {consultants.map((consultant) => (
-                      <tr key={consultant.id} className="transition hover:bg-primary-50/50">
-                        <td className="break-words bg-blue-50/80 px-2 py-4 font-bold leading-6 text-gray-950 lg:px-3">{consultant.sanityName || consultant.name || 'Unnamed consultant'}</td>
-                        <td className="break-words bg-cyan-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{consultant.email || 'No email'}</td>
-                        <td className="break-words bg-blue-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">
+                      <tr key={consultant.id} className="align-middle transition hover:bg-primary-50/40">
+                        <td className="break-words bg-slate-50 px-4 py-5 font-black leading-6 text-gray-950">{consultant.sanityName || consultant.name || 'Unnamed consultant'}</td>
+                        <td className="break-words bg-cyan-50/70 px-4 py-5 font-semibold leading-6 text-gray-800">
                           {consultant.capabilities.length > 0
                             ? consultant.capabilities.map((capability) => capability.title).join(', ')
                             : 'No connected capabilities'}
                         </td>
-                        <td className="break-words bg-cyan-50/80 px-2 py-4 font-bold leading-6 text-primary-700 lg:px-3">{consultant.attachedBriefs.length}</td>
-                        <td className="bg-blue-50/80 px-2 py-4 text-right lg:px-3">
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/admin/consultants/${encodeURIComponent(consultant.id)}/clients`)}
-                            className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            View
-                          </button>
+                        <td className="bg-slate-50 px-4 py-5">
+                          <span className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-white px-3 text-sm font-black text-primary-700 ring-1 ring-primary-100">
+                            {consultant.attachedBriefs.length}
+                          </span>
+                        </td>
+                        <td className="bg-cyan-50/70 px-4 py-5 font-black leading-6 text-emerald-700">{formatCurrency(getPaymentTotal(consultant.projectPayments))}</td>
+                        <td className="bg-cyan-50/70 px-4 py-5 font-black leading-6 text-emerald-700">{formatCurrency(getPaymentTotal(consultant.referralPayments))}</td>
+                        <td className="bg-slate-50 px-4 py-5 text-right">
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/admin/consultants/${encodeURIComponent(consultant.id)}/clients`)}
+                              className="inline-flex items-center justify-center rounded-xl bg-primary-700 px-3 py-2 text-xs font-black text-white shadow-sm transition hover:bg-primary-800"
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              View clients
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openPaymentDraft(consultant, 'project')}
+                              className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white shadow-sm transition hover:bg-emerald-700"
+                            >
+                              <CircleDollarSign className="mr-2 h-4 w-4" />
+                              Project
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openPaymentDraft(consultant, 'referral')}
+                              className="inline-flex items-center justify-center rounded-xl bg-cyan-600 px-3 py-2 text-xs font-black text-white shadow-sm transition hover:bg-cyan-700"
+                            >
+                              <HandCoins className="mr-2 h-4 w-4" />
+                              Referral
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1319,6 +1431,88 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+      {paymentDraft && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/60 px-4 py-6">
+          <section className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl shadow-primary-950/30 ring-1 ring-white/60">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-primary-600">
+                  {paymentDraft.paymentType === 'referral' ? 'Referral payment' : 'Project payment'}
+                </p>
+                <h2 className="mt-2 text-2xl font-black text-gray-950">
+                  Add payment made
+                </h2>
+                <p className="mt-1 text-sm font-semibold text-gray-500">
+                  {paymentDraft.consultant.sanityName || paymentDraft.consultant.name || paymentDraft.consultant.email}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPaymentDraft(null)}
+                className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+
+            <form className="space-y-4" onSubmit={handleSavePayment}>
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-gray-700">Amount paid</span>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={paymentDraft.amount}
+                  onChange={(event) => updatePaymentDraft('amount', event.target.value)}
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base font-bold text-gray-950 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                  placeholder="Enter amount"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-gray-700">Payment date</span>
+                <input
+                  required
+                  type="date"
+                  value={paymentDraft.paidAt}
+                  onChange={(event) => updatePaymentDraft('paidAt', event.target.value)}
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base font-bold text-gray-950 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-gray-700">Reference or note</span>
+                <textarea
+                  value={paymentDraft.note}
+                  onChange={(event) => updatePaymentDraft('note', event.target.value)}
+                  rows={3}
+                  className="w-full resize-none rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base font-semibold text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                  placeholder="Optional note"
+                />
+              </label>
+
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setPaymentDraft(null)}
+                  className="inline-flex items-center justify-center rounded-xl bg-gray-100 px-5 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingPayment}
+                  className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-500 px-5 py-3 text-sm font-black text-white shadow-xl shadow-primary-900/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {savingPayment ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CircleDollarSign className="mr-2 h-4 w-4" />}
+                  Save payment
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
       {questionnaireDetails && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/60 px-4 py-6">
           <section className="max-h-[88vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl shadow-primary-950/30 sm:p-7">

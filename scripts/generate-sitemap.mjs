@@ -51,7 +51,7 @@ function toUrl(route) {
 async function fetchDynamicRoutes() {
   try {
     const [blogs, experts] = await Promise.all([
-      mentorClient.fetch(`*[_type == "blog" && status == "published" && defined(slug.current)]{
+      mentorClient.fetch(`*[_type == "blog" && status != "archived" && defined(slug.current)]{
         "slug": slug.current,
         "updatedAt": coalesce(_updatedAt, publishedAt)
       }`),

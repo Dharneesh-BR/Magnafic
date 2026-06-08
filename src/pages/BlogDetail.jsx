@@ -260,7 +260,7 @@ export default function BlogDetail() {
       setError('')
 
       try {
-        const query = `*[_type == "blog" && status == "published" && (slug.current == $slug || _id == $slug)][0] {
+        const query = `*[_type == "blog" && status != "archived" && (slug.current == $slug || _id == $slug)][0] {
           _id,
           title,
           "slug": slug.current,

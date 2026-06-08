@@ -101,7 +101,7 @@ function buildInsightHtml(baseHtml, insight) {
 }
 
 const baseHtml = await readFile(resolve(distDir, 'index.html'), 'utf8')
-const insights = await client.fetch(`*[_type == "blog" && status == "published" && defined(slug.current)]{
+const insights = await client.fetch(`*[_type == "blog" && status != "archived" && defined(slug.current)]{
   title,
   excerpt,
   publishedAt,

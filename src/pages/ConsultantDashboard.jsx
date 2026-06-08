@@ -40,6 +40,20 @@ function getAcceptedDate(item) {
   return toDate(item.acceptedAt) || item.acceptedAtDate || (['accepted', 'scheduled', 'active', 'closed', 'completed'].includes(item.status) ? item.updatedAtDate : null)
 }
 
+function formatCurrency(value) {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0)
+}
+
+function getPaymentTotal(payments) {
+  if (!Array.isArray(payments)) return 0
+
+  return payments.reduce((total, payment) => total + (Number(payment?.amount) || 0), 0)
+}
+
 const MONTH_OPTIONS = [
   { value: 0, label: 'January' },
   { value: 1, label: 'February' },
@@ -306,6 +320,11 @@ export default function ConsultantDashboard() {
     active: filteredOpportunities.filter((item) => item.status === 'active').length,
     closed: filteredOpportunities.filter((item) => ['closed', 'completed'].includes(item.status)).length,
   }), [filteredOpportunities])
+
+  const paymentTotals = useMemo(() => ({
+    project: getPaymentTotal(user?.projectPayments),
+    referral: getPaymentTotal(user?.referralPayments),
+  }), [user?.projectPayments, user?.referralPayments])
 
   const selectedReferralCapability = useMemo(
     () => referralCapabilities.find((capability) => capability._id === referralForm.capabilityId),
@@ -864,8 +883,8 @@ export default function ConsultantDashboard() {
                     { icon: BadgeCheck, label: 'Accepted Enquiry', value: stats.accepted, gradient: 'from-emerald-700 via-teal-600 to-cyan-400' },
                     { icon: FolderCheck, label: 'Active Projects', value: stats.active, gradient: 'from-indigo-800 via-blue-600 to-cyan-400' },
                     { icon: BriefcaseBusiness, label: 'Closed Projects', value: stats.closed, gradient: 'from-slate-900 via-slate-600 to-cyan-400' },
-                    { icon: CircleDollarSign, label: 'Project Payments', value: 'INR 0', gradient: 'from-cyan-950 via-sky-700 to-cyan-400', wide: true },
-                    { icon: Handshake, label: 'Referral Payments', value: 'INR 0', gradient: 'from-cyan-950 via-sky-700 to-cyan-400', wide: true },
+                    { icon: CircleDollarSign, label: 'Project Payments', value: formatCurrency(paymentTotals.project), gradient: 'from-cyan-950 via-sky-700 to-cyan-400', wide: true },
+                    { icon: Handshake, label: 'Referral Payments', value: formatCurrency(paymentTotals.referral), gradient: 'from-cyan-950 via-sky-700 to-cyan-400', wide: true },
                   ].map(item => (
                     <section key={item.label} className={`group relative flex min-h-[6.5rem] flex-col overflow-hidden rounded-2xl bg-gradient-to-br ${item.gradient} p-4 text-white shadow-xl shadow-primary-900/15 ring-1 ring-white/25 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/25 ${item.wide ? 'col-span-2 xl:col-span-2' : ''}`}>
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.22),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.16),transparent_44%)] opacity-85"></div>

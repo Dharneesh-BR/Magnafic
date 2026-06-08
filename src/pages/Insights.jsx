@@ -27,7 +27,7 @@ export default function Insights() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const query = `*[_type == "blog" && status == "published"] | order(featured desc, publishedAt desc) {
+        const query = `*[_type == "blog" && status != "archived"] | order(featured desc, publishedAt desc) {
           _id,
           title,
           "slug": slug.current,
@@ -321,13 +321,13 @@ export default function Insights() {
                               {item.publishedAt && <span>{formatDate(item.publishedAt)}</span>}
                               {item.readTime && <span className="font-bold text-gray-600">{item.readTime}</span>}
                             </div>
-                            <h3 className="text-2xl font-semibold leading-tight text-gray-950">
+                            <h3 className="text-xl font-semibold leading-snug text-gray-950">
                               {item.title}
                             </h3>
                           </div>
                         </Link>
                         {item.experts?.length > 0 && (
-                          <div className="border-x border-b border-gray-100 px-5 py-4">
+                          <div className="border-x border-b border-gray-100 bg-gray-50 px-5 py-4">
                             {item.experts.map((expert) => (
                               <div key={expert._id} className="min-w-0">
                                 <span className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.16em] text-gray-900">Author</span>
