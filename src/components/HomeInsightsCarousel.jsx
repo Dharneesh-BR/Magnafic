@@ -111,6 +111,30 @@ export default function HomeInsightsCarousel() {
     })
   }
 
+  useEffect(() => {
+    if (insights.length <= 1) return undefined
+
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+    if (prefersReducedMotion) return undefined
+
+    const intervalId = window.setInterval(() => {
+      const scroller = scrollerRef.current
+      if (!scroller) return
+
+      const scrollAmount = Math.min(scroller.clientWidth, 420)
+      const isAtEnd = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 8
+
+      if (isAtEnd) {
+        scroller.scrollTo({ left: 0, behavior: 'smooth' })
+        return
+      }
+
+      scroller.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+    }, 3500)
+
+    return () => window.clearInterval(intervalId)
+  }, [insights.length])
+
   if (loading) {
     return (
       <section className="bg-white px-4 py-16 sm:px-6 lg:px-8">
@@ -126,8 +150,7 @@ export default function HomeInsightsCarousel() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary-600">Insights</p>
-            <h2 className="mt-3 text-3xl font-bold text-gray-950 sm:text-4xl">Latest thinking for consumer growth</h2>
+            <h2 className="text-3xl font-bold text-blue-900 sm:text-4xl">Insights that Drive growth</h2>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -172,16 +195,11 @@ export default function HomeInsightsCarousel() {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/5 to-black/35"></div>
                 <div className="absolute left-5 right-5 top-5">
-                  <span className="inline-flex max-w-full items-center rounded-2xl border border-white bg-black/35 px-4 py-2.5 text-xs font-extrabold uppercase tracking-wide text-white shadow-lg backdrop-blur-sm">
+                  <span className="inline-flex max-w-full items-center justify-center rounded-[1.35rem] border border-white bg-gray-950/65 px-6 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-black/20 backdrop-blur-sm">
                     <span className="truncate">{item.capability?.title || formatCategory(item.category)}</span>
                   </span>
                 </div>
-                <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-white/90 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-md">
-                  <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-extrabold uppercase tracking-wide text-gray-800">
-                    <span>{getTypeLabel(item.type)}</span>
-                    {item.publishedAt && <span>{formatDate(item.publishedAt)}</span>}
-                    {item.readTime && <span className="font-bold text-gray-600">{item.readTime}</span>}
-                  </div>
+                <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-gray-100/70 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-sm">
                   <h3 className="line-clamp-3 text-xl font-semibold leading-snug text-gray-950">
                     {item.title}
                   </h3>
@@ -192,7 +210,13 @@ export default function HomeInsightsCarousel() {
                 <div className="border-x border-b border-gray-100 bg-gray-50 px-5 py-4">
                   {item.experts.slice(0, 1).map((expert) => (
                     <div key={expert._id} className="min-w-0">
-                      <span className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.16em] text-gray-900">Author</span>
+                      <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-extrabold uppercase tracking-[0.14em]">
+                        <span className="text-gray-900">Author</span>
+                        <span className="text-gray-300">|</span>
+                        <span className="text-gray-700">{getTypeLabel(item.type)}</span>
+                        {item.publishedAt && <span className="text-gray-700">{formatDate(item.publishedAt)}</span>}
+                        {item.readTime && <span className="text-gray-700">{item.readTime}</span>}
+                      </div>
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-sm font-bold text-primary-700 ring-1 ring-primary-100">
                           {expert.imageUrl ? (

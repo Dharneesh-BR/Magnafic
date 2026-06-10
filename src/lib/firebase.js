@@ -48,4 +48,4 @@ if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
     })
 }
 
-export { app, auth, db, storage, analytics }
+export { app, auth, db, storage, analytics, firebaseConfig }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Building2, Copy, Facebook, FileText, Linkedin, MapPin, Share2, Sparkles, Tag, Twitter, UserRound } from 'lucide-react'
+import { ArrowLeft, Building2, Copy, Facebook, FileText, Linkedin, MapPin, Share2, Twitter, UserRound } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
 import { absoluteUrl } from '../lib/seo'
@@ -14,19 +14,6 @@ function formatDate(dateString) {
     day: 'numeric',
     year: 'numeric'
   })
-}
-
-function getTypeLabel(type) {
-  switch (type) {
-    case 'research':
-      return 'Research & Insights'
-    case 'article':
-      return 'Article'
-    case 'case-study':
-      return 'Case Study'
-    default:
-      return 'Insight'
-  }
 }
 
 function formatCategory(category) {
@@ -484,24 +471,6 @@ export default function BlogDetail() {
           </div>
 
           <div>
-            <div className="mb-6 flex flex-wrap gap-3">
-              {blog.category && (
-                <span className="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-bold text-primary-700 shadow-lg shadow-primary-950/10">
-                  <Tag className="mr-2 h-4 w-4" />
-                  {formatCategory(blog.category)}
-                </span>
-              )}
-              {blog.capability?.title && (
-                <span className="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-bold text-primary-700 shadow-lg shadow-primary-950/10">
-                  {blog.capability.title}
-                </span>
-              )}
-              <span className="inline-flex items-center rounded-full bg-cyan-400/15 px-4 py-2 text-sm font-semibold text-cyan-100 ring-1 ring-cyan-200/20">
-                <Sparkles className="mr-2 h-4 w-4" />
-                {getTypeLabel(blog.type)}
-              </span>
-            </div>
-
             <h1 className="max-w-5xl text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">
               {blog.title}
             </h1>
@@ -528,19 +497,19 @@ export default function BlogDetail() {
       )}
 
       <section className="px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[220px_1fr]">
-          <aside className="hidden lg:block">
-            <div className="sticky top-24 rounded-[1.5rem] bg-white p-5 shadow-lg shadow-primary-900/5 ring-1 ring-gray-100">
-              <p className="mb-4 text-sm font-bold uppercase tracking-[0.16em] text-gray-400">Insight</p>
-              <div className="space-y-3 text-sm text-gray-600">
+        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[330px_1fr]">
+          <aside>
+            <div className="sticky top-24 rounded-[1.75rem] bg-white p-7 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
+              <p className="mb-6 text-sm font-black uppercase tracking-[0.22em] text-gray-400">Insight</p>
+              <div className="space-y-4 text-lg font-medium text-gray-700">
                 {blog.category && (
-                  <p className="rounded-2xl bg-primary-50 px-3 py-2 font-semibold text-primary-700">{formatCategory(blog.category)}</p>
+                  <p className="rounded-2xl bg-[#e8e5ff] px-5 py-3 font-semibold text-[#000047]">{formatCategory(blog.category)}</p>
                 )}
                 {blog.capability?.title && (
-                  <p className="rounded-2xl bg-cyan-50 px-3 py-2 font-semibold text-primary-700">{blog.capability.title}</p>
+                  <p className="rounded-2xl bg-[#ddfbfb] px-5 py-3 font-semibold text-[#000047]">{blog.capability.title}</p>
                 )}
-                {blog.publishedAt && <p>{formatDate(blog.publishedAt)}</p>}
-                {blog.readTime && <p>{blog.readTime}</p>}
+                {blog.publishedAt && <p className="px-1 pt-2">{formatDate(blog.publishedAt)}</p>}
+                {blog.readTime && <p className="px-1">{blog.readTime}</p>}
               </div>
             </div>
           </aside>

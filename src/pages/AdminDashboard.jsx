@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { arrayUnion, collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { deleteApp, getApp, getApps, initializeApp } from 'firebase/app'
+import { createUserWithEmailAndPassword, getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { arrayUnion, collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { AlertCircle, BriefcaseBusiness, CalendarPlus, CircleDollarSign, HandCoins, LayoutDashboard, Eye, EyeOff, Loader2, Lock, LogOut, Mail, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import SEO from '../components/SEO'
-import { auth, db } from '../lib/firebase'
+import { auth, db, firebaseConfig } from '../lib/firebase'
 import { mentorClient } from '../lib/sanityClient'
 
 function formatDateTime(value) {
@@ -123,8 +124,10 @@ export default function AdminDashboard() {
   const [briefs, setBriefs] = useState([])
   const [capabilitiesByExpertId, setCapabilitiesByExpertId] = useState({})
   const [sanityExpertsById, setSanityExpertsById] = useState({})
+  const [sanityExpertOptions, setSanityExpertOptions] = useState([])
   const [dataLoading, setDataLoading] = useState(false)
   const [dataError, setDataError] = useState('')
+  const [dataMessage, setDataMessage] = useState('')
   const [activeView, setActiveView] = useState('dashboard')
   const [removingClientId, setRemovingClientId] = useState('')
   const [detachingBriefId, setDetachingBriefId] = useState('')
@@ -135,6 +138,8 @@ export default function AdminDashboard() {
   const [questionnaireDetails, setQuestionnaireDetails] = useState(null)
   const [paymentDraft, setPaymentDraft] = useState(null)
   const [savingPayment, setSavingPayment] = useState(false)
+  const [credentialDraft, setCredentialDraft] = useState(null)
+  const [creatingCredential, setCreatingCredential] = useState(false)
   const adminPath = location.pathname.replace(/\/+$/, '') || '/admin'
   const clientDetailsMatch = adminPath.match(/^\/admin\/clients\/([^/]+)$/)
   const clientBriefMatch = adminPath.match(/^\/admin\/clients\/([^/]+)\/briefs\/([^/]+)$/)
@@ -222,11 +227,16 @@ export default function AdminDashboard() {
 
         const nextCapabilitiesByExpertId = {}
         const nextSanityExpertsById = {}
+        const nextExpertOptionsById = {}
         ;(capabilities || []).forEach((capability) => {
           ;(capability.orderedExperts || []).forEach((expert) => {
             if (!expert?._id) return
 
             nextSanityExpertsById[expert._id] = expert.fullName
+            nextExpertOptionsById[expert._id] = {
+              id: expert._id,
+              name: expert.fullName,
+            }
 
             if (!nextCapabilitiesByExpertId[expert._id]) {
               nextCapabilitiesByExpertId[expert._id] = []
@@ -242,6 +252,7 @@ export default function AdminDashboard() {
 
         setCapabilitiesByExpertId(nextCapabilitiesByExpertId)
         setSanityExpertsById(nextSanityExpertsById)
+        setSanityExpertOptions(Object.values(nextExpertOptionsById).sort((a, b) => a.name.localeCompare(b.name)))
       } catch (capabilityError) {
         console.error('Admin capability lookup failed:', capabilityError)
         setDataError('Admin dashboard loaded, but consultant capabilities could not be fetched from Sanity.')
@@ -567,6 +578,89 @@ export default function AdminDashboard() {
 
   const updatePaymentDraft = (field, value) => {
     setPaymentDraft((current) => current ? { ...current, [field]: value } : current)
+  }
+
+  const openCredentialDraft = () => {
+    setDataError('')
+    setDataMessage('')
+    setCredentialDraft({
+      email: '',
+      password: '',
+      status: 'active',
+      sanityExpertId: '',
+    })
+  }
+
+  const updateCredentialDraft = (field, value) => {
+    setCredentialDraft((current) => current ? { ...current, [field]: value } : current)
+    setDataError('')
+    setDataMessage('')
+  }
+
+  const handleCreateConsultantLogin = async (event) => {
+    event.preventDefault()
+    if (!credentialDraft) return
+
+    const nextEmail = credentialDraft.email.trim().toLowerCase()
+    const nextPassword = credentialDraft.password
+    const selectedExpert = sanityExpertOptions.find((expert) => expert.id === credentialDraft.sanityExpertId)
+
+    if (!nextEmail || !nextPassword || !selectedExpert) {
+      setDataError('Please enter email, password, and select the Sanity consultant profile.')
+      return
+    }
+
+    if (nextPassword.length < 6) {
+      setDataError('Password must be at least 6 characters.')
+      return
+    }
+
+    const existingUser = usersData.find((item) => item.email?.toLowerCase?.() === nextEmail)
+    if (existingUser) {
+      setDataError('A user with this email already exists in Firestore.')
+      return
+    }
+
+    setCreatingCredential(true)
+    setDataError('')
+    setDataMessage('')
+
+    const secondaryAppName = 'admin-create-consultant'
+    const secondaryApp = getApps().some((item) => item.name === secondaryAppName)
+      ? getApp(secondaryAppName)
+      : initializeApp(firebaseConfig, secondaryAppName)
+    const secondaryAuth = getAuth(secondaryApp)
+
+    try {
+      const credentials = await createUserWithEmailAndPassword(secondaryAuth, nextEmail, nextPassword)
+
+      await setDoc(doc(db, 'users', credentials.user.uid), {
+        email: nextEmail,
+        role: 'consultant',
+        status: credentialDraft.status,
+        sanityExpertId: selectedExpert.id,
+        name: selectedExpert.name,
+        createdAt: serverTimestamp(),
+        createdByAdminId: adminProfile?.id || adminProfile?.uid || '',
+        createdByAdminEmail: adminProfile?.email || '',
+      })
+
+      await signOut(secondaryAuth)
+      setCredentialDraft(null)
+      setDataMessage(`Consultant login created for ${selectedExpert.name}.`)
+    } catch (credentialError) {
+      console.error('Admin consultant credential creation failed:', credentialError)
+      setDataError(credentialError?.code === 'auth/email-already-in-use'
+        ? 'This email already exists in Firebase Authentication.'
+        : getAdminError(credentialError))
+    } finally {
+      setCreatingCredential(false)
+      try {
+        await deleteApp(secondaryApp)
+      } catch {
+        // The secondary app can already be disposed if Firebase cleaned it up.
+      }
+    }
   }
 
   const handleSavePayment = async (event) => {
@@ -1348,8 +1442,24 @@ export default function AdminDashboard() {
                 <h2 className="text-2xl font-bold text-gray-950">Consultants</h2>
                 <p className="mt-1 text-sm text-gray-500">{consultants.length} consultants with connected capabilities and attached clients.</p>
               </div>
-              {dataLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
+              <div className="flex flex-wrap items-center gap-3">
+                {dataLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
+                <button
+                  type="button"
+                  onClick={openCredentialDraft}
+                  className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-primary-900/15 transition hover:-translate-y-0.5"
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Create login
+                </button>
+              </div>
             </div>
+
+            {dataMessage && (
+              <div className="mb-5 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 ring-1 ring-emerald-100">
+                {dataMessage}
+              </div>
+            )}
 
             {consultants.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
@@ -1507,6 +1617,107 @@ export default function AdminDashboard() {
                 >
                   {savingPayment ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CircleDollarSign className="mr-2 h-4 w-4" />}
                   Save payment
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+      {credentialDraft && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/60 px-4 py-6">
+          <section className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl shadow-primary-950/30 ring-1 ring-white/60">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-primary-600">Consultant credential</p>
+                <h2 className="mt-2 text-2xl font-black text-gray-950">Create consultant login</h2>
+                <p className="mt-1 text-sm font-semibold text-gray-500">
+                  This creates the Firebase Auth account and the matching Firestore user record.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCredentialDraft(null)}
+                className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+
+            <form className="grid gap-4" onSubmit={handleCreateConsultantLogin}>
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-gray-700">Sanity consultant profile</span>
+                <select
+                  required
+                  value={credentialDraft.sanityExpertId}
+                  onChange={(event) => updateCredentialDraft('sanityExpertId', event.target.value)}
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base font-bold text-gray-950 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                >
+                  <option value="">Select consultant</option>
+                  {sanityExpertOptions.map((expert) => (
+                    <option key={expert.id} value={expert.id}>{expert.name}</option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-gray-700">Email</span>
+                  <input
+                    required
+                    type="email"
+                    value={credentialDraft.email}
+                    onChange={(event) => updateCredentialDraft('email', event.target.value)}
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base font-bold text-gray-950 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                    placeholder="consultant@company.com"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-gray-700">Password</span>
+                  <input
+                    required
+                    type="text"
+                    minLength={6}
+                    value={credentialDraft.password}
+                    onChange={(event) => updateCredentialDraft('password', event.target.value)}
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base font-bold text-gray-950 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                    placeholder="Minimum 6 characters"
+                  />
+                </label>
+              </div>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-gray-700">Status</span>
+                <select
+                  value={credentialDraft.status}
+                  onChange={(event) => updateCredentialDraft('status', event.target.value)}
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base font-bold text-gray-950 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                >
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </label>
+
+              <div className="rounded-2xl bg-blue-50 px-4 py-3 text-sm font-semibold leading-6 text-blue-900 ring-1 ring-blue-100">
+                The Firestore document will be saved with role <span className="font-black">consultant</span>, selected Sanity expert id, email, status, and consultant name.
+              </div>
+
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setCredentialDraft(null)}
+                  className="inline-flex items-center justify-center rounded-xl bg-gray-100 px-5 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingCredential}
+                  className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-500 px-5 py-3 text-sm font-black text-white shadow-xl shadow-primary-900/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {creatingCredential ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                  Create login
                 </button>
               </div>
             </form>
