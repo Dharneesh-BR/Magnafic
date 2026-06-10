@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Building2, Copy, Facebook, FileText, Linkedin, MapPin, Share2, Twitter, UserRound } from 'lucide-react'
+import { ArrowLeft, Bell, Copy, Facebook, FileText, Linkedin, Mail, Share2, Twitter } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
 import { absoluteUrl } from '../lib/seo'
 import MagnaLoader from '../components/MagnaLoader'
+import DescribeProblemCTA from '../components/DescribeProblemCTA'
+import { subscribeToInsights } from '../lib/insightSubscriptions'
 
 function formatDate(dateString) {
   if (!dateString) return ''
@@ -14,14 +16,6 @@ function formatDate(dateString) {
     day: 'numeric',
     year: 'numeric'
   })
-}
-
-function formatCategory(category) {
-  if (!category) return 'Insight'
-  return category
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
 }
 
 function renderSpan(child, markDefs = []) {
@@ -314,7 +308,7 @@ function drawImageCover(context, image, x, y, width, height) {
   context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height)
 }
 
-async function createInsightShareCard({ blog, categoryLabel }) {
+async function createInsightShareCard({ blog }) {
   const canvas = document.createElement('canvas')
   canvas.width = 420
   canvas.height = 558
@@ -376,27 +370,35 @@ async function createInsightShareCard({ blog, categoryLabel }) {
     context.fillText('M', cardX + cardWidth - 56, cardY + 46)
   }
 
-  context.textAlign = 'center'
+  context.textAlign = 'left'
+  context.fillStyle = '#1d4ed8'
+  context.font = '800 16px Arial'
+  context.fillText('INSIGHT', cardX + 34, cardY + 246)
+
   context.fillStyle = '#030712'
-  const titleMetrics = drawFittedCanvasText(context, blog.title, cardX + (cardWidth / 2), cardY + 252, cardWidth - 56, 6, {
-    maxFontSize: 30,
-    minFontSize: 21,
+  const titleMetrics = drawFittedCanvasText(context, blog.title, cardX + 34, cardY + 286, cardWidth - 68, 5, {
+    maxFontSize: 28,
+    minFontSize: 20,
     lineHeightRatio: 1.15,
   })
 
-  const titleBottom = cardY + 252 + ((titleMetrics.lineCount - 1) * titleMetrics.lineHeight)
+  const titleBottom = cardY + 286 + ((titleMetrics.lineCount - 1) * titleMetrics.lineHeight)
 
   const authorX = cardX + 70
-  const authorY = Math.min(Math.max(titleBottom + 68, cardY + 430), cardY + 444)
+  const authorY = Math.min(Math.max(titleBottom + 62, cardY + 430), cardY + 436)
   const authorRadius = 24
   const authorBandX = cardX + 34
-  const authorBandY = authorY - 38
+  const authorBandY = authorY - 46
   const authorBandWidth = cardWidth - 68
-  const authorBandHeight = 76
+  const authorBandHeight = 96
 
   roundedRect(context, authorBandX, authorBandY, authorBandWidth, authorBandHeight, 18)
   context.fillStyle = '#f3f4f6'
   context.fill()
+
+  context.fillStyle = '#374151'
+  context.font = '800 10px Arial'
+  context.fillText('AUTHOR', authorBandX + 18, authorBandY + 22)
 
   context.save()
   context.beginPath()
@@ -437,25 +439,11 @@ async function createInsightShareCard({ blog, categoryLabel }) {
   context.textAlign = 'left'
   context.fillStyle = '#030712'
   context.font = '700 17px Arial'
-  context.fillText(authorName, authorX + 38, authorY - 4)
+  context.fillText(authorName, authorX + 38, authorY - 2)
 
   context.fillStyle = '#6b7280'
   context.font = '600 13px Arial'
-  wrapCanvasText(context, authorRole, authorX + 38, authorY + 16, cardWidth - 128, 17, 1)
-
-  const metaY = authorY + 64
-
-  context.textAlign = 'center'
-  context.fillStyle = '#1d4ed8'
-  context.font = '700 18px Arial'
-  wrapCanvasText(context, categoryLabel, cardX + (cardWidth / 2), metaY, cardWidth - 80, 24, 1)
-
-  const publishedLabel = formatDate(blog.publishedAt)
-  if (publishedLabel) {
-    context.fillStyle = '#1d4ed8'
-    context.font = '700 16px Arial'
-    context.fillText(publishedLabel, cardX + (cardWidth / 2), metaY + 30)
-  }
+  wrapCanvasText(context, authorRole, authorX + 38, authorY + 18, cardWidth - 128, 17, 3)
 
   const footerGradient = context.createLinearGradient(cardX, cardY + cardHeight - 10, cardX + cardWidth, cardY + cardHeight - 10)
   footerGradient.addColorStop(0, '#3534cd')
@@ -475,47 +463,41 @@ async function createInsightShareCard({ blog, categoryLabel }) {
   })
 }
 
-function ExpertInsightCard({ expert }) {
+function ExpertInsightCard({ expert, blog }) {
   const headline = expert.headline || expert.currentDesignation || expert.designation || 'Expert Mentor'
-  const company = expert.currentCompany || expert.company
-  const location = expert.location || expert.city
   const profilePath = expert.slug ? `/experts/${expert.slug}` : `/experts/${expert._id}`
 
   return (
     <Link
       to={profilePath}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:border-cyan-200 hover:shadow-xl hover:shadow-primary-900/10 sm:flex-row"
+      className="group block overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:border-cyan-200 hover:shadow-xl hover:shadow-primary-900/10"
     >
-      <div className="relative flex h-56 shrink-0 items-end justify-center bg-gradient-to-br from-cyan-100 via-sky-100 to-primary-100 sm:h-auto sm:w-44">
-        {expert.imageUrl ? (
-          <img src={expert.imageUrl} alt={expert.fullName} className="h-full w-full object-contain object-bottom p-3" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-primary-600">
-            <UserRound className="h-16 w-16" />
-          </div>
-        )}
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col justify-center p-5 sm:p-6">
-        <h3 className="break-words text-xl font-bold leading-tight text-gray-950">{expert.fullName}</h3>
-        <p className="mt-2 break-words text-sm font-semibold leading-6 text-primary-700">{headline}</p>
-        <div className="mt-4 space-y-2 text-sm font-medium text-gray-600">
-          {company && (
-            <p className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-primary-500" />
-              <span>{company}</span>
-            </p>
-          )}
-          {location && (
-            <p className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary-500" />
-              <span>{location}</span>
-            </p>
-          )}
+      <div className="px-5 py-4 sm:px-6">
+        <div className="mb-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-extrabold uppercase tracking-[0.14em]">
+          <span className="text-gray-900">Author</span>
+          <span className="text-gray-300">|</span>
+          <span className="text-gray-700">Insight</span>
+          {blog?.readTime && <span className="text-gray-700">{blog.readTime}</span>}
         </div>
-        <span className="mt-5 inline-flex w-fit items-center rounded-full bg-primary-50 px-4 py-2 text-sm font-bold text-primary-700 transition group-hover:bg-primary-600 group-hover:text-white">
-          View profile
-        </span>
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-sm font-bold text-primary-700 ring-1 ring-primary-100">
+            {expert.imageUrl ? (
+              <img src={expert.imageUrl} alt={expert.fullName} className="h-full w-full object-cover object-center" />
+            ) : (
+              <span>{initials(expert.fullName)}</span>
+            )}
+          </div>
+          <span className="min-w-0">
+            <span className="block truncate text-base font-bold text-gray-950">{expert.fullName}</span>
+            {headline && (
+              <span className="mt-1 block line-clamp-3 text-sm font-medium leading-6 text-gray-600">
+                {headline}
+              </span>
+            )}
+          </span>
+        </div>
       </div>
+      <div className="h-2 bg-gradient-to-r from-[#3534cd] to-[#00ffff]" aria-hidden="true"></div>
     </Link>
   )
 }
@@ -528,6 +510,9 @@ export default function BlogDetail() {
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
+  const [subscriberEmail, setSubscriberEmail] = useState('')
+  const [subscribing, setSubscribing] = useState(false)
+  const [subscriptionStatus, setSubscriptionStatus] = useState({ type: '', message: '' })
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -588,12 +573,34 @@ export default function BlogDetail() {
   const content = useMemo(() => renderContent(blog?.content), [blog?.content])
   const canNativeShare = typeof navigator !== 'undefined' && Boolean(navigator.share)
 
+  const handleSubscribe = async (event) => {
+    event.preventDefault()
+    setSubscribing(true)
+    setSubscriptionStatus({ type: '', message: '' })
+
+    try {
+      const email = await subscribeToInsights(subscriberEmail)
+      setSubscriberEmail('')
+      setSubscriptionStatus({
+        type: 'success',
+        message: `You're subscribed. We'll notify ${email} when new insights are published.`,
+      })
+    } catch (subscribeError) {
+      console.error('Insight subscription failed:', subscribeError)
+      setSubscriptionStatus({
+        type: 'error',
+        message: subscribeError.message || 'We could not subscribe you right now. Please try again.',
+      })
+    } finally {
+      setSubscribing(false)
+    }
+  }
+
   const handleShare = async (platform) => {
     const path = `/insights/${blog.slug || blog._id}`
     const url = absoluteUrl(path)
     const linkedinUrl = `${url}?share=${encodeURIComponent((blog._updatedAt || blog.publishedAt || '').slice(0, 10) || 'latest')}`
     const title = blog.title
-    const categoryLabel = formatCategory(blog.type || blog.category || blog.capability?.title)
 
     try {
       if (platform === 'native' && canNativeShare) {
@@ -605,7 +612,7 @@ export default function BlogDetail() {
         }
 
         try {
-          const shareCard = await createInsightShareCard({ blog, categoryLabel })
+          const shareCard = await createInsightShareCard({ blog })
           const shareFile = new File([shareCard], `${blog.slug || blog._id || 'magnafic-insight'}-share.png`, { type: 'image/png' })
           const fileShareData = { ...shareData, files: [shareFile] }
 
@@ -699,27 +706,11 @@ export default function BlogDetail() {
           },
         }}
       />
-      <section className="relative overflow-hidden bg-primary-900 px-4 pt-24 pb-20 text-white sm:px-6 lg:px-8">
-        {blog.imageUrl && (
-          <>
-            <img
-              src={blog.imageUrl}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 h-full w-full object-cover opacity-25"
-            />
-            <div className="absolute inset-0 bg-gradient-to-br from-primary-900 via-primary-900/95 to-cyan-900/80"></div>
-          </>
-        )}
+      <section className="relative overflow-hidden bg-primary-900 px-4 pt-24 pb-16 text-white sm:px-6 lg:px-8">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(0,255,255,0.16),transparent_30%),radial-gradient(circle_at_82%_14%,rgba(255,255,255,0.12),transparent_26%)]"></div>
 
         <div className="relative mx-auto max-w-6xl">
-          <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
-            <Link to="/insights" className="inline-flex items-center rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-cyan-100 ring-1 ring-white/15 transition hover:bg-white/15 hover:text-white">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Insights
-            </Link>
-
+          <div className="mb-8 flex justify-end">
             <div className="relative">
               <button
                 type="button"
@@ -778,49 +769,44 @@ export default function BlogDetail() {
             </div>
           </div>
 
-          <div>
-            <h1 className="max-w-5xl text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">
-              {blog.title}
-            </h1>
+          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+            <div>
+              <p className="mb-5 text-sm font-black uppercase tracking-[0.22em] text-cyan-200">Insight</p>
+              <h1 className="max-w-4xl text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">
+                {blog.title}
+              </h1>
 
-            {blog.excerpt && (
-              <p className="mt-5 max-w-3xl text-base leading-7 text-gray-200 md:text-xl md:leading-8">
-                {blog.excerpt}
-              </p>
+              {blog.excerpt && (
+                <p className="mt-5 max-w-3xl text-base leading-7 text-gray-200 md:text-xl md:leading-8">
+                  {blog.excerpt}
+                </p>
+              )}
+            </div>
+
+            {blog.imageUrl && (
+              <div className="mx-auto w-full max-w-sm lg:mx-0">
+                <img
+                  src={blog.imageUrl}
+                  alt={blog.title}
+                  className="aspect-[3/4] h-[420px] w-full rounded-[1.75rem] object-cover shadow-2xl shadow-primary-950/30 ring-1 ring-white/20"
+                />
+              </div>
             )}
           </div>
         </div>
       </section>
 
-      {blog.imageUrl && (
-        <div className="relative px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto -mt-12 max-w-6xl">
-            <img
-              src={blog.imageUrl}
-              alt={blog.title}
-              className="h-[220px] w-full rounded-3xl object-cover shadow-2xl shadow-primary-900/20 ring-1 ring-white sm:h-[300px] md:h-[500px]"
-            />
-          </div>
-        </div>
-      )}
-
-      <section className="px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[330px_1fr]">
-          <aside>
-            <div className="sticky top-24 rounded-[1.75rem] bg-white p-7 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
-              <p className="mb-6 text-sm font-black uppercase tracking-[0.22em] text-gray-400">Insight</p>
-              <div className="space-y-4 text-lg font-medium text-gray-700">
-                {blog.category && (
-                  <p className="rounded-2xl bg-[#e8e5ff] px-5 py-3 font-semibold text-[#000047]">{formatCategory(blog.category)}</p>
-                )}
-                {blog.capability?.title && (
-                  <p className="rounded-2xl bg-[#ddfbfb] px-5 py-3 font-semibold text-[#000047]">{blog.capability.title}</p>
-                )}
-                {blog.publishedAt && <p className="px-1 pt-2">{formatDate(blog.publishedAt)}</p>}
-                {blog.readTime && <p className="px-1">{blog.readTime}</p>}
+      <section className="px-4 py-14 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-4xl">
+          {blog.experts?.length > 0 && (
+            <section className="mb-10">
+              <div className="grid gap-5">
+                {blog.experts.map((expert) => (
+                  <ExpertInsightCard key={expert._id} expert={expert} blog={blog} />
+                ))}
               </div>
-            </div>
-          </aside>
+            </section>
+          )}
 
           <div className="rounded-3xl bg-white px-5 py-8 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:px-10 sm:py-10 lg:px-14">
             <div className="mx-auto max-w-3xl">
@@ -831,29 +817,64 @@ export default function BlogDetail() {
                   {blog.contentText || blog.excerpt || 'This insight does not have any published content yet.'}
                 </p>
               )}
-
-              {blog.experts?.length > 0 && (
-                <section className="mt-14 border-t border-gray-200 pt-10">
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-gray-950">Author</h2>
-                  </div>
-                  <div className="grid gap-5">
-                    {blog.experts.map((expert) => (
-                      <ExpertInsightCard key={expert._id} expert={expert} />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              <div className="mt-14 border-t border-gray-200 pt-8">
-                <Link to="/insights" className="inline-flex items-center rounded-full bg-primary-600 px-6 py-3 font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Insights
-                </Link>
-              </div>
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="px-4 pb-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-4xl overflow-hidden rounded-3xl bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
+          <div className="grid gap-6 px-6 py-8 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary-50 text-primary-700">
+                <Bell className="h-5 w-5" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-950">Get new insights in your inbox</h2>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Subscribe to receive a notification whenever Magnafic publishes a new insight.
+              </p>
+            </div>
+
+            <form onSubmit={handleSubscribe} className="flex min-w-0 flex-col gap-3 sm:min-w-[22rem]">
+              <label htmlFor="blog-insight-subscription-email" className="sr-only">Email address</label>
+              <div className="flex overflow-hidden rounded-full border border-gray-200 bg-gray-50 p-1 focus-within:border-primary-300 focus-within:ring-2 focus-within:ring-primary-100">
+                <span className="flex shrink-0 items-center pl-4 text-gray-400">
+                  <Mail className="h-4 w-4" />
+                </span>
+                <input
+                  id="blog-insight-subscription-email"
+                  type="email"
+                  value={subscriberEmail}
+                  onChange={(event) => setSubscriberEmail(event.target.value)}
+                  placeholder="Email address"
+                  className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm font-medium text-gray-900 outline-none placeholder:text-gray-400"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={subscribing}
+                  className="shrink-0 rounded-full bg-primary-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {subscribing ? 'Subscribing...' : 'Subscribe'}
+                </button>
+              </div>
+              {subscriptionStatus.message && (
+                <p className={`text-sm font-semibold ${subscriptionStatus.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {subscriptionStatus.message}
+                </p>
+              )}
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <DescribeProblemCTA />
+
+      <section className="px-4 pb-16 text-center sm:px-6 lg:px-8">
+        <Link to="/insights" className="inline-flex items-center rounded-full bg-primary-600 px-6 py-3 font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Insights
+        </Link>
       </section>
     </article>
   )
