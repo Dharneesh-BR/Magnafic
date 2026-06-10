@@ -188,6 +188,293 @@ function renderContent(blocks = []) {
   return rendered
 }
 
+function loadShareImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.crossOrigin = 'anonymous'
+    image.onload = () => resolve(image)
+    image.onerror = reject
+    image.src = src
+  })
+}
+
+function wrapCanvasText(context, text, x, y, maxWidth, lineHeight, maxLines = 3) {
+  const words = `${text || ''}`.split(/\s+/).filter(Boolean)
+  const lines = []
+  let line = ''
+
+  words.forEach(word => {
+    const testLine = line ? `${line} ${word}` : word
+
+    if (context.measureText(testLine).width > maxWidth && line) {
+      lines.push(line)
+      line = word
+    } else {
+      line = testLine
+    }
+  })
+
+  if (line) lines.push(line)
+
+  lines.slice(0, maxLines).forEach((lineText, index) => {
+    const isLastVisibleLine = index === maxLines - 1 && lines.length > maxLines
+    context.fillText(isLastVisibleLine ? `${lineText.replace(/\s+\S+$/, '')}...` : lineText, x, y + (index * lineHeight))
+  })
+}
+
+function getCanvasTextLines(context, text, maxWidth) {
+  const words = `${text || ''}`.split(/\s+/).filter(Boolean)
+  const lines = []
+  let line = ''
+
+  words.forEach(word => {
+    const testLine = line ? `${line} ${word}` : word
+
+    if (context.measureText(testLine).width > maxWidth && line) {
+      lines.push(line)
+      line = word
+    } else {
+      line = testLine
+    }
+  })
+
+  if (line) lines.push(line)
+  return lines
+}
+
+function drawFittedCanvasText(context, text, x, y, maxWidth, maxLines, {
+  fontWeight = 700,
+  fontFamily = 'Arial',
+  maxFontSize = 30,
+  minFontSize = 20,
+  lineHeightRatio = 1.18,
+} = {}) {
+  let fontSize = maxFontSize
+  let lines = []
+
+  while (fontSize >= minFontSize) {
+    context.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+    lines = getCanvasTextLines(context, text, maxWidth)
+
+    if (lines.length <= maxLines) break
+    fontSize -= 1
+  }
+
+  const lineHeight = Math.round(fontSize * lineHeightRatio)
+  lines.slice(0, maxLines).forEach((lineText, index) => {
+    context.fillText(lineText, x, y + (index * lineHeight))
+  })
+
+  return {
+    lineCount: Math.min(lines.length, maxLines),
+    lineHeight,
+    fontSize,
+  }
+}
+
+function initials(name = '') {
+  return name
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+function roundedRect(context, x, y, width, height, radius) {
+  context.beginPath()
+  context.moveTo(x + radius, y)
+  context.lineTo(x + width - radius, y)
+  context.quadraticCurveTo(x + width, y, x + width, y + radius)
+  context.lineTo(x + width, y + height - radius)
+  context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+  context.lineTo(x + radius, y + height)
+  context.quadraticCurveTo(x, y + height, x, y + height - radius)
+  context.lineTo(x, y + radius)
+  context.quadraticCurveTo(x, y, x + radius, y)
+  context.closePath()
+}
+
+function drawImageCover(context, image, x, y, width, height) {
+  const sourceRatio = image.width / image.height
+  const targetRatio = width / height
+  let sourceWidth = image.width
+  let sourceHeight = image.height
+  let sourceX = 0
+  let sourceY = 0
+
+  if (sourceRatio > targetRatio) {
+    sourceWidth = image.height * targetRatio
+    sourceX = (image.width - sourceWidth) / 2
+  } else {
+    sourceHeight = image.width / targetRatio
+    sourceY = (image.height - sourceHeight) / 2
+  }
+
+  context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height)
+}
+
+async function createInsightShareCard({ blog, categoryLabel }) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 420
+  canvas.height = 558
+  const context = canvas.getContext('2d')
+  const author = blog.experts?.[0]
+  const authorName = author?.fullName || 'Magnafic'
+  const authorRole = author
+    ? author.headline || author.currentDesignation || author.designation || 'Expert Mentor'
+    : 'Expert Insights'
+
+  const cardX = 0
+  const cardY = 0
+  const cardWidth = canvas.width
+  const cardHeight = canvas.height
+  const cardRadius = 34
+
+  roundedRect(context, cardX, cardY, cardWidth, cardHeight, cardRadius)
+  context.fillStyle = '#ffffff'
+  context.fill()
+
+  context.save()
+  roundedRect(context, cardX, cardY, cardWidth, cardHeight, cardRadius)
+  context.clip()
+
+  const headerHeight = 206
+  let headerImageDrawn = false
+
+  if (blog.imageUrl) {
+    try {
+      const insightImage = await loadShareImage(blog.imageUrl)
+      drawImageCover(context, insightImage, cardX, cardY, cardWidth, headerHeight)
+      headerImageDrawn = true
+    } catch {
+      headerImageDrawn = false
+    }
+  }
+
+  if (!headerImageDrawn) {
+    const headerGradient = context.createLinearGradient(cardX, cardY, cardX + cardWidth, cardY + headerHeight)
+    headerGradient.addColorStop(0, '#000047')
+    headerGradient.addColorStop(0.58, '#3534cd')
+    headerGradient.addColorStop(1, '#00ffff')
+    context.fillStyle = headerGradient
+    context.fillRect(cardX, cardY, cardWidth, headerHeight)
+  }
+
+  const headerOverlay = context.createLinearGradient(cardX, cardY, cardX, cardY + headerHeight)
+  headerOverlay.addColorStop(0, 'rgba(0, 0, 71, 0.08)')
+  headerOverlay.addColorStop(1, 'rgba(0, 0, 71, 0.32)')
+  context.fillStyle = headerOverlay
+  context.fillRect(cardX, cardY, cardWidth, headerHeight)
+
+  try {
+    const logo = await loadShareImage('/favicon.png')
+    context.drawImage(logo, cardX + cardWidth - 68, cardY + 18, 46, 38)
+  } catch {
+    context.fillStyle = '#ffffff'
+    context.font = '700 28px Arial'
+    context.fillText('M', cardX + cardWidth - 56, cardY + 46)
+  }
+
+  context.textAlign = 'center'
+  context.fillStyle = '#030712'
+  const titleMetrics = drawFittedCanvasText(context, blog.title, cardX + (cardWidth / 2), cardY + 252, cardWidth - 56, 6, {
+    maxFontSize: 30,
+    minFontSize: 21,
+    lineHeightRatio: 1.15,
+  })
+
+  const titleBottom = cardY + 252 + ((titleMetrics.lineCount - 1) * titleMetrics.lineHeight)
+
+  const authorX = cardX + 70
+  const authorY = Math.min(Math.max(titleBottom + 68, cardY + 430), cardY + 444)
+  const authorRadius = 24
+  const authorBandX = cardX + 34
+  const authorBandY = authorY - 38
+  const authorBandWidth = cardWidth - 68
+  const authorBandHeight = 76
+
+  roundedRect(context, authorBandX, authorBandY, authorBandWidth, authorBandHeight, 18)
+  context.fillStyle = '#f3f4f6'
+  context.fill()
+
+  context.save()
+  context.beginPath()
+  context.arc(authorX, authorY, authorRadius, 0, Math.PI * 2)
+  context.closePath()
+  context.fillStyle = '#e6f7ff'
+  context.fill()
+  context.clip()
+
+  let authorImageDrawn = false
+
+  if (author?.imageUrl) {
+    try {
+      const authorImage = await loadShareImage(author.imageUrl)
+      drawImageCover(context, authorImage, authorX - authorRadius, authorY - authorRadius, authorRadius * 2, authorRadius * 2)
+      authorImageDrawn = true
+    } catch {
+      context.fillStyle = '#e6f7ff'
+      context.fillRect(authorX - authorRadius, authorY - authorRadius, authorRadius * 2, authorRadius * 2)
+    }
+  }
+
+  context.restore()
+
+  if (!authorImageDrawn) {
+    context.font = '700 18px Arial'
+    context.fillStyle = '#3534cd'
+    context.textAlign = 'center'
+    context.fillText(initials(authorName) || 'M', authorX, authorY + 7)
+  }
+
+  context.strokeStyle = '#ffffff'
+  context.lineWidth = 4
+  context.beginPath()
+  context.arc(authorX, authorY, authorRadius + 1, 0, Math.PI * 2)
+  context.stroke()
+
+  context.textAlign = 'left'
+  context.fillStyle = '#030712'
+  context.font = '700 17px Arial'
+  context.fillText(authorName, authorX + 38, authorY - 4)
+
+  context.fillStyle = '#6b7280'
+  context.font = '600 13px Arial'
+  wrapCanvasText(context, authorRole, authorX + 38, authorY + 16, cardWidth - 128, 17, 1)
+
+  const metaY = authorY + 64
+
+  context.textAlign = 'center'
+  context.fillStyle = '#1d4ed8'
+  context.font = '700 18px Arial'
+  wrapCanvasText(context, categoryLabel, cardX + (cardWidth / 2), metaY, cardWidth - 80, 24, 1)
+
+  const publishedLabel = formatDate(blog.publishedAt)
+  if (publishedLabel) {
+    context.fillStyle = '#1d4ed8'
+    context.font = '700 16px Arial'
+    context.fillText(publishedLabel, cardX + (cardWidth / 2), metaY + 30)
+  }
+
+  const footerGradient = context.createLinearGradient(cardX, cardY + cardHeight - 10, cardX + cardWidth, cardY + cardHeight - 10)
+  footerGradient.addColorStop(0, '#3534cd')
+  footerGradient.addColorStop(1, '#00ffff')
+  context.fillStyle = footerGradient
+  context.fillRect(cardX, cardY + cardHeight - 10, cardWidth, 10)
+  context.restore()
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(blob => {
+      if (blob) {
+        resolve(blob)
+      } else {
+        reject(new Error('Unable to create share image'))
+      }
+    }, 'image/png')
+  })
+}
+
 function ExpertInsightCard({ expert }) {
   const headline = expert.headline || expert.currentDesignation || expert.designation || 'Expert Mentor'
   const company = expert.currentCompany || expert.company
@@ -240,6 +527,7 @@ export default function BlogDetail() {
   const [error, setError] = useState('')
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [isSharing, setIsSharing] = useState(false)
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -305,14 +593,32 @@ export default function BlogDetail() {
     const url = absoluteUrl(path)
     const linkedinUrl = `${url}?share=${encodeURIComponent((blog._updatedAt || blog.publishedAt || '').slice(0, 10) || 'latest')}`
     const title = blog.title
+    const categoryLabel = formatCategory(blog.type || blog.category || blog.capability?.title)
 
     try {
       if (platform === 'native' && canNativeShare) {
-        await navigator.share({
+        setIsSharing(true)
+        const shareData = {
           title,
           text: blog.excerpt || title,
           url,
-        })
+        }
+
+        try {
+          const shareCard = await createInsightShareCard({ blog, categoryLabel })
+          const shareFile = new File([shareCard], `${blog.slug || blog._id || 'magnafic-insight'}-share.png`, { type: 'image/png' })
+          const fileShareData = { ...shareData, files: [shareFile] }
+
+          if (!navigator.canShare || navigator.canShare(fileShareData)) {
+            await navigator.share(fileShareData)
+            setShareMenuOpen(false)
+            return
+          }
+        } catch (shareImageError) {
+          console.warn('Insight share image could not be attached:', shareImageError)
+        }
+
+        await navigator.share(shareData)
         setShareMenuOpen(false)
         return
       }
@@ -338,6 +644,8 @@ export default function BlogDetail() {
     } catch (shareError) {
       console.error('Error sharing insight:', shareError)
       setShareMenuOpen(false)
+    } finally {
+      setIsSharing(false)
     }
   }
 
@@ -419,7 +727,7 @@ export default function BlogDetail() {
                 className="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-bold text-primary-700 shadow-lg shadow-primary-950/10 transition hover:bg-cyan-50"
               >
                 <Share2 className="mr-2 h-4 w-4" />
-                {copied ? 'Copied' : 'Share'}
+                {isSharing ? 'Sharing...' : copied ? 'Copied' : 'Share'}
               </button>
               {shareMenuOpen && (
                 <div className="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-2xl border border-white/20 bg-white py-2 text-gray-700 shadow-2xl shadow-primary-950/20">

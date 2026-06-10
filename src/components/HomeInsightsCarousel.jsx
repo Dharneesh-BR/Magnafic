@@ -67,7 +67,7 @@ export default function HomeInsightsCarousel() {
       setError('')
 
       try {
-        const data = await mentorClient.fetch(`*[_type == "blog" && status != "archived"] | order(featured desc, publishedAt desc)[0...8] {
+        const data = await mentorClient.fetch(`*[_type == "blog" && status != "archived"] | order(publishedAt desc, _updatedAt desc)[0...8] {
           _id,
           title,
           "slug": slug.current,
@@ -180,8 +180,8 @@ export default function HomeInsightsCarousel() {
           className="flex snap-x gap-6 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {insights.map((item) => (
-            <article key={item._id} className="group w-[82vw] shrink-0 snap-start overflow-hidden rounded-[1.5rem] bg-white shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/12 sm:w-[22rem]">
-              <Link to={`/insights/${item.slug || item._id}`} className={`relative block min-h-[26rem] overflow-hidden ${getGradientByType(item.type)}`}>
+            <article key={item._id} className="group flex h-[34rem] w-[80vw] shrink-0 snap-start flex-col overflow-hidden rounded-[1.5rem] bg-white shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/12 sm:w-[22rem]">
+              <Link to={`/insights/${item.slug || item._id}`} className={`relative block h-[25rem] shrink-0 overflow-hidden ${getGradientByType(item.type)}`}>
                 {item.imageUrl ? (
                   <img
                     src={item.imageUrl}
@@ -207,35 +207,38 @@ export default function HomeInsightsCarousel() {
               </Link>
 
               {item.experts?.length > 0 && (
-                <div className="border-x border-b border-gray-100 bg-gray-50 px-5 py-4">
-                  {item.experts.slice(0, 1).map((expert) => (
-                    <div key={expert._id} className="min-w-0">
-                      <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-extrabold uppercase tracking-[0.14em]">
-                        <span className="text-gray-900">Author</span>
-                        <span className="text-gray-300">|</span>
-                        <span className="text-gray-700">{getTypeLabel(item.type)}</span>
-                        {item.publishedAt && <span className="text-gray-700">{formatDate(item.publishedAt)}</span>}
-                        {item.readTime && <span className="text-gray-700">{item.readTime}</span>}
-                      </div>
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-sm font-bold text-primary-700 ring-1 ring-primary-100">
-                          {expert.imageUrl ? (
-                            <img src={expert.imageUrl} alt={expert.fullName} className="h-full w-full object-cover object-center" />
-                          ) : (
-                            <span>{expert.fullName?.split(' ').map((name) => name[0]).join('').slice(0, 2).toUpperCase()}</span>
-                          )}
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-x border-b border-gray-100 bg-gray-50">
+                  <div className="min-h-0 flex-1 overflow-hidden px-5 py-4">
+                    {item.experts.slice(0, 1).map((expert) => (
+                      <div key={expert._id} className="min-w-0">
+                        <div className="mb-2 flex min-w-0 flex-nowrap items-center gap-x-3 overflow-hidden text-[11px] font-extrabold uppercase tracking-[0.14em]">
+                          <span className="shrink-0 text-gray-900">Author</span>
+                          <span className="shrink-0 text-gray-300">|</span>
+                          <span className="shrink-0 text-gray-700">{getTypeLabel(item.type)}</span>
+                          {item.publishedAt && <span className="shrink-0 text-gray-700">{formatDate(item.publishedAt)}</span>}
+                          {item.readTime && <span className="shrink-0 text-gray-700">{item.readTime}</span>}
                         </div>
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-bold text-gray-950">{expert.fullName}</span>
-                          {(expert.headline || expert.currentDesignation || expert.designation) && (
-                            <span className="mt-1 block line-clamp-2 text-xs font-medium leading-5 text-gray-600">
-                              {expert.headline || expert.currentDesignation || expert.designation}
-                            </span>
-                          )}
-                        </span>
+                        <div className="flex min-w-0 items-center gap-3 overflow-hidden">
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-sm font-bold text-primary-700 ring-1 ring-primary-100">
+                            {expert.imageUrl ? (
+                              <img src={expert.imageUrl} alt={expert.fullName} className="h-full w-full object-cover object-center" />
+                            ) : (
+                              <span>{expert.fullName?.split(' ').map((name) => name[0]).join('').slice(0, 2).toUpperCase()}</span>
+                            )}
+                          </div>
+                          <span className="min-w-0 overflow-hidden">
+                            <span className="block truncate text-sm font-bold text-gray-950">{expert.fullName}</span>
+                            {(expert.headline || expert.currentDesignation || expert.designation) && (
+                              <span className="mt-1 block line-clamp-3 text-xs font-medium leading-5 text-gray-600">
+                                {expert.headline || expert.currentDesignation || expert.designation}
+                              </span>
+                            )}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  <div className="h-2 bg-gradient-to-r from-[#3534cd] to-[#00ffff]" aria-hidden="true"></div>
                 </div>
               )}
             </article>
