@@ -496,6 +496,9 @@ function ExpertInsightCard({ expert, blog }) {
             )}
           </span>
         </div>
+        <span className="mt-5 inline-flex w-fit items-center rounded-full bg-primary-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary-900/10 transition group-hover:bg-primary-700">
+          View profile
+        </span>
       </div>
       <div className="h-2 bg-gradient-to-r from-[#3534cd] to-[#00ffff]" aria-hidden="true"></div>
     </Link>

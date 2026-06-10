@@ -194,7 +194,10 @@ export default function HomeInsightsCarousel() {
                   </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/5 to-black/35"></div>
-                <div className="absolute left-5 right-5 top-5">
+                <div className="absolute right-5 top-5 h-12 w-12">
+                  <img src="/favicon.png" alt="" className="h-full w-full object-contain" />
+                </div>
+                <div className="absolute left-5 right-20 top-5">
                   <span className="inline-flex max-w-full items-center justify-center rounded-[1.35rem] border border-white bg-gray-950/65 px-6 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-black/20 backdrop-blur-sm">
                     <span className="truncate">{item.capability?.title || formatCategory(item.category)}</span>
                   </span>
