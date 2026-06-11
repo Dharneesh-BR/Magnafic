@@ -822,11 +822,11 @@ export default function ExpertDetail() {
 
               {experienceLogoItems.length > 0 && (
                 <div className="hidden lg:flex lg:justify-end">
-                  <div className="grid w-full max-w-[300px] grid-cols-3 gap-3">
-                    {experienceLogoItems.slice(0, 6).map((item, index) => (
+                  <div className="grid w-full max-w-[300px] grid-cols-4 gap-2">
+                    {experienceLogoItems.slice(0, 12).map((item, index) => (
                       <div
                         key={`${item.companyName || 'company'}-${index}`}
-                        className="flex aspect-square items-center justify-center p-2"
+                        className="flex aspect-square items-center justify-center p-1.5"
                         title={item.companyName || item.roleTitle}
                       >
                         <img src={item.companyLogoUrl} alt={item.companyName || item.roleTitle || 'Company logo'} className="max-h-full max-w-full object-contain" />

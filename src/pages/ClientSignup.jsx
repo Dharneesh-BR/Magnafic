@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Building2, Lock, Mail, MapPin, Phone, User, Eye, EyeOff } from 'lucide-react'
+import { ArrowRight, Building2, Mail, MapPin, Phone, User } from 'lucide-react'
 import SEO from '../components/SEO'
 import { isProfessionalEmail, signupClient } from '../lib/auth'
 import { createProblemBriefFromStoredAnswers } from '../lib/dashboard'
@@ -8,30 +8,26 @@ import { createProblemBriefFromStoredAnswers } from '../lib/dashboard'
 function getSignupErrorMessage(error) {
   switch (error?.code) {
     case 'auth/email-already-in-use':
-      return 'An account already exists with this email. Please log in or use a different professional email.'
+      return 'This email is already registered. Please log in or use a different professional email.'
     case 'auth/invalid-email':
       return 'Please enter a valid professional email address.'
-    case 'auth/weak-password':
-      return 'Please use a stronger password with at least 8 characters.'
     case 'auth/operation-not-allowed':
-      return 'Email signup is not enabled in Firebase Authentication. Please enable Email/Password sign-in in Firebase.'
+      return 'Email submission is not enabled right now. Please try again later.'
     case 'permission-denied':
-      return 'Your account was created, but the profile could not be saved. Please check Firestore permissions.'
+      return 'Your details were submitted, but the profile could not be saved. Please check Firestore permissions.'
     default:
-      return 'Unable to create your account right now. Please check the details and try again.'
+      return 'Unable to submit your details right now. Please check the details and try again.'
   }
 }
 
 export default function ClientSignup() {
   const navigate = useNavigate()
-  const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({
     name: '',
     company: '',
     city: '',
     phone: '',
     email: '',
-    password: '',
   })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -47,7 +43,7 @@ export default function ClientSignup() {
     setError('')
 
     if (!isProfessionalEmail(form.email)) {
-      setError('Please use your Business email ID. Personal email IDs are not allowed for client signup.')
+      setError('Please use your Business email ID. Personal email IDs are not allowed.')
       setSubmitting(false)
       return
     }
@@ -70,25 +66,17 @@ export default function ClientSignup() {
 
   return (
     <div className="min-h-screen bg-[#f7f9ff] px-4 pt-28 pb-16 sm:px-6 lg:px-8">
-      <SEO title="Client Signup" description="Create a Magnafic client account with a professional company email." path="/signup" noIndex />
-      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1fr_440px] lg:items-center">
+      <SEO title="Submit Details" description="Submit your details to Magnafic with a professional company email." path="/signup" noIndex />
+      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1fr_440px] lg:items-start">
         <section>
-          <span className="mb-5 inline-flex rounded-full bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700">
-            Client access
-          </span>
-          <h1 className="max-w-3xl text-3xl font-bold leading-tight text-gray-950 sm:text-4xl md:text-6xl">
-            Create your client account with a verified Business email ID
+          <h1 className="max-w-5xl text-3xl leading-tight text-gray-950 sm:text-4xl md:text-5xl">
+            Tell us more about you and your organization to route your request to the right team.
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-gray-600">
-            Client signup is limited to business email addresses so project briefs, expert matching, and workspace access stay tied to verified organizations.
-          </p>
         </section>
 
-        <section className="rounded-3xl bg-white p-5 shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100 sm:p-8">
-          <h2 className="mb-2 text-2xl font-bold text-gray-950">Client signup</h2>
-          <p className="mb-8 text-sm text-gray-500">Consultant access is managed by the Magnafic backend team.</p>
-
-          <form className="space-y-5" onSubmit={handleSubmit}>
+        <section className="rounded-3xl bg-gradient-to-br from-[#000047] via-primary-700 to-cyan-400 p-1 shadow-2xl shadow-primary-900/10">
+          <div className="rounded-[1.35rem] bg-white p-5 sm:p-8">
+            <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">Full name</label>
               <div className="relative">
@@ -161,25 +149,6 @@ export default function ClientSignup() {
               </div>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                <input
-                  required
-                  minLength={8}
-                  type={showPassword ? 'text' : 'password'}
-                  value={form.password}
-                  onChange={event => updateField('password', event.target.value)}
-                  className="w-full rounded-xl border border-gray-300 py-3 pl-12 pr-12 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-                  placeholder="Minimum 8 characters"
-                />
-                <button type="button" onClick={() => setShowPassword(value => !value)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-            </div>
-
             {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
 
             <button type="submit" disabled={submitting} className="flex w-full items-center justify-center rounded-xl bg-primary-600 py-3 font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-70">
@@ -189,11 +158,12 @@ export default function ClientSignup() {
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-600">
-            Already have an account?{' '}
+            Already have access?{' '}
             <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700">
               Login
             </Link>
           </p>
+          </div>
         </section>
       </div>
     </div>

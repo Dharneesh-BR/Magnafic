@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Briefcase, CheckCircle2, ChevronDown, Eye, EyeOff, Lock, Mail, User } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import SEO from '../components/SEO'
 import { isProfessionalEmail, loginUser, sendAccountPasswordReset } from '../lib/auth'
 
 export default function Login() {
   const navigate = useNavigate()
   const redirectTimerRef = useRef(null)
-  const [role, setRole] = useState('client')
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -34,7 +33,7 @@ export default function Login() {
     }
 
     try {
-      await loginUser({ email, password, fallbackRole: role })
+      await loginUser({ email, password, fallbackRole: 'consultant' })
       setLoginComplete(true)
       setMessage('Thank you. You have logged in successfully.')
       redirectTimerRef.current = window.setTimeout(() => {
@@ -85,36 +84,12 @@ export default function Login() {
         ) : (
         <>
         <div className="mb-8 text-center">
-          <h1 className="mb-2 text-3xl font-bold text-gray-900">Welcome Back</h1>
+          <h1 className="mb-2 text-3xl font-bold text-gray-900">Login</h1>
           <p className="text-gray-600">Login with your Business email ID</p>
         </div>
 
         <div className="rounded-3xl bg-white p-5 shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100 sm:p-8">
           <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Login as</label>
-              <div className="relative">
-                <select
-                  value={role}
-                  onChange={event => {
-                    setRole(event.target.value)
-                    setError('')
-                    setMessage('')
-                  }}
-                  className="w-full appearance-none rounded-xl border border-gray-300 bg-white py-3 pl-12 pr-10 font-medium text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-                >
-                  <option value="client">Client</option>
-                  <option value="consultant">Consultant</option>
-                </select>
-                {role === 'client' ? (
-                  <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                ) : (
-                  <Briefcase className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                )}
-                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-              </div>
-            </div>
-
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">Business email Id</label>
               <div className="relative">
@@ -156,18 +131,12 @@ export default function Login() {
               </div>
             </div>
 
-            {role === 'consultant' && (
-              <p className="rounded-xl bg-primary-50 px-4 py-3 text-sm font-medium text-primary-800">
-                Consultant accounts are created by Magnafic. Use the email shared with the backend team and reset your password after receiving credentials.
-              </p>
-            )}
-
             {message && <p className="rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">{message}</p>}
 
             {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
 
             <button type="submit" disabled={submitting} className="flex w-full items-center justify-center rounded-xl bg-primary-600 py-3 font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-70">
-              {submitting ? 'Logging in...' : `Login as ${role === 'client' ? 'Client' : 'Consultant'}`}
+              {submitting ? 'Logging in...' : 'Login'}
               <ArrowRight className="ml-2 h-5 w-5" />
             </button>
 
@@ -177,9 +146,9 @@ export default function Login() {
           </form>
 
           <p className="mt-8 text-center text-gray-600">
-            New client?{' '}
+            Need to share your details?{' '}
             <Link to="/signup" className="font-semibold text-primary-600 hover:text-primary-700">
-              Create a client account
+              Open the form
             </Link>
           </p>
         </div>

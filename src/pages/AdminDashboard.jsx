@@ -25,6 +25,31 @@ function toDate(value) {
   return value?.toDate?.() || value || null
 }
 
+function toComparableDate(value) {
+  const date = toDate(value)
+  if (!date) return null
+
+  const parsedDate = date instanceof Date ? date : new Date(date)
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
+}
+
+function isWithinDateRange(value, startDate, endDate) {
+  const date = toComparableDate(value)
+  if (!date) return !startDate && !endDate
+
+  if (startDate) {
+    const start = new Date(`${startDate}T00:00:00`)
+    if (date < start) return false
+  }
+
+  if (endDate) {
+    const end = new Date(`${endDate}T23:59:59.999`)
+    if (date > end) return false
+  }
+
+  return true
+}
+
 function formatDateTimeInput(value) {
   const date = toDate(value)
   if (!date) return ''
@@ -129,6 +154,11 @@ export default function AdminDashboard() {
   const [dataError, setDataError] = useState('')
   const [dataMessage, setDataMessage] = useState('')
   const [activeView, setActiveView] = useState('dashboard')
+  const [dashboardFilters, setDashboardFilters] = useState({
+    expertId: '',
+    startDate: '',
+    endDate: '',
+  })
   const [removingClientId, setRemovingClientId] = useState('')
   const [detachingBriefId, setDetachingBriefId] = useState('')
   const [schedulingBriefId, setSchedulingBriefId] = useState('')
@@ -274,18 +304,34 @@ export default function AdminDashboard() {
     }
   }, [isClientBriefPage, isClientDetailsPage, isConsultantBriefPage, isConsultantClientsPage, isGenericBriefPage])
 
-  const stats = useMemo(() => ({
-    users: usersData.length,
-    clients: usersData.filter((item) => item.role === 'client').length,
-    consultants: usersData.filter((item) => item.role === 'consultant').length,
-    briefs: briefs.length,
-    projectPayments: usersData
-      .filter((item) => item.role === 'consultant')
-      .reduce((total, consultant) => total + getPaymentTotal(consultant.projectPayments), 0),
-    referralPayments: usersData
-      .filter((item) => item.role === 'consultant')
-      .reduce((total, consultant) => total + getPaymentTotal(consultant.referralPayments), 0),
-  }), [briefs.length, usersData])
+  function getAllocatedConsultants(brief) {
+    const allocatedConsultants = Array.isArray(brief?.allocatedConsultants) ? brief.allocatedConsultants.filter(Boolean) : []
+    if (allocatedConsultants.length > 0) return allocatedConsultants
+
+    if (brief?.allocatedConsultantName || brief?.allocatedConsultantEmail || brief?.assignedConsultantId) {
+      return [{
+        id: brief.assignedConsultantId || '',
+        name: brief.allocatedConsultantName || '',
+        email: brief.allocatedConsultantEmail || '',
+        sanityExpertId: brief.allocatedConsultantSanityId || '',
+      }]
+    }
+
+    return []
+  }
+
+  function getAllocatedConsultantIds(brief) {
+    const ids = new Set(getAllocatedConsultants(brief).map((consultant) => consultant.id).filter(Boolean))
+    if (brief?.assignedConsultantId) ids.add(brief.assignedConsultantId)
+    return ids
+  }
+
+  function isReferralAllocated(brief) {
+    return (
+      getAllocatedConsultantIds(brief).size > 0 ||
+      (Array.isArray(brief?.matchedExpertIds) && brief.matchedExpertIds.length > 0)
+    )
+  }
 
   const scheduleRequests = useMemo(() => briefs
     .filter((brief) => ['requested', 'scheduled'].includes(brief.scheduleRequestStatus))
@@ -302,6 +348,15 @@ export default function AdminDashboard() {
       const bTime = toDate(b.createdAt)?.getTime?.() || 0
       return bTime - aTime
     }), [briefs])
+
+  const referralStats = useMemo(() => ({
+    submitted: referralRequests.length,
+    accepted: referralRequests.filter((brief) => (
+      isReferralAllocated(brief) ||
+      ['accepted', 'scheduled', 'active', 'closed', 'completed', 'matching'].includes(brief.status)
+    )).length,
+    activeProjects: referralRequests.filter((brief) => brief.status === 'active').length,
+  }), [referralRequests])
 
   const sortedBriefs = useMemo(() => [...briefs].sort((a, b) => {
     const aTime = a.createdAt?.toDate?.()?.getTime?.() || 0
@@ -337,6 +392,81 @@ export default function AdminDashboard() {
       ...client,
       attachedBriefs: briefs.filter((brief) => brief.clientId === client.id || brief.clientEmail === client.email),
     })), [briefs, usersData])
+
+  const selectedDashboardConsultant = useMemo(
+    () => consultants.find((consultant) => consultant.id === dashboardFilters.expertId),
+    [consultants, dashboardFilters.expertId]
+  )
+
+  const dashboardBriefs = useMemo(() => briefs.filter((brief) => {
+    if (!isWithinDateRange(brief.createdAt, dashboardFilters.startDate, dashboardFilters.endDate)) {
+      return false
+    }
+
+    if (!selectedDashboardConsultant) return true
+
+    return (
+      brief.assignedConsultantId === selectedDashboardConsultant.id ||
+      brief.allocatedConsultantSanityId === selectedDashboardConsultant.sanityExpertId ||
+      brief.preferredConsultantId === selectedDashboardConsultant.sanityExpertId ||
+      (
+        selectedDashboardConsultant.sanityExpertId &&
+        Array.isArray(brief.matchedExpertIds) &&
+        brief.matchedExpertIds.includes(selectedDashboardConsultant.sanityExpertId)
+      )
+    )
+  }), [briefs, dashboardFilters.endDate, dashboardFilters.startDate, selectedDashboardConsultant])
+
+  const dashboardClients = useMemo(() => {
+    const clientIds = new Set()
+    const clientEmails = new Set()
+
+    dashboardBriefs.forEach((brief) => {
+      if (brief.clientId) clientIds.add(brief.clientId)
+      if (brief.clientEmail) clientEmails.add(brief.clientEmail)
+      if (brief.businessEmail) clientEmails.add(brief.businessEmail)
+    })
+
+    return clients.filter((client) => clientIds.has(client.id) || clientEmails.has(client.email))
+  }, [clients, dashboardBriefs])
+
+  const dashboardConsultants = useMemo(() => (
+    selectedDashboardConsultant ? [selectedDashboardConsultant] : consultants
+  ), [consultants, selectedDashboardConsultant])
+
+  const hasDashboardFilters = Boolean(dashboardFilters.expertId || dashboardFilters.startDate || dashboardFilters.endDate)
+
+  const getFilteredPaymentTotal = (consultant, paymentKey) => {
+    const payments = Array.isArray(consultant?.[paymentKey]) ? consultant[paymentKey] : []
+
+    return payments
+      .filter((payment) => isWithinDateRange(payment?.paidAt || payment?.createdAt, dashboardFilters.startDate, dashboardFilters.endDate))
+      .reduce((total, payment) => total + (Number(payment?.amount) || 0), 0)
+  }
+
+  const stats = useMemo(() => ({
+    users: hasDashboardFilters ? dashboardClients.length + dashboardConsultants.length : usersData.length,
+    clients: hasDashboardFilters ? dashboardClients.length : usersData.filter((item) => item.role === 'client').length,
+    consultants: dashboardConsultants.length,
+    briefs: dashboardBriefs.length,
+    projectPayments: dashboardConsultants.reduce((total, consultant) => total + getFilteredPaymentTotal(consultant, 'projectPayments'), 0),
+    referralPayments: dashboardConsultants.reduce((total, consultant) => total + getFilteredPaymentTotal(consultant, 'referralPayments'), 0),
+  }), [dashboardBriefs.length, dashboardClients.length, dashboardConsultants, dashboardFilters.endDate, dashboardFilters.startDate, hasDashboardFilters, usersData])
+
+  const updateDashboardFilter = (field, value) => {
+    setDashboardFilters((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const resetDashboardFilters = () => {
+    setDashboardFilters({
+      expertId: '',
+      startDate: '',
+      endDate: '',
+    })
+  }
 
   const selectedRouteConsultant = useMemo(
     () => consultants.find((consultant) => consultant.id === routeConsultantId),
@@ -487,13 +617,13 @@ export default function AdminDashboard() {
   }
 
   const getDefaultAllocationConsultantId = (brief) => {
-    if (brief.assignedConsultantId) return brief.assignedConsultantId
-
     const preferredConsultant = consultants.find((consultant) => (
       consultant.sanityExpertId && consultant.sanityExpertId === brief.preferredConsultantId
     ))
 
-    return preferredConsultant?.id || ''
+    if (preferredConsultant && !getAllocatedConsultantIds(brief).has(preferredConsultant.id)) return preferredConsultant.id
+
+    return consultants.find((consultant) => !getAllocatedConsultantIds(brief).has(consultant.id))?.id || ''
   }
 
   const handleAllocateReferral = async (brief) => {
@@ -509,9 +639,37 @@ export default function AdminDashboard() {
     setDataError('')
 
     try {
+      const allocatedConsultants = getAllocatedConsultants(brief)
+      const allocatedConsultantIds = getAllocatedConsultantIds(brief)
+
+      if (allocatedConsultantIds.has(consultant.id)) {
+        setDataError('This consultant is already allocated to this referral.')
+        return
+      }
+
+      const nextAllocatedConsultants = [
+        ...allocatedConsultants,
+        {
+          id: consultant.id,
+          name: consultant.sanityName || consultant.name || consultant.email || '',
+          email: consultant.email || '',
+          sanityExpertId: consultant.sanityExpertId || '',
+          allocatedAt: new Date().toISOString(),
+          allocatedByAdminId: adminProfile?.id || adminProfile?.uid || '',
+          allocatedByAdminEmail: adminProfile?.email || '',
+        },
+      ]
+      const nextMatchedExpertIds = [
+        ...new Set([
+          ...(Array.isArray(brief.matchedExpertIds) ? brief.matchedExpertIds : []),
+          ...(consultant.sanityExpertId ? [consultant.sanityExpertId] : []),
+        ]),
+      ]
+
       await updateDoc(doc(db, 'clientBriefs', brief.id), {
-        assignedConsultantId: consultant.id,
-        matchedExpertIds: consultant.sanityExpertId ? [consultant.sanityExpertId] : [],
+        assignedConsultantId: brief.assignedConsultantId || consultant.id,
+        matchedExpertIds: nextMatchedExpertIds,
+        allocatedConsultants: nextAllocatedConsultants,
         allocatedConsultantName: consultant.sanityName || consultant.name || consultant.email || '',
         allocatedConsultantEmail: consultant.email || '',
         allocatedConsultantSanityId: consultant.sanityExpertId || '',
@@ -1168,24 +1326,84 @@ export default function AdminDashboard() {
             )}
 
             {!isAdminDetailPage && activeView === 'dashboard' && (
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {[
-                  { icon: Users, label: 'Total users', value: stats.users, tone: 'from-[#000047] via-primary-700 to-cyan-500' },
-                  { icon: Users, label: 'Clients', value: stats.clients, tone: 'from-blue-900 via-blue-600 to-cyan-400' },
-                  { icon: ShieldCheck, label: 'Consultants', value: stats.consultants, tone: 'from-indigo-900 via-primary-700 to-sky-500' },
-                  { icon: BriefcaseBusiness, label: 'Client briefs', value: stats.briefs, tone: 'from-slate-900 via-slate-600 to-cyan-400' },
-                  { icon: CircleDollarSign, label: 'Total project payment', value: formatCurrency(stats.projectPayments), tone: 'from-emerald-800 via-teal-600 to-cyan-400' },
-                  { icon: HandCoins, label: 'Total referral payment', value: formatCurrency(stats.referralPayments), tone: 'from-cyan-950 via-sky-700 to-cyan-400' },
-                ].map((item) => (
-                  <section key={item.label} className={`group relative min-h-[9rem] overflow-hidden rounded-2xl bg-gradient-to-br ${item.tone} p-6 text-white shadow-xl shadow-primary-900/15 ring-1 ring-white/25 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/25`}>
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.22),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.14),transparent_42%)] opacity-90"></div>
-                    <item.icon className="absolute bottom-5 right-5 h-8 w-8 text-white/90 drop-shadow-[0_6px_16px_rgba(0,0,71,0.28)] transition group-hover:scale-110" />
-                    <div className="relative pr-12">
-                      <p className="text-3xl font-black leading-tight text-white drop-shadow-[0_6px_18px_rgba(0,0,71,0.26)]">{dataLoading ? '-' : item.value}</p>
-                      <p className="mt-2 text-sm font-extrabold leading-5 text-white/90">{item.label}</p>
+              <div className="space-y-5">
+                <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
+                  <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-950">Dashboard filters</h2>
+                      <p className="mt-1 text-sm text-gray-500">Filter the dashboard metrics by expert and brief/payment date range.</p>
                     </div>
-                  </section>
-                ))}
+                    {hasDashboardFilters && (
+                      <button
+                        type="button"
+                        onClick={resetDashboardFilters}
+                        className="inline-flex w-fit items-center justify-center rounded-xl bg-gray-100 px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-200"
+                      >
+                        Clear filters
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-bold text-gray-700">Expert</span>
+                      <select
+                        value={dashboardFilters.expertId}
+                        onChange={(event) => updateDashboardFilter('expertId', event.target.value)}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                      >
+                        <option value="">All experts</option>
+                        {consultants.map((consultant) => (
+                          <option key={consultant.id} value={consultant.id}>
+                            {consultant.sanityName || consultant.name || consultant.email}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-bold text-gray-700">Start date</span>
+                      <input
+                        type="date"
+                        value={dashboardFilters.startDate}
+                        onChange={(event) => updateDashboardFilter('startDate', event.target.value)}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-bold text-gray-700">End date</span>
+                      <input
+                        type="date"
+                        value={dashboardFilters.endDate}
+                        onChange={(event) => updateDashboardFilter('endDate', event.target.value)}
+                        min={dashboardFilters.startDate || undefined}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                      />
+                    </label>
+                  </div>
+                </section>
+
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {[
+                    { icon: Users, label: 'Total users', value: stats.users, card: 'bg-[#16324f] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: Users, label: 'Clients', value: stats.clients, card: 'bg-[#173f5f] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: ShieldCheck, label: 'Consultants', value: stats.consultants, card: 'bg-[#24285c] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: BriefcaseBusiness, label: 'Client briefs', value: stats.briefs, card: 'bg-[#303846] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: CircleDollarSign, label: 'Total project payment', value: formatCurrency(stats.projectPayments), card: 'bg-[#17463a] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: HandCoins, label: 'Total referral payment', value: formatCurrency(stats.referralPayments), card: 'bg-[#164e55] border-white/10', badge: 'bg-white/12 text-white' },
+                  ].map((item) => (
+                    <section key={item.label} className={`group relative min-h-[9rem] overflow-hidden rounded-2xl border p-6 text-white shadow-lg shadow-primary-900/10 transition hover:-translate-y-1 hover:shadow-xl hover:shadow-primary-900/20 ${item.card}`}>
+                      <span className={`absolute bottom-5 right-5 flex h-11 w-11 items-center justify-center rounded-xl transition group-hover:scale-105 ${item.badge}`}>
+                        <item.icon className="h-6 w-6" />
+                      </span>
+                      <div className="relative pr-12">
+                        <p className="text-3xl font-black leading-tight text-white transition">{dataLoading ? '-' : item.value}</p>
+                        <p className="mt-2 text-sm font-extrabold leading-5 text-white/80">{item.label}</p>
+                      </div>
+                    </section>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -1269,6 +1487,24 @@ export default function AdminDashboard() {
                   {dataLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
                 </div>
 
+                <div className="mb-6 grid gap-4 md:grid-cols-3">
+                  {[
+                    { icon: UserPlus, label: 'Referral Submitted', value: referralStats.submitted, card: 'bg-[#16324f] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: ShieldCheck, label: 'Referral Accepted', value: referralStats.accepted, card: 'bg-[#17463a] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: BriefcaseBusiness, label: 'Referred Active Project', value: referralStats.activeProjects, card: 'bg-[#24285c] border-white/10', badge: 'bg-white/12 text-white' },
+                  ].map((item) => (
+                    <section key={item.label} className={`group relative min-h-[8rem] overflow-hidden rounded-2xl border p-5 text-white shadow-lg shadow-primary-900/10 ${item.card}`}>
+                      <span className={`absolute bottom-5 right-5 flex h-10 w-10 items-center justify-center rounded-xl ${item.badge}`}>
+                        <item.icon className="h-5 w-5" />
+                      </span>
+                      <div className="relative pr-12">
+                        <p className="text-3xl font-black leading-tight text-white">{dataLoading ? '-' : item.value}</p>
+                        <p className="mt-2 text-sm font-extrabold leading-5 text-white/80">{item.label}</p>
+                      </div>
+                    </section>
+                  ))}
+                </div>
+
                 {referralRequests.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
                     No referral requests found.
@@ -1290,7 +1526,12 @@ export default function AdminDashboard() {
                       </thead>
                       <tbody className="divide-y divide-gray-100 bg-white">
                         {referralRequests.map((brief) => {
-                          const allocationValue = allocationDrafts[brief.id] ?? getDefaultAllocationConsultantId(brief)
+                          const allocatedConsultants = getAllocatedConsultants(brief)
+                          const allocatedConsultantIds = getAllocatedConsultantIds(brief)
+                          const draftAllocationValue = allocationDrafts[brief.id]
+                          const allocationValue = draftAllocationValue && !allocatedConsultantIds.has(draftAllocationValue)
+                            ? draftAllocationValue
+                            : getDefaultAllocationConsultantId(brief)
 
                           return (
                             <tr key={brief.id} className="transition hover:bg-primary-50/50">
@@ -1304,18 +1545,28 @@ export default function AdminDashboard() {
                                 <select
                                   value={allocationValue}
                                   onChange={(event) => updateAllocationDraft(brief.id, event.target.value)}
-                                  disabled={brief.referralStatus === 'allocated'}
-                                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+                                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                                 >
                                   <option value="">Select consultant</option>
                                   {consultants.map((consultant) => (
-                                    <option key={consultant.id} value={consultant.id}>
+                                    <option key={consultant.id} value={consultant.id} disabled={allocatedConsultantIds.has(consultant.id)}>
                                       {consultant.sanityName || consultant.name || consultant.email}
+                                      {allocatedConsultantIds.has(consultant.id) ? ' (allocated)' : ''}
                                     </option>
                                   ))}
                                 </select>
-                                {brief.allocatedConsultantName && (
-                                  <p className="mt-2 break-words text-xs font-semibold text-emerald-700">Allocated: {brief.allocatedConsultantName}</p>
+                                {allocatedConsultants.length > 0 && (
+                                  <div className="mt-3 space-y-2">
+                                    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-emerald-700">Allocated</p>
+                                    {allocatedConsultants.map((consultant, index) => (
+                                      <div key={`${consultant.id || consultant.email || consultant.name || 'consultant'}-${index}`} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-100">
+                                        <p className="break-words">{consultant.name || consultant.email || 'Consultant'}</p>
+                                        {consultant.email && (
+                                          <p className="mt-1 break-words font-medium text-emerald-700">{consultant.email}</p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
                                 )}
                               </td>
                               <td className="bg-cyan-50/80 px-2 py-4 text-right lg:px-3">
@@ -1323,7 +1574,7 @@ export default function AdminDashboard() {
                                   <button
                                     type="button"
                                     onClick={() => handleAllocateReferral(brief)}
-                                    disabled={allocatingReferralId === brief.id || brief.referralStatus === 'allocated'}
+                                    disabled={allocatingReferralId === brief.id || !allocationValue}
                                     className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
                                   >
                                     {allocatingReferralId === brief.id ? (
@@ -1331,7 +1582,7 @@ export default function AdminDashboard() {
                                     ) : (
                                       <UserPlus className="mr-2 h-4 w-4" />
                                     )}
-                                    {brief.referralStatus === 'allocated' ? 'Allocated' : 'Allocate'}
+                                    {allocatingReferralId === brief.id ? 'Adding...' : allocatedConsultants.length > 0 ? 'Add allocation' : 'Allocate'}
                                   </button>
                                   <Link
                                     to={`/admin/briefs/${encodeURIComponent(brief.id)}`}

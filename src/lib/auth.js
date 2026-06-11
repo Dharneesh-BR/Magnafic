@@ -93,7 +93,8 @@ async function getUserProfile(uid, email = '') {
 }
 
 export async function signupClient({ name, company, city, phone, email, password }) {
-  const credentials = await createUserWithEmailAndPassword(auth, email, password)
+  const generatedPassword = password || `Mg-${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}-Aa1!`
+  const credentials = await createUserWithEmailAndPassword(auth, email, generatedPassword)
 
   await updateProfile(credentials.user, { displayName: name })
 

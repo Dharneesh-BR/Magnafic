@@ -18,6 +18,38 @@ function formatDate(dateString) {
   })
 }
 
+function formatShareDate(dateString) {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+function formatShareCategory(category) {
+  if (!category) return 'Insight'
+
+  return category
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function getShareTypeLabel(type) {
+  switch (type) {
+    case 'research':
+      return 'Research'
+    case 'case-study':
+      return 'Case Study'
+    case 'article':
+      return 'Article'
+    default:
+      return 'Insight'
+  }
+}
+
 function renderSpan(child, markDefs = []) {
   const marks = child.marks || []
 
@@ -318,12 +350,21 @@ async function createInsightShareCard({ blog }) {
   const authorRole = author
     ? author.headline || author.currentDesignation || author.designation || 'Expert Mentor'
     : 'Expert Insights'
+  const metaItems = [
+    getShareTypeLabel(blog.type),
+    formatShareDate(blog.publishedAt),
+    blog.readTime,
+  ].filter(Boolean)
+  const categoryLabel = blog.capability?.title || formatShareCategory(blog.category)
 
   const cardX = 0
   const cardY = 0
   const cardWidth = canvas.width
   const cardHeight = canvas.height
-  const cardRadius = 34
+  const cardRadius = 24
+  const imageHeight = 410
+  const authorSectionY = cardY + imageHeight
+  const footerStripHeight = 8
 
   roundedRect(context, cardX, cardY, cardWidth, cardHeight, cardRadius)
   context.fillStyle = '#ffffff'
@@ -333,78 +374,120 @@ async function createInsightShareCard({ blog }) {
   roundedRect(context, cardX, cardY, cardWidth, cardHeight, cardRadius)
   context.clip()
 
-  const headerHeight = 206
-  let headerImageDrawn = false
+  let imageDrawn = false
 
   if (blog.imageUrl) {
     try {
       const insightImage = await loadShareImage(blog.imageUrl)
-      drawImageCover(context, insightImage, cardX, cardY, cardWidth, headerHeight)
-      headerImageDrawn = true
+      drawImageCover(context, insightImage, cardX, cardY, cardWidth, imageHeight)
+      imageDrawn = true
     } catch {
-      headerImageDrawn = false
+      imageDrawn = false
     }
   }
 
-  if (!headerImageDrawn) {
-    const headerGradient = context.createLinearGradient(cardX, cardY, cardX + cardWidth, cardY + headerHeight)
+  if (!imageDrawn) {
+    const headerGradient = context.createLinearGradient(cardX, cardY, cardX + cardWidth, cardY + imageHeight)
     headerGradient.addColorStop(0, '#000047')
     headerGradient.addColorStop(0.58, '#3534cd')
     headerGradient.addColorStop(1, '#00ffff')
     context.fillStyle = headerGradient
-    context.fillRect(cardX, cardY, cardWidth, headerHeight)
+    context.fillRect(cardX, cardY, cardWidth, imageHeight)
   }
 
-  const headerOverlay = context.createLinearGradient(cardX, cardY, cardX, cardY + headerHeight)
-  headerOverlay.addColorStop(0, 'rgba(0, 0, 71, 0.08)')
-  headerOverlay.addColorStop(1, 'rgba(0, 0, 71, 0.32)')
+  const headerOverlay = context.createLinearGradient(cardX, cardY, cardX, cardY + imageHeight)
+  headerOverlay.addColorStop(0, 'rgba(0, 0, 0, 0.24)')
+  headerOverlay.addColorStop(0.55, 'rgba(0, 0, 0, 0.05)')
+  headerOverlay.addColorStop(1, 'rgba(0, 0, 0, 0.36)')
   context.fillStyle = headerOverlay
-  context.fillRect(cardX, cardY, cardWidth, headerHeight)
+  context.fillRect(cardX, cardY, cardWidth, imageHeight)
 
   try {
     const logo = await loadShareImage('/favicon.png')
-    context.drawImage(logo, cardX + cardWidth - 68, cardY + 18, 46, 38)
+    context.drawImage(logo, cardX + cardWidth - 68, cardY + 20, 48, 48)
   } catch {
     context.fillStyle = '#ffffff'
-    context.font = '700 28px Arial'
-    context.fillText('M', cardX + cardWidth - 56, cardY + 46)
+    context.font = '800 30px Arial'
+    context.fillText('M', cardX + cardWidth - 55, cardY + 54)
   }
 
+  const categoryPillX = cardX + 20
+  const categoryPillY = cardY + 20
+  context.font = '900 13px Arial'
+  const categoryPillWidth = Math.min(282, Math.max(128, context.measureText(categoryLabel).width + 56))
+  const categoryPillHeight = 48
+  context.save()
+  context.shadowColor = 'rgba(0, 0, 0, 0.22)'
+  context.shadowBlur = 14
+  context.shadowOffsetY = 6
+  roundedRect(context, categoryPillX, categoryPillY, categoryPillWidth, categoryPillHeight, 22)
+  context.fillStyle = 'rgba(3, 7, 18, 0.66)'
+  context.fill()
+  context.restore()
+  context.strokeStyle = '#ffffff'
+  context.lineWidth = 1
+  roundedRect(context, categoryPillX, categoryPillY, categoryPillWidth, categoryPillHeight, 22)
+  context.stroke()
   context.textAlign = 'left'
-  context.fillStyle = '#1d4ed8'
-  context.font = '800 16px Arial'
-  context.fillText('INSIGHT', cardX + 34, cardY + 246)
+  context.fillStyle = '#ffffff'
+  context.font = '900 13px Arial'
+  const categoryText = categoryLabel.length > 24 ? `${categoryLabel.slice(0, 23)}...` : categoryLabel
+  context.fillText(categoryText.toUpperCase(), categoryPillX + 24, categoryPillY + 31)
+
+  const titlePanelX = cardX + 20
+  const titlePanelWidth = cardWidth - 40
+  const titlePanelHeight = 128
+  const titlePanelY = authorSectionY - titlePanelHeight - 24
+  context.save()
+  context.shadowColor = 'rgba(0, 0, 71, 0.16)'
+  context.shadowBlur = 24
+  context.shadowOffsetY = 12
+  roundedRect(context, titlePanelX, titlePanelY, titlePanelWidth, titlePanelHeight, 24)
+  context.fillStyle = 'rgba(243, 244, 246, 0.76)'
+  context.fill()
+  context.restore()
 
   context.fillStyle = '#030712'
-  const titleMetrics = drawFittedCanvasText(context, blog.title, cardX + 34, cardY + 286, cardWidth - 68, 5, {
-    maxFontSize: 28,
+  drawFittedCanvasText(context, blog.title, titlePanelX + 24, titlePanelY + 39, titlePanelWidth - 48, 3, {
+    fontWeight: 700,
+    maxFontSize: 26,
     minFontSize: 20,
-    lineHeightRatio: 1.15,
+    lineHeightRatio: 1.22,
   })
 
-  const titleBottom = cardY + 286 + ((titleMetrics.lineCount - 1) * titleMetrics.lineHeight)
+  context.fillStyle = '#f9fafb'
+  context.fillRect(cardX, authorSectionY, cardWidth, cardHeight - imageHeight)
+  context.strokeStyle = '#f3f4f6'
+  context.lineWidth = 1
+  context.beginPath()
+  context.moveTo(cardX, authorSectionY + 0.5)
+  context.lineTo(cardX + cardWidth, authorSectionY + 0.5)
+  context.stroke()
 
-  const authorX = cardX + 70
-  const authorY = Math.min(Math.max(titleBottom + 62, cardY + 430), cardY + 436)
-  const authorRadius = 24
-  const authorBandX = cardX + 34
-  const authorBandY = authorY - 46
-  const authorBandWidth = cardWidth - 68
-  const authorBandHeight = 96
+  const metaX = cardX + 32
+  const metaY = authorSectionY + 36
+  context.fillStyle = '#111827'
+  context.font = '900 13px Arial'
+  context.fillText('AUTHOR', metaX, metaY)
 
-  roundedRect(context, authorBandX, authorBandY, authorBandWidth, authorBandHeight, 18)
-  context.fillStyle = '#f3f4f6'
-  context.fill()
-
+  let metaCursorX = metaX + 86
+  context.fillStyle = '#d1d5db'
+  context.fillText('|', metaX + 66, metaY)
   context.fillStyle = '#374151'
-  context.font = '800 10px Arial'
-  context.fillText('AUTHOR', authorBandX + 18, authorBandY + 22)
+  metaItems.forEach((item) => {
+    context.fillText(`${item}`.toUpperCase(), metaCursorX, metaY)
+    metaCursorX += context.measureText(`${item}`.toUpperCase()).width + 18
+  })
+
+  const authorX = cardX + 66
+  const authorY = authorSectionY + 82
+  const authorRadius = 28
 
   context.save()
   context.beginPath()
   context.arc(authorX, authorY, authorRadius, 0, Math.PI * 2)
   context.closePath()
-  context.fillStyle = '#e6f7ff'
+  context.fillStyle = '#f3f4f6'
   context.fill()
   context.clip()
 
@@ -416,7 +499,7 @@ async function createInsightShareCard({ blog }) {
       drawImageCover(context, authorImage, authorX - authorRadius, authorY - authorRadius, authorRadius * 2, authorRadius * 2)
       authorImageDrawn = true
     } catch {
-      context.fillStyle = '#e6f7ff'
+      context.fillStyle = '#eff6ff'
       context.fillRect(authorX - authorRadius, authorY - authorRadius, authorRadius * 2, authorRadius * 2)
     }
   }
@@ -430,26 +513,26 @@ async function createInsightShareCard({ blog }) {
     context.fillText(initials(authorName) || 'M', authorX, authorY + 7)
   }
 
-  context.strokeStyle = '#ffffff'
-  context.lineWidth = 4
+  context.strokeStyle = '#3534cd'
+  context.lineWidth = 2
   context.beginPath()
   context.arc(authorX, authorY, authorRadius + 1, 0, Math.PI * 2)
   context.stroke()
 
   context.textAlign = 'left'
   context.fillStyle = '#030712'
-  context.font = '700 17px Arial'
-  context.fillText(authorName, authorX + 38, authorY - 2)
+  context.font = '800 17px Arial'
+  context.fillText(authorName, authorX + 42, authorY - 6)
 
   context.fillStyle = '#6b7280'
-  context.font = '600 13px Arial'
-  wrapCanvasText(context, authorRole, authorX + 38, authorY + 18, cardWidth - 128, 17, 3)
+  context.font = '600 14px Arial'
+  wrapCanvasText(context, authorRole, authorX + 42, authorY + 17, cardWidth - 132, 20, 3)
 
-  const footerGradient = context.createLinearGradient(cardX, cardY + cardHeight - 10, cardX + cardWidth, cardY + cardHeight - 10)
+  const footerGradient = context.createLinearGradient(cardX, cardY + cardHeight - footerStripHeight, cardX + cardWidth, cardY + cardHeight - footerStripHeight)
   footerGradient.addColorStop(0, '#3534cd')
   footerGradient.addColorStop(1, '#00ffff')
   context.fillStyle = footerGradient
-  context.fillRect(cardX, cardY + cardHeight - 10, cardWidth, 10)
+  context.fillRect(cardX, cardY + cardHeight - footerStripHeight, cardWidth, footerStripHeight)
   context.restore()
 
   return new Promise((resolve, reject) => {

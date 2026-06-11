@@ -103,7 +103,9 @@ export default function ConsultantDashboard() {
   const [profileLoading, setProfileLoading] = useState(true)
   const [profileError, setProfileError] = useState('')
   const [opportunities, setOpportunities] = useState([])
+  const [referralBriefs, setReferralBriefs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [referralsLoading, setReferralsLoading] = useState(true)
   const [error, setError] = useState('')
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
@@ -294,6 +296,50 @@ export default function ConsultantDashboard() {
     fetchReferralCapabilities()
   }, [])
 
+  useEffect(() => {
+    const referralUserId = user?.uid || user?.consultantUserId
+    if (!referralUserId) {
+      setReferralBriefs([])
+      setReferralsLoading(false)
+      return undefined
+    }
+
+    setReferralsLoading(true)
+
+    const referralsQuery = query(
+      collection(db, 'clientBriefs'),
+      where('referredBy.uid', '==', referralUserId)
+    )
+
+    const unsubscribe = onSnapshot(
+      referralsQuery,
+      (snapshot) => {
+        const items = snapshot.docs
+          .map((documentSnapshot) => {
+            const data = documentSnapshot.data()
+            return {
+              id: documentSnapshot.id,
+              ...data,
+              createdAtDate: data.createdAt?.toDate?.() || null,
+              updatedAtDate: data.updatedAt?.toDate?.() || null,
+            }
+          })
+          .filter((item) => item.source === 'consultant-referral')
+          .sort((a, b) => (b.createdAtDate?.getTime?.() || 0) - (a.createdAtDate?.getTime?.() || 0))
+
+        setReferralBriefs(items)
+        setReferralsLoading(false)
+      },
+      (referralLoadError) => {
+        console.error('Consultant referral dashboard failed:', referralLoadError)
+        setReferralBriefs([])
+        setReferralsLoading(false)
+      }
+    )
+
+    return unsubscribe
+  }, [user?.consultantUserId, user?.uid])
+
   const yearOptions = useMemo(() => {
     const years = new Set([new Date().getFullYear()])
 
@@ -325,6 +371,15 @@ export default function ConsultantDashboard() {
     project: getPaymentTotal(user?.projectPayments),
     referral: getPaymentTotal(user?.referralPayments),
   }), [user?.projectPayments, user?.referralPayments])
+
+  const referralStats = useMemo(() => ({
+    submitted: referralBriefs.length,
+    accepted: referralBriefs.filter((item) => (
+      item.referralStatus === 'allocated' ||
+      ['accepted', 'scheduled', 'active', 'closed', 'completed', 'matching'].includes(item.status)
+    )).length,
+    activeProjects: referralBriefs.filter((item) => item.status === 'active').length,
+  }), [referralBriefs])
 
   const selectedReferralCapability = useMemo(
     () => referralCapabilities.find((capability) => capability._id === referralForm.capabilityId),
@@ -879,30 +934,55 @@ export default function ConsultantDashboard() {
 
                 <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
                   {[
-                    { icon: ClipboardList, label: 'Assigned Enquiry', value: stats.opportunities, gradient: 'from-[#000047] via-primary-600 to-cyan-400' },
-                    { icon: BadgeCheck, label: 'Accepted Enquiry', value: stats.accepted, gradient: 'from-emerald-700 via-teal-600 to-cyan-400' },
-                    { icon: FolderCheck, label: 'Active Projects', value: stats.active, gradient: 'from-indigo-800 via-blue-600 to-cyan-400' },
-                    { icon: BriefcaseBusiness, label: 'Closed Projects', value: stats.closed, gradient: 'from-slate-900 via-slate-600 to-cyan-400' },
-                    { icon: CircleDollarSign, label: 'Project Payments', value: formatCurrency(paymentTotals.project), gradient: 'from-cyan-950 via-sky-700 to-cyan-400', wide: true },
-                    { icon: Handshake, label: 'Referral Payments', value: formatCurrency(paymentTotals.referral), gradient: 'from-cyan-950 via-sky-700 to-cyan-400', wide: true },
+                    { icon: ClipboardList, label: 'Assigned Enquiry', value: stats.opportunities, card: 'bg-[#16324f] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: BadgeCheck, label: 'Accepted Enquiry', value: stats.accepted, card: 'bg-[#17463a] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: FolderCheck, label: 'Active Projects', value: stats.active, card: 'bg-[#24285c] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: BriefcaseBusiness, label: 'Closed Projects', value: stats.closed, card: 'bg-[#303846] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: CircleDollarSign, label: 'Project Payments', value: formatCurrency(paymentTotals.project), wide: true, card: 'bg-[#164e55] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: Handshake, label: 'Referral Payments', value: formatCurrency(paymentTotals.referral), wide: true, card: 'bg-[#173f5f] border-white/10', badge: 'bg-white/12 text-white' },
                   ].map(item => (
-                    <section key={item.label} className={`group relative flex min-h-[6.5rem] flex-col overflow-hidden rounded-2xl bg-gradient-to-br ${item.gradient} p-4 text-white shadow-xl shadow-primary-900/15 ring-1 ring-white/25 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/25 ${item.wide ? 'col-span-2 xl:col-span-2' : ''}`}>
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.22),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.16),transparent_44%)] opacity-85"></div>
-                      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-white/80 via-cyan-200 to-white/20"></div>
-                      <span className="absolute bottom-5 right-5 z-10 flex h-8 w-8 items-center justify-center text-white drop-shadow-[0_4px_10px_rgba(0,0,71,0.35)] transition group-hover:scale-110">
-                        <item.icon className="h-6 w-6" />
+                    <section key={item.label} className={`group relative flex min-h-[6.5rem] flex-col overflow-hidden rounded-2xl border p-4 text-white shadow-lg shadow-primary-900/10 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary-900/20 ${item.card} ${item.wide ? 'col-span-2 xl:col-span-2' : ''}`}>
+                      <span className={`absolute bottom-5 right-5 z-10 flex h-9 w-9 items-center justify-center rounded-xl transition group-hover:scale-105 ${item.badge}`}>
+                        <item.icon className="h-5 w-5" />
                       </span>
 
                       <div className="relative pr-10">
-                        <p className="max-w-[16rem] text-sm font-extrabold leading-tight sm:text-base">{item.label}</p>
+                        <p className="max-w-[16rem] text-sm font-extrabold leading-tight text-white/80 sm:text-base">{item.label}</p>
                       </div>
 
-                      <span className="relative mt-auto inline-flex w-fit max-w-full items-center text-2xl font-black leading-none text-white drop-shadow-[0_6px_18px_rgba(0,0,71,0.35)] transition group-hover:scale-105 sm:text-3xl">
+                      <span className="relative mt-auto inline-flex w-fit max-w-full items-center text-2xl font-black leading-none text-white transition sm:text-3xl">
                         {loading && typeof item.value === 'number' ? '-' : item.value}
                       </span>
                     </section>
                   ))}
                 </div>
+
+                <section className="mt-8 rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
+                  <div className="mb-5 flex items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-950">Referral Dashboard</h2>
+                      <p className="mt-1 text-sm text-gray-500">Track clients you have referred to Magnafic.</p>
+                    </div>
+                    {referralsLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {[
+                      { icon: UserPlus, label: 'Referral Submitted', value: referralStats.submitted, card: 'bg-[#16324f] border-white/10', badge: 'bg-white/12 text-white' },
+                      { icon: BadgeCheck, label: 'Referral Accepted', value: referralStats.accepted, card: 'bg-[#17463a] border-white/10', badge: 'bg-white/12 text-white' },
+                      { icon: FolderCheck, label: 'Referred Active Project', value: referralStats.activeProjects, card: 'bg-[#24285c] border-white/10', badge: 'bg-white/12 text-white' },
+                    ].map(item => (
+                      <section key={item.label} className={`group relative min-h-[7.5rem] overflow-hidden rounded-2xl border p-5 text-white shadow-lg shadow-primary-900/10 ${item.card}`}>
+                        <span className={`absolute bottom-5 right-5 flex h-10 w-10 items-center justify-center rounded-xl ${item.badge}`}>
+                          <item.icon className="h-5 w-5" />
+                        </span>
+                        <div className="relative pr-10">
+                          <p className="text-sm font-extrabold leading-5 text-white/80">{item.label}</p>
+                          <p className="mt-4 text-3xl font-black leading-none text-white">{referralsLoading ? '-' : item.value}</p>
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                </section>
 
                 <section className="mt-8 rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
                   <div className="mb-6 flex items-center justify-between gap-4">
