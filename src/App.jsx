@@ -74,6 +74,7 @@ function AppContent() {
             <Route path="/dashboard/consultant/enquiry/:enquiryId" element={<ProtectedRoute role="consultant"><ConsultantDashboard /></ProtectedRoute>} />
             <Route path="/academy" element={<Academy />} />
             <Route path="/programs" element={<Programs />} />
+            <Route path="/programs/:slug" element={<Programs />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/capabilities/:id" element={<CapabilityDetail />} />
             <Route path="/services/:id" element={<ServiceDetail />} />

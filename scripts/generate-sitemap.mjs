@@ -50,7 +50,7 @@ function toUrl(route) {
 
 async function fetchDynamicRoutes() {
   try {
-    const [blogs, experts] = await Promise.all([
+    const [blogs, experts, programs] = await Promise.all([
       mentorClient.fetch(`*[_type == "blog" && status != "archived" && defined(slug.current)]{
         "slug": slug.current,
         "updatedAt": coalesce(_updatedAt, publishedAt)
@@ -58,6 +58,10 @@ async function fetchDynamicRoutes() {
       mentorClient.fetch(`*[_type == "mentor" && defined(slug.current)]{
         "slug": slug.current,
         "updatedAt": _updatedAt
+      }`),
+      mentorClient.fetch(`*[_type == "programs" && status == "published" && defined(slug.current)]{
+        "slug": slug.current,
+        "updatedAt": coalesce(_updatedAt, startDate)
       }`),
     ])
 
@@ -70,6 +74,12 @@ async function fetchDynamicRoutes() {
       })),
       ...experts.map(item => ({
         path: `/experts/${item.slug}`,
+        lastmod: item.updatedAt?.slice(0, 10) || today,
+        priority: '0.7',
+        changefreq: 'weekly',
+      })),
+      ...programs.map(item => ({
+        path: `/programs/${item.slug}`,
         lastmod: item.updatedAt?.slice(0, 10) || today,
         priority: '0.7',
         changefreq: 'weekly',

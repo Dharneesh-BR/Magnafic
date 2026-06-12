@@ -1,1386 +1,915 @@
-import { useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useInView } from 'react-intersection-observer';
-import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Brain, Check, ClipboardCheck, Clock, Crown, Factory, GraduationCap, Lightbulb, RefreshCw, TrendingUp, Users, X, Zap } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Award,
+  Bot,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  Clock,
+  Factory,
+  GitCompareArrows,
+  GraduationCap,
+  HelpCircle,
+  Laptop,
+  Loader2,
+  MapPin,
+  Quote,
+  Sparkles,
+  Users,
+  UsersRound,
+  X,
+} from 'lucide-react'
+import SEO from '../components/SEO'
+import MagnaLoader from '../components/MagnaLoader'
+import { mentorClient } from '../lib/sanityClient'
 
-function ProgramsImage() {
-  return (
-    <>
-      <div className="lg:hidden">
-        <div className="relative overflow-hidden rounded-2xl">
-          <img src="/Program.png" alt="Business Magna Program" className="h-60 w-full object-contain" />
-        </div>
-      </div>
+function formatDate(value) {
+  if (!value) return ''
 
-      <div className="hidden lg:block">
-        <div className="relative overflow-hidden rounded-3xl">
-          <img src="/Programs.png" alt="Business Magna Program" className="h-auto w-full object-contain" />
-        </div>
-      </div>
-    </>
-  );
+  return new Date(value).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
-const MAGNA_COLORS = {
-  M: '#2A1AD8',
-  A: '#4E26E2',
-  G: '#7231EC',
-  N: '#953DF5',
-  A2: '#B948FF'
-};
+function formatTime(value) {
+  if (!value) return ''
 
-const Programs = () => {
-  const navigate = useNavigate();
-  
-  useEffect(() => {
-    // Scroll to top when page loads
-    window.scrollTo(0, 0);
-  }, []);
-  
-  const [ref] = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
+  return new Date(value).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
 
+function startOfDay(value) {
+  if (!value) return null
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2,
-      },
-    },
-  };
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0 },
-  };
+  date.setHours(0, 0, 0, 0)
+  return date
+}
 
-  const magnaFramework = [
-    {
-      number: "M",
-      letter: "M",
-      title: "Mindset Alignment",
-      subtitle: "Before strategy, fix the lens of thinking.",
-      description: "Shift from operator to builder to leader. Remove scarcity-based decision making. Align founder identity with long-term vision. Build belief systems for scale, not survival.",
-      items: [
-        "Shift from operator to builder to leader",
-        "Remove scarcity-based decision making",
-        "Align founder identity with long-term vision",
-        "Build belief systems for scale, not survival"
-      ],
-      keyQuestion: " Am I building from pressure or from purpose?",
-      bgGradient: "from-blue-900/80 to-purple-900/80"
-    },
-    {
-      number: "A",
-      letter: "A",
-      title: "Architecture of Systems",
-      subtitle: "Business stops depending on you when systems start thinking.",
-      description: "Create SOPs for every repeatable process. Map sales, marketing, and delivery clearly. Build hiring systems over hero employees. Create dashboards for visibility where numbers trump assumptions.",
-      items: [
-        "SOPs for every repeatable process",
-        "Sales, marketing, delivery mapped clearly",
-        "Hiring system > hero employees",
-        "Dashboards for visibility (numbers > assumptions)"
-      ],
-      keyQuestion: " If I disappear for 30 days, what breaks first?",
-      bgGradient: "from-blue-900/80 to-purple-900/80"
-    },
-    {
-      number: "G",
-      letter: "G",
-      title: "Growth Engine Design",
-      subtitle: "Growth is engineered, not hoped for.",
-      description: "Build predictable lead generation systems. Optimize conversion funnels. Expand customer lifetime value. Create referral and retention loops.",
-      items: [
-        "Predictable lead generation system",
-        "Conversion optimization funnels",
-        "Customer lifetime value expansion",
-        "Referral + retention loops"
-      ],
-      keyQuestion: " Where exactly is my growth leaking?",
-      bgGradient: "from-blue-900/80 to-purple-900/80"
-    },
-    {
-      number: "N",
-      letter: "N",
-      title: "Numbers & Navigation",
-      subtitle: "What gets measured gets multiplied.",
-      description: "Track daily/weekly KPIs. Maintain cashflow visibility beyond just revenue. Gain unit economics clarity. Create founder dashboard for informed decisions.",
-      items: [
-        "Daily/weekly KPI tracking",
-        "Cashflow visibility (not just revenue)",
-        "Unit economics clarity",
-        "Founder dashboard for decisions"
-      ],
-      keyQuestion: " Am I running my business or guessing it?",
-      bgGradient: "from-blue-900/80 to-purple-900/80"
-    },
-    {
-      number: "A",
-      letter: "A2",
-      title: "Alignment of Team & Execution",
-      subtitle: "Sustainable growth needs team alignment and peak performance.",
-      description: "Focus on energy management over time management. Align health, clarity, and decision quality. Create team alignment with vision and values. Reduce chaos-driven execution.",
-      items: [
-        "Energy management > time management",
-        "Health, clarity, decision quality alignment",
-        "Team alignment with vision & values",
-        "Reduce chaos-driven execution"
-      ],
-      keyQuestion: " Is my business growing faster than my capacity to sustain it?",
-      bgGradient: "from-blue-900/80 to-purple-900/80"
-    }
-  ];
+function getProgramDateGroup(program, today = new Date()) {
+  const todayStart = startOfDay(today)
+  const start = startOfDay(program.startDate)
+  const end = startOfDay(program.endDate || program.startDate)
+
+  if (!start && !end) return 'upcoming'
+  if (end && end < todayStart) return 'past'
+  if (start && start > todayStart) return 'upcoming'
+  return 'current'
+}
+
+function formatLabel(value) {
+  if (!value) return ''
+
+  return value
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function renderBlockText(block) {
+  return block.children?.map(child => child.text).join('') || ''
+}
+
+function RichText({ blocks = [] }) {
+  if (!blocks.length) return null
 
   return (
-    <div className="min-h-screen bg-[#fbfaf9]">
-<section className="pt-24 pb-12 px-6" ref={ref}>
-        <div className="container mx-auto max-w-6xl">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Header */}
-            <motion.div 
-              className="mb-6"
-              variants={itemVariants}
-            >
-              <div className="text-center mb-4 pt-8">
-                <div className="relative inline-block align-baseline">
-                  <div className="absolute -inset-x-6 -inset-y-3 bg-gradient-to-r from-[#3533cd]/10 to-[#00ffff]/10 blur-2xl" />
-                  <h1 className="relative text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4 tracking-normal bg-gradient-to-r from-[#000080] via-[#1e3a8a] to-[#1e40af] bg-clip-text text-transparent leading-normal pb-2">
-                    MAGNA BUSINESS  <br/><span className='text-xl md:text-2xl lg:text-3xl'>Masterclass</span>
-                  </h1>
-                  <div className="relative mx-auto h-1.5 w-32 md:w-40 lg:w-48 rounded-full bg-gradient-to-r from-[#3533cd] to-[#00ffff]" />
-                  <p className="text-gray-600 text-xl md:text-2xl mt-6 mb-6 font-medium">
-                    2 Day Live Intensive Workshop for MSME Consumer Brands
-                  </p>
-                </div>
-              </div>
-            </motion.div>
+    <div className="space-y-4 text-base leading-8 text-gray-700">
+      {blocks.map((block) => {
+        const text = renderBlockText(block)
+        if (!text) return null
 
-            {/* Content Section with 2 Grids */}
-            <div className="grid grid-cols-1 lg:grid-cols-[70%_30%] gap-6 lg:gap-8 items-start">
-              {/* Left Grid - Content */}
-              <div className="self-start rounded-lg shadow-md pt-4 px-4 pb-4 lg:-ml-3" style={{ background: 'linear-gradient(135deg, #3533cd 0%, #00ffff 100%)',}}>
-                <h2 className="text-lg md:text-xl font-bold text-white mb-2">
-                  Build a Business that scales without burning you out
-                </h2>
-                
-                <div className="space-y-1 mb-2">
-                  <div className="bg-red-50 rounded-lg p-3 mb-2">
-                    <p className="text-base text-gray-700 font-bold text-left pb-1">Are you still:</p>
-                    <ul className="space-y-2 text-base text-gray-700">
-                      <li className="flex items-start gap-3">
-                        <span className="mt-1 inline-flex rounded-full bg-red-600/10 px-1.5 py-1.5 items-center justify-center text-red-600 flex-shrink-0">
-                          <X className="h-3 w-3" />
-                        </span>
-                        <span>Handling sales, operations, and decisions yourself?</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="mt-1 inline-flex rounded-full bg-red-600/10 px-1.5 py-1.5 items-center justify-center text-red-600 flex-shrink-0">
-                          <X className="h-3 w-3" />
-                        </span>
-                        <span>Growing-but feeling stuck, stressed, or unclear?</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="mt-1 inline-flex rounded-full bg-red-600/10 px-1.5 py-1.5 items-center justify-center text-red-600 flex-shrink-0">
-                          <X className="h-3 w-3" />
-                        </span>
-                        <span>Working harder every year but not building real freedom?</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                
-                                
-                <div className="space-y-1">
-                  <h3 className="text-lg md:text-xl font-bold text-white mb-2">
-                    A high impact business transformation program designed for MSME founders to:
-                  </h3>
-                  <div className="bg-green-50 rounded-md p-3">
-                    <ul className="space-y-2 text-base text-gray-700">
-                      <li className="flex items-start gap-3">
-                        <span className="mt-1 inline-flex rounded-full bg-emerald-500/10 px-1.5 py-1.5 items-center justify-center text-emerald-600 flex-shrink-0">
-                          <Check className="h-3 w-3" />
-                        </span>
-                        <span>Build system-driven businesses</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="mt-1 inline-flex rounded-full bg-emerald-500/10 px-1.5 py-1.5 items-center justify-center text-emerald-600 flex-shrink-0">
-                          <Check className="h-3 w-3" />
-                        </span>
-                        <span>Create predictable growth engines</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <span className="mt-1 inline-flex rounded-full bg-emerald-500/10 px-1.5 py-1.5 items-center justify-center text-emerald-600 flex-shrink-0">
-                          <Check className="h-3 w-3" />
-                        </span>
-                        <span>Gain clarity, control, and sustainability</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                
-                <div className="mt-2">
-                  <p className="text-lg font-semibold text-white">
-                    Unlike traditional programs, this is not about motivation or theory.
-                  </p>
-                  <p className="text-lg font-semibold text-white">
-                    This is about restructuring how your business actually runs.
-                  </p>
+        if (block.style === 'h2') {
+          return <h2 key={block._key} className="text-2xl font-bold text-gray-950">{text}</h2>
+        }
+
+        if (block.style === 'h3') {
+          return <h3 key={block._key} className="text-xl font-bold text-gray-950">{text}</h3>
+        }
+
+        if (block.listItem) {
+          return (
+            <div key={block._key} className="flex gap-3">
+              <CheckCircle2 className="mt-1.5 h-5 w-5 shrink-0 text-primary-600" />
+              <p>{text}</p>
+            </div>
+          )
+        }
+
+        return <p key={block._key}>{text}</p>
+      })}
+    </div>
+  )
+}
+
+function ProgramMeta({ program }) {
+  const metaItems = [
+    program.programType && { icon: GraduationCap, label: formatLabel(program.programType) },
+    program.deliveryMode && { icon: Laptop, label: formatLabel(program.deliveryMode) },
+    program.startDate && { icon: CalendarDays, label: formatDate(program.startDate) },
+    program.duration && { icon: Clock, label: program.duration },
+    program.location && { icon: MapPin, label: program.location },
+    program.seats ? { icon: Users, label: `${program.seats} seats` } : null,
+  ].filter(Boolean)
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {metaItems.map((item) => (
+        <span key={`${item.label}-${item.icon.displayName || item.icon.name}`} className="inline-flex items-center rounded-full bg-white/12 px-3 py-1.5 text-sm font-bold text-white ring-1 ring-white/15">
+          <item.icon className="mr-1.5 h-4 w-4" />
+          {item.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function ProgramSection({ section }) {
+  const format = section.sectionFormat || 'rich-text'
+  const items = section.items || []
+  const modules = section.modules || []
+  const timeline = section.timeline || []
+  const faqs = section.faqs || []
+  const testimonials = section.testimonials || []
+
+  const getTextLines = (value = '') =>
+    value
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean)
+
+  if (format === 'list') {
+    return (
+      <section className="w-full bg-[#fbfaf9] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-center">
+            <h2 className="text-3xl font-black uppercase leading-tight tracking-normal text-gray-950 sm:text-4xl">
+              {section.sectionTitle}
+            </h2>
+            <div className="mx-auto mt-6 h-1 w-36 rounded-full bg-white shadow-sm"></div>
+            {section.intro && <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-gray-600">{section.intro}</p>}
+          </div>
+
+          <div className="mx-auto max-w-5xl space-y-8">
+            {items.map((item, index) => (
+              <div key={`${item.title || item.description || 'item'}-${index}`} className="flex items-start gap-5 rounded-3xl bg-[#dcd7ff] p-6 shadow-2xl shadow-gray-300/40 sm:gap-7 sm:p-8">
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#2b1cdd] text-2xl font-black text-white shadow-xl shadow-primary-900/20 sm:h-16 sm:w-16">
+                  {index + 1}
+                </span>
+                <div className="min-w-0 pt-1">
+                  {item.title && <h3 className="text-xl font-black leading-tight text-gray-950 sm:text-2xl">{item.title}</h3>}
+                  {item.description && <p className="mt-3 text-base leading-7 text-gray-700">{item.description}</p>}
                 </div>
               </div>
-              
-              {/* Right Grid - Image */}
-              <div className="lg:ml-3 mt-2 lg:mt-0">
-                <ProgramsImage />
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (format === 'cards') {
+    const cardIcons = [GitCompareArrows, Factory, Bot, UsersRound]
+
+    return (
+      <section className="w-full bg-[#050545] px-4 py-16 text-white sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-14 text-center">
+            <h2 className="text-3xl font-black uppercase leading-tight tracking-normal text-white sm:text-4xl">
+              {section.sectionTitle}
+            </h2>
+            {section.intro && <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-cyan-50/80">{section.intro}</p>}
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {items.map((item, index) => {
+              const CardIcon = cardIcons[index % cardIcons.length]
+
+              return (
+                <div key={`${item.title || item.description || 'item'}-${index}`} className="min-h-[20rem] rounded-3xl border border-cyan-100/25 bg-gradient-to-br from-[#383ad7] via-[#258edc] to-[#0ee3e8] p-7 text-center shadow-2xl shadow-black/25">
+                  <div className="mx-auto mb-8 flex h-16 w-16 items-center justify-center rounded-full bg-white/20 text-white ring-1 ring-white/30">
+                    <CardIcon className="h-8 w-8" />
+                  </div>
+                  {item.title && <h3 className="text-xl font-black leading-snug text-white">{item.title}</h3>}
+                  {item.description && <p className="mt-4 text-base leading-7 text-white/90">{item.description}</p>}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (format === 'differentiators') {
+    const differentiatorText = `${section.sectionTitle || ''} ${items.map(item => item.title || '').join(' ')}`
+    const isBeforeAfter = /before|after|start|unlock/i.test(differentiatorText)
+    const positiveItem = isBeforeAfter ? items[1] || {} : items[0] || {}
+    const negativeItem = isBeforeAfter ? items[0] || {} : items[1] || {}
+    const positiveLines = getTextLines(positiveItem.description || positiveItem.title)
+    const negativeLines = getTextLines(negativeItem.description || negativeItem.title)
+    const positiveEyebrow = isBeforeAfter ? 'After' : 'Who This Is For'
+    const negativeEyebrow = isBeforeAfter ? 'Before' : 'Who This Is Not For'
+    const positiveHeading = positiveItem.title || (isBeforeAfter ? 'What MAGNA unlocks' : 'This program is designed for:')
+    const negativeHeading = negativeItem.title || (isBeforeAfter ? 'Where most founders start' : 'This will not be a fit if:')
+
+    const renderDifferentiatorLine = (line, index, variant) => (
+      <li key={`${line}-${index}`} className="flex gap-5">
+        <span className={`mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${variant === 'positive' ? 'bg-[#e5e6ff] text-[#2b2bd8]' : 'bg-red-100 text-red-600'}`}>
+          {variant === 'positive' ? <Check className="h-6 w-6 stroke-[3]" /> : <X className="h-6 w-6 stroke-[3]" />}
+        </span>
+        <span className="min-w-0 text-lg leading-7 text-[#03112f]">
+          {line}
+        </span>
+      </li>
+    )
+
+    return (
+      <section className="w-full bg-[#fbfaf9] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 text-center">
+            <h2 className="text-3xl font-black uppercase leading-tight tracking-normal text-gray-950 sm:text-4xl">
+              {section.sectionTitle}
+            </h2>
+            {section.intro && <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-gray-600">{section.intro}</p>}
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-2">
+            <div className="overflow-hidden rounded-[1.75rem] border border-cyan-100 bg-[#f5fbff] shadow-2xl shadow-cyan-200/40">
+              <div className="flex items-start justify-between gap-6 p-8 sm:p-10">
+                <div>
+                  <p className="text-base font-black uppercase tracking-normal text-[#2b2bd8]">{positiveEyebrow}</p>
+                  <h3 className="mt-3 text-2xl font-black leading-tight text-[#030047] sm:text-3xl">{positiveHeading}</h3>
+                </div>
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-[#3533cd] to-[#00d9e8] text-white">
+                  <Check className="h-8 w-8 stroke-[3]" />
+                </span>
+              </div>
+              <div className="border-t border-gray-200 px-8 py-10 sm:px-10 sm:py-12">
+                <ul className="space-y-8">
+                  {positiveLines.map((line, index) => renderDifferentiatorLine(line, index, 'positive'))}
+                </ul>
               </div>
             </div>
 
-            <section
-              className="relative overflow-hidden py-20 md:py-24 mb-20"
-              style={{
-                backgroundColor: '#000047',
-                width: '100vw',
-                marginLeft: 'calc(50% - 50vw)',
-                marginRight: 'calc(50% - 50vw)'
-              }}
-            >
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute -top-20 -left-16 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl" />
-                <div className="absolute top-1/3 -right-16 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl" />
-                <div className="absolute -bottom-20 left-1/3 h-64 w-64 rounded-full bg-fuchsia-400/20 blur-3xl" />
+            <div className="overflow-hidden rounded-[1.75rem] border border-cyan-100 bg-[#f5fbff] shadow-2xl shadow-cyan-200/40">
+              <div className="flex items-start justify-between gap-6 p-8 sm:p-10">
+                <div>
+                  <p className="text-base font-black uppercase tracking-normal text-red-600">{negativeEyebrow}</p>
+                  <h3 className="mt-3 text-2xl font-black leading-tight text-[#030047] sm:text-3xl">{negativeHeading}</h3>
+                </div>
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-red-600 text-white">
+                  <X className="h-8 w-8 stroke-[3]" />
+                </span>
               </div>
-              <motion.div
-                variants={itemVariants}
-              >
-              <div className="relative z-10 px-6 max-w-6xl mx-auto">
-                <div className="text-center mb-14 md:mb-16">
-                  <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-white tracking-tight">MAGNA Framework</h2>
-                  <p className="text-2xl font-semibold mb-8 text-white/90 max-w-3xl mx-auto">
-                    A Conscious Growth System for Scaling Consumer Brands
-                  </p>
-                  
+              <div className="border-t border-red-100 px-8 py-10 sm:px-10 sm:py-12">
+                <ul className="space-y-8">
+                  {negativeLines.map((line, index) => renderDifferentiatorLine(line, index, 'negative'))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (format === 'curriculum') {
+    return (
+      <section className="w-full bg-[#050545] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 text-center">
+            <h2 className="text-3xl font-black uppercase leading-tight tracking-normal text-white sm:text-4xl">
+              {section.sectionTitle}
+            </h2>
+            {section.intro && <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-cyan-50/80">{section.intro}</p>}
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-2">
+            {modules.map((module, index) => (
+              <div key={`${module.title}-${index}`} className="rounded-[2rem] border border-cyan-200/40 bg-gradient-to-br from-[#383ad7] via-[#286fda] to-[#12cde3] p-6 shadow-2xl shadow-black/30 sm:p-8">
+                <div className="mb-8 flex items-center gap-6">
+                  <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white text-lg font-black text-[#5a2ee8] shadow-lg shadow-black/10">
+                    Day {index + 1}
+                  </span>
+                  <h3 className="text-2xl font-black uppercase leading-tight text-white sm:text-3xl">
+                    {module.title}
+                  </h3>
                 </div>
 
-                <div className="max-w-5xl mx-auto">
-                  <div className="relative flex flex-col gap-6 md:gap-7">
-                    <div className="hidden md:block absolute left-[64px] top-10 bottom-10 w-px bg-gradient-to-b from-cyan-300/0 via-cyan-300/60 to-cyan-300/0" />
-                    {magnaFramework.map((framework, index) => {
-                      const letter = framework.letter;
-                      const textColor = MAGNA_COLORS[letter];
-                      return (
-                        <motion.div
-                          key={`${framework.number}-${index}-row`}
-                          className={`group grid grid-cols-[76px_1fr] md:grid-cols-[128px_1fr] ${index === magnaFramework.length - 1 ? 'xl:grid-cols-[128px_1fr_280px]' : ''} gap-4 md:gap-8 items-center rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm px-3 py-4 md:px-5 md:py-5 shadow-[0_10px_30px_rgba(0,0,0,0.18)]`}
-                          variants={itemVariants}
-                          initial={{ opacity: 0, y: 24 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: false, amount: 0.35 }}
-                          transition={{ duration: 0.55, delay: index * 0.08, ease: "easeOut" }}
-                          whileHover={{ x: 6 }}
-                        >
-                          <div className="flex justify-center md:justify-center shrink-0">
-                            <motion.div
-                              className="w-[76px] h-[76px] md:w-[128px] md:h-[128px] rounded-full flex items-center justify-center shadow-lg"
-                              style={{
-                                backgroundColor: '#FFFFFF',
-                                boxShadow: '0 0 0 2px rgba(0, 255, 255, 0.35), 0 0 20px rgba(0, 255, 255, 0.55), 0 10px 24px rgba(0, 0, 0, 0.25)'
-                              }}
-                              initial={{ scale: 0.9, opacity: 0 }}
-                              whileInView={{ scale: 1, opacity: 1 }}
-                              viewport={{ once: false, amount: 0.5 }}
-                              transition={{ duration: 0.45, delay: index * 0.1 + 0.05, ease: "easeOut" }}
-                              whileHover={{ scale: 1.05, rotate: -2 }}
-                            >
-                              <span
-                                className="text-5xl md:text-7xl font-extrabold leading-none tracking-tight"
-                                style={{ color: textColor }}
-                              >
-                                {framework.number}
-                              </span>
-                            </motion.div>
-                          </div>
-
-                          <div className="min-w-0 md:pl-0">
-                            <motion.h3
-                              className="text-xl lg:text-2xl font-extrabold tracking-tight uppercase mb-2 text-[#E6E9FF] transition-all duration-300 group-hover:text-[#F2F4FF] drop-shadow-[0_0_10px_rgba(0,255,255,0.25)] group-hover:drop-shadow-[0_0_16px_rgba(0,255,255,0.45)]"
-                              initial={{ opacity: 0, y: 10 }}
-                              whileInView={{ opacity: 1, y: 0 }}
-                              viewport={{ once: false, amount: 0.5 }}
-                              transition={{ duration: 0.4, delay: index * 0.08 + 0.12, ease: "easeOut" }}
-                            >
-                              {framework.title}
-                            </motion.h3>
-                            <motion.p
-                              className="text-base md:text-lg lg:text-xl font-semibold text-white/85 mb-1 leading-snug transition-all duration-300 group-hover:text-[#D7FBFF] group-hover:drop-shadow-[0_0_10px_rgba(0,255,255,0.35)]"
-                              initial={{ opacity: 0, y: 8 }}
-                              whileInView={{ opacity: 1, y: 0 }}
-                              viewport={{ once: false, amount: 0.5 }}
-                              transition={{ duration: 0.4, delay: index * 0.08 + 0.18, ease: "easeOut" }}
-                            >
-                              {framework.subtitle}
-                            </motion.p>
-                          </div>
-
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                </div>
-                
-                {/* Chart Section below A2 */}
-                <motion.div
-                  className="flex justify-center mt-8"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: false, amount: 0.6 }}
-                  transition={{ duration: 0.5, delay: 0.35, ease: "easeOut" }}
-                >
-                  <div className="rounded-2xl border border-cyan-300/30 bg-white/5 backdrop-blur-sm p-6 shadow-[0_12px_34px_rgba(0,0,0,0.25)]">
-                    <svg viewBox="0 0 320 260" className="w-full h-auto max-w-md" role="img" aria-label="Growth chart animation">
-                      <line x1="24" y1="22" x2="24" y2="232" stroke="#2A1AD8" strokeWidth="5" strokeLinecap="round" />
-                      <line x1="24" y1="232" x2="300" y2="232" stroke="#2A1AD8" strokeWidth="5" strokeLinecap="round" />
-
-                      {[52, 88, 126, 165, 206].map((x, idx) => (
-                        <motion.rect
-                          key={`a2-bar-${x}`}
-                          x={x}
-                          y={216 - (idx + 1) * 30}
-                          width="34"
-                          height={(idx + 1) * 30}
-                          rx="3"
-                          fill="#B948FF"
-                          initial={{ scaleY: 0 }}
-                          whileInView={{ scaleY: 1 }}
-                          viewport={{ once: false, amount: 0.7 }}
-                          style={{ originY: 1 }}
-                          transition={{ duration: 0.35, delay: 0.15 + idx * 0.1, ease: "easeOut" }}
-                        />
+                <div className="rounded-3xl bg-white p-6 shadow-xl shadow-black/10 sm:p-8">
+                  {module.description && <h4 className="text-xl font-black leading-tight text-gray-950">{module.description}</h4>}
+                  {module.lessons?.length > 0 && (
+                    <ul className="mt-6 space-y-5">
+                      {module.lessons.map((lesson) => (
+                        <li key={lesson} className="flex gap-4 text-base leading-7 text-gray-700">
+                          <span className="mt-0.5 shrink-0 text-[#7c2cff]">-&gt;</span>
+                          <span>{lesson}</span>
+                        </li>
                       ))}
-
-                      <motion.line
-                        x1="46"
-                        y1="198"
-                        x2="270"
-                        y2="44"
-                        stroke="#00ffff"
-                        strokeWidth="9"
-                        strokeLinecap="round"
-                        initial={{ pathLength: 0, opacity: 0 }}
-                        whileInView={{ pathLength: 1, opacity: 1 }}
-                        viewport={{ once: false, amount: 0.7 }}
-                        transition={{ duration: 0.65, delay: 0.75, ease: "easeOut" }}
-                      />
-                      <motion.polygon
-                        points="270,44 250,44 270,26 286,44"
-                        fill="#00ffff"
-                        initial={{ opacity: 0, scale: 0.7 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: false, amount: 0.7 }}
-                        transition={{ duration: 0.25, delay: 1.4, ease: "easeOut" }}
-                      />
-                    </svg>
-                  </div>
-                </motion.div>
+                    </ul>
+                  )}
+                </div>
               </div>
-              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (format === 'rich-text') {
+    return (
+      <section className="w-full bg-[#f7fbff] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-white shadow-2xl shadow-cyan-200/30 ring-1 ring-cyan-100">
+          <div className="h-2 bg-gradient-to-r from-[#3533cd] to-[#00d9e8]"></div>
+          <div className="grid gap-8 p-7 sm:p-10 lg:grid-cols-[0.85fr_1.15fr] lg:p-12">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.2em] text-primary-600">Program Note</p>
+              <h2 className="mt-4 text-3xl font-black leading-tight text-[#030047]">{section.sectionTitle}</h2>
+              {section.intro && <p className="mt-5 text-base leading-7 text-gray-600">{section.intro}</p>}
+            </div>
+            <div className="rounded-3xl bg-[#f5fbff] p-6 ring-1 ring-cyan-100 sm:p-8">
+              <RichText blocks={section.body || []} />
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (format === 'outcomes') {
+    return (
+      <section className="w-full bg-[#fbfaf9] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 text-center">
+            <p className="text-sm font-black uppercase tracking-[0.22em] text-primary-600">Outcomes</p>
+            <h2 className="mt-3 text-3xl font-black uppercase leading-tight text-gray-950 sm:text-4xl">{section.sectionTitle}</h2>
+            {section.intro && <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-gray-600">{section.intro}</p>}
+          </div>
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {items.map((item, index) => (
+              <div key={`${item.title || item.description || 'item'}-${index}`} className="rounded-3xl bg-white p-7 shadow-2xl shadow-gray-200/60 ring-1 ring-cyan-100">
+                <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3533cd] to-[#00d9e8] text-lg font-black text-white">
+                  {String(index + 1).padStart(2, '0')}
+                </div>
+                {item.title && <h3 className="text-xl font-black leading-tight text-gray-950">{item.title}</h3>}
+                {item.description && <p className="mt-4 text-base leading-7 text-gray-600">{item.description}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (format === 'timeline') {
+    return (
+      <section className="w-full bg-[#050545] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-12 text-center">
+            <p className="text-sm font-black uppercase tracking-[0.22em] text-cyan-200">Flow</p>
+            <h2 className="mt-3 text-3xl font-black uppercase leading-tight text-white sm:text-4xl">{section.sectionTitle}</h2>
+            {section.intro && <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-cyan-50/80">{section.intro}</p>}
+          </div>
+          <div className="relative space-y-6 before:absolute before:left-6 before:top-4 before:h-[calc(100%-2rem)] before:w-px before:bg-cyan-300/40 sm:before:left-8">
+            {timeline.map((item, index) => (
+              <div key={`${item.title}-${index}`} className="relative grid gap-5 rounded-3xl border border-white/15 bg-white/10 p-6 text-white shadow-2xl shadow-black/20 backdrop-blur sm:grid-cols-[8rem_minmax(0,1fr)] sm:p-8">
+                <span className="absolute left-3 top-8 flex h-7 w-7 items-center justify-center rounded-full bg-cyan-300 text-xs font-black text-[#050545] sm:left-5">{index + 1}</span>
+                <p className="pl-9 text-sm font-black uppercase tracking-[0.18em] text-cyan-200 sm:pl-0">{item.timeLabel || `Step ${index + 1}`}</p>
+                <div>
+                  <h3 className="text-xl font-black leading-tight text-white">{item.title}</h3>
+                  {item.description && <p className="mt-3 text-base leading-7 text-cyan-50/80">{item.description}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (format === 'faqs') {
+    return (
+      <section className="w-full bg-[#f7fbff] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.22em] text-primary-600">Questions</p>
+            <h2 className="mt-3 text-3xl font-black uppercase leading-tight text-[#030047] sm:text-4xl">{section.sectionTitle}</h2>
+            {section.intro && <p className="mt-5 text-base leading-7 text-gray-600">{section.intro}</p>}
+          </div>
+          <div className="space-y-4">
+            {faqs.map((faq, index) => (
+              <details key={`${faq.question}-${index}`} className="group rounded-3xl bg-white p-6 shadow-xl shadow-cyan-200/25 ring-1 ring-cyan-100">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-black text-gray-950">
+                  <span>{faq.question}</span>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-700 transition group-open:rotate-45">+</span>
+                </summary>
+                <p className="mt-4 border-t border-gray-100 pt-4 text-base leading-7 text-gray-600">{faq.answer}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (format === 'testimonials') {
+    return (
+      <section className="w-full bg-[#050545] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 text-center">
+            <p className="text-sm font-black uppercase tracking-[0.22em] text-cyan-200">Voices</p>
+            <h2 className="mt-3 text-3xl font-black uppercase leading-tight text-white sm:text-4xl">{section.sectionTitle}</h2>
+            {section.intro && <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-cyan-50/80">{section.intro}</p>}
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            {testimonials.map((testimonial, index) => (
+              <figure key={`${testimonial.name || 'testimonial'}-${index}`} className="rounded-3xl border border-white/15 bg-white p-7 shadow-2xl shadow-black/25">
+                <Quote className="mb-5 h-10 w-10 text-primary-600" />
+                <blockquote className="text-lg leading-8 text-gray-800">{testimonial.quote}</blockquote>
+                {(testimonial.name || testimonial.designation) && (
+                  <figcaption className="mt-6 border-t border-gray-100 pt-5 text-base font-black text-gray-950">
+                    {testimonial.name}
+                    {testimonial.designation && <span className="block pt-1 font-semibold text-gray-500">{testimonial.designation}</span>}
+                  </figcaption>
+                )}
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (format === 'cta' && section.cta) {
+    return (
+      <section className="w-full bg-[#fbfaf9] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#3533cd] via-[#258edc] to-[#00d9e8] p-8 text-center text-white shadow-2xl shadow-cyan-300/35 sm:p-12">
+          <p className="text-sm font-black uppercase tracking-[0.22em] text-cyan-50/85">{section.sectionTitle}</p>
+          {section.cta.headline && <h2 className="mx-auto mt-4 max-w-3xl text-3xl font-black leading-tight sm:text-4xl">{section.cta.headline}</h2>}
+          {section.intro && <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-white/90">{section.intro}</p>}
+          {section.cta.buttonLabel && section.cta.buttonUrl && (
+            <a href={section.cta.buttonUrl} className="mt-8 inline-flex items-center rounded-full bg-white px-7 py-4 text-base font-black text-primary-700 shadow-xl shadow-black/10 transition hover:bg-cyan-50">
+              {section.cta.buttonLabel}
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </a>
+          )}
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="w-full bg-[#f7f9ff] px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
+        <div className="mb-6">
+          <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-primary-600">{formatLabel(format)}</p>
+          <h2 className="text-2xl font-bold text-gray-950 sm:text-3xl">{section.sectionTitle}</h2>
+          {section.intro && <p className="mt-3 max-w-3xl text-base leading-7 text-gray-600">{section.intro}</p>}
+        </div>
+
+        {format === 'rich-text' && <RichText blocks={section.body || []} />}
+
+        {format === 'outcomes' && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {items.map((item, index) => (
+              <div key={`${item.title || item.description || 'item'}-${index}`} className="rounded-2xl border border-gray-100 bg-[#f8fbff] p-5">
+                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-700">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                {item.title && <h3 className="text-lg font-bold text-gray-950">{item.title}</h3>}
+                {item.description && <p className="mt-2 text-sm leading-6 text-gray-600">{item.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
+      {format === 'timeline' && (
+        <div className="space-y-4">
+          {timeline.map((item, index) => (
+            <div key={`${item.title}-${index}`} className="grid gap-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-lg shadow-gray-200/50 sm:grid-cols-[8rem_minmax(0,1fr)]">
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-primary-600">{item.timeLabel || `Step ${index + 1}`}</p>
+              <div>
+                <h3 className="text-lg font-bold text-gray-950">{item.title}</h3>
+                {item.description && <p className="mt-2 leading-7 text-gray-600">{item.description}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {format === 'faqs' && (
+        <div className="space-y-3">
+          {faqs.map((faq, index) => (
+            <details key={`${faq.question}-${index}`} className="group rounded-2xl border border-gray-100 bg-[#f8fbff] p-5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-bold text-gray-950">
+                <span>{faq.question}</span>
+                <HelpCircle className="h-5 w-5 shrink-0 text-primary-600" />
+              </summary>
+              <p className="mt-3 leading-7 text-gray-600">{faq.answer}</p>
+            </details>
+          ))}
+        </div>
+      )}
+
+      {format === 'testimonials' && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {testimonials.map((testimonial, index) => (
+            <figure key={`${testimonial.name || 'testimonial'}-${index}`} className="rounded-2xl border border-gray-100 bg-[#f8fbff] p-5">
+              <Quote className="mb-4 h-7 w-7 text-primary-600" />
+              <blockquote className="leading-7 text-gray-700">{testimonial.quote}</blockquote>
+              {(testimonial.name || testimonial.designation) && (
+                <figcaption className="mt-4 text-sm font-bold text-gray-950">
+                  {testimonial.name}
+                  {testimonial.designation && <span className="block font-semibold text-gray-500">{testimonial.designation}</span>}
+                </figcaption>
+              )}
+            </figure>
+          ))}
+        </div>
+      )}
+
+      {format === 'cta' && section.cta && (
+        <div className="rounded-2xl bg-[#000047] p-6 text-white">
+          {section.cta.headline && <h3 className="text-2xl font-bold">{section.cta.headline}</h3>}
+          {section.cta.buttonLabel && section.cta.buttonUrl && (
+            <a href={section.cta.buttonUrl} className="mt-5 inline-flex items-center rounded-full bg-white px-5 py-3 text-sm font-bold text-primary-700 transition hover:bg-cyan-50">
+              {section.cta.buttonLabel}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </a>
+          )}
+        </div>
+      )}
+      </div>
+    </section>
+  )
+}
+
+function ProgramCard({ program }) {
+  return (
+    <article className="group h-[34rem] overflow-hidden rounded-[1.5rem] bg-white shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/12">
+      <Link to={`/programs/${program.slug || program._id}`} className="block h-full">
+        <div className="relative h-full overflow-hidden bg-gradient-to-br from-[#000047] via-primary-700 to-cyan-500">
+          {program.heroImageUrl ? (
+            <img src={program.heroImageUrl} alt={program.heroImageAlt || program.title} className="absolute inset-0 h-full w-full object-contain transition duration-500 group-hover:scale-[1.02]" />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Award className="h-16 w-16 text-white/80" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/0 to-black/35"></div>
+          <div className="absolute right-5 top-5 h-12 w-12">
+            <img src="/favicon.png" alt="" className="h-full w-full object-contain" />
+          </div>
+          <div className="absolute left-5 right-20 top-5">
+            <span className="inline-flex max-w-full items-center justify-center rounded-[1.35rem] border border-white bg-gray-950/65 px-6 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-black/20 backdrop-blur-sm">
+              <span className="truncate">{formatLabel(program.programType)}</span>
+            </span>
+          </div>
+          <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-gray-100/70 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-sm">
+            <h2 className="line-clamp-3 text-xl font-semibold leading-snug text-gray-950">
+              {program.title}
+            </h2>
+            {(program.duration || program.startDate) && (
+              <p className="mt-4 truncate text-xs font-bold uppercase tracking-[0.12em] text-gray-700">
+                {[program.duration, program.startDate && formatDate(program.startDate), program.startDate && formatTime(program.startDate)].filter(Boolean).join(' | ')}
+              </p>
+            )}
+          </div>
+        </div>
+      </Link>
+    </article>
+  )
+}
+
+function ProgramGroup({ title, description, programs, emptyMessage, separated = false }) {
+  return (
+    <section className="mb-14 last:mb-0">
+      {separated && <div className="mb-12 h-2 rounded-full bg-gradient-to-r from-[#3534cd] to-[#00ffff]" aria-hidden="true"></div>}
+      <div className="mb-7 flex flex-col gap-4 rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-cyan-100 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div>
+          <p className="inline-flex rounded-full bg-gradient-to-r from-[#3534cd] to-[#00ffff] px-5 py-2 text-sm font-black uppercase tracking-[0.2em] text-white shadow-lg shadow-cyan-200/40">{title}</p>
+          {description && <p className="mt-2 max-w-2xl text-base leading-7 text-gray-600">{description}</p>}
+        </div>
+        <span className="inline-flex w-fit rounded-full bg-primary-50 px-4 py-2 text-sm font-black text-primary-700 ring-1 ring-primary-100">
+          {programs.length} {programs.length === 1 ? 'Program' : 'Programs'}
+        </span>
+      </div>
+
+      {programs.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {programs.map((item) => (
+            <ProgramCard key={item._id} program={item} />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-3xl border border-dashed border-cyan-200 bg-white/70 p-7 text-center text-base font-semibold text-gray-500">
+          {emptyMessage}
+        </div>
+      )}
+    </section>
+  )
+}
+
+export default function Programs() {
+  const { slug } = useParams()
+  const [programs, setPrograms] = useState([])
+  const [program, setProgram] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let isMounted = true
+
+    const fetchPrograms = async () => {
+      setLoading(true)
+      setError('')
+
+      try {
+        const programFields = `
+          _id,
+          title,
+          "slug": slug.current,
+          status,
+          programType,
+          deliveryMode,
+          shortDescription,
+          startDate,
+          endDate,
+          duration,
+          location,
+          onlineLink,
+          registrationUrl,
+          price,
+          seats,
+          featured,
+          "heroImageUrl": heroImage.asset->url,
+          "heroImageAlt": heroImage.alt,
+          mentors[]->{
+            _id,
+            fullName,
+            "slug": slug.current,
+            "imageUrl": profileImage.asset->url,
+            headline,
+            currentDesignation
+          },
+          capabilities[]->{
+            _id,
+            title,
+            "slug": slug.current
+          },
+          audience,
+          sections[]{
+            _key,
+            sectionTitle,
+            sectionFormat,
+            intro,
+            body[],
+            items[]{
+              _key,
+              title,
+              description,
+              iconLabel
+            },
+            modules[]{
+              _key,
+              title,
+              description,
+              lessons
+            },
+            timeline[]{
+              _key,
+              timeLabel,
+              title,
+              description
+            },
+            faqs[]{
+              _key,
+              question,
+              answer
+            },
+            testimonials[]{
+              _key,
+              quote,
+              name,
+              designation
+            },
+            cta{
+              headline,
+              buttonLabel,
+              buttonUrl
+            }
+          },
+          seoTitle,
+          seoDescription
+        `
+
+        if (slug) {
+          const data = await mentorClient.fetch(`*[_type == "programs" && status != "archived" && (slug.current == $slug || _id == $slug)][0] { ${programFields} }`, { slug })
+          if (!isMounted) return
+          setProgram(data || null)
+          setPrograms([])
+        } else {
+          const data = await mentorClient.fetch(`*[_type == "programs" && status == "published"] | order(featured desc, startDate desc) { ${programFields} }`)
+          if (!isMounted) return
+          setPrograms(data || [])
+          setProgram(null)
+        }
+      } catch (fetchError) {
+        console.error('Programs fetch failed:', fetchError)
+        if (!isMounted) return
+        setError('Unable to load programs right now.')
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+
+    fetchPrograms()
+
+    return () => {
+      isMounted = false
+    }
+  }, [slug])
+
+  const pageTitle = useMemo(() => (
+    slug && program ? `${program.seoTitle || program.title} | Magnafic Programs` : 'Programs | Magnafic'
+  ), [program, slug])
+
+  const groupedPrograms = useMemo(() => {
+    const groups = {
+      current: [],
+      upcoming: [],
+      past: [],
+    }
+
+    programs.forEach((item) => {
+      groups[getProgramDateGroup(item)].push(item)
+    })
+
+    groups.current.sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0))
+    groups.upcoming.sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0))
+    groups.past.sort((a, b) => new Date(b.endDate || b.startDate || 0) - new Date(a.endDate || a.startDate || 0))
+
+    return groups
+  }, [programs])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f7f9ff] px-4 pt-28 pb-16">
+        <MagnaLoader message="Loading programs..." className="mx-auto max-w-3xl" />
+      </div>
+    )
+  }
+
+  if (error || (slug && !program)) {
+    return (
+      <div className="min-h-screen bg-[#f7f9ff] px-4 pt-28 pb-16">
+        <SEO title="Programs Not Found" description="The requested Magnafic program could not be loaded." path={slug ? `/programs/${slug}` : '/programs'} />
+        <section className="mx-auto max-w-3xl rounded-3xl bg-white p-8 text-center shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
+          <h1 className="text-3xl font-bold text-gray-950">Program not found</h1>
+          <p className="mt-3 text-gray-600">{error || 'The program you are looking for is not available.'}</p>
+          <Link to="/programs" className="mt-6 inline-flex items-center rounded-full bg-primary-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-primary-700">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Programs
+          </Link>
+        </section>
+      </div>
+    )
+  }
+
+  if (program) {
+    const mentorNames = program.mentors?.map(mentor => mentor.fullName).filter(Boolean).join(', ')
+
+    return (
+      <div className="min-h-screen bg-[#f7f9ff]">
+        <SEO
+          title={pageTitle}
+          description={program.seoDescription || program.shortDescription}
+          path={`/programs/${program.slug || program._id}`}
+          image={program.heroImageUrl}
+        />
+        <section className="relative overflow-hidden bg-[#000047] px-4 pt-28 pb-14 text-white sm:px-6 lg:px-8">
+          {program.heroImageUrl && (
+            <img src={program.heroImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-35" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#000047] via-[#000047]/85 to-cyan-700/70"></div>
+          <div className="relative mx-auto max-w-6xl">
+            <Link to="/programs" className="mb-8 inline-flex items-center text-sm font-bold text-cyan-100 transition hover:text-white">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Programs
+            </Link>
+            <div className="max-w-4xl">
+              <p className="mb-4 text-sm font-black uppercase tracking-[0.22em] text-cyan-200">{formatLabel(program.programType)}</p>
+              <h1 className="text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">{program.title}</h1>
+              {program.shortDescription && <p className="mt-6 max-w-3xl text-lg leading-8 text-cyan-50">{program.shortDescription}</p>}
+              {mentorNames && <p className="mt-5 text-base font-bold text-white">By {mentorNames}</p>}
+              <div className="mt-6">
+                <ProgramMeta program={program} />
+              </div>
+              {(program.registrationUrl || program.onlineLink) && (
+                <a href={program.registrationUrl || program.onlineLink} className="mt-8 inline-flex items-center rounded-full bg-white px-6 py-3 font-bold text-primary-700 shadow-xl shadow-black/10 transition hover:bg-cyan-50">
+                  Register Now
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </a>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-4 py-10 sm:px-6 lg:px-8">
+          <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <section className="rounded-3xl bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
+              <h2 className="text-xl font-bold text-gray-950">Program Snapshot</h2>
+              <div className="mt-5 grid gap-3 text-sm font-semibold text-gray-700 sm:grid-cols-2 lg:grid-cols-3">
+                {program.price && <p><span className="text-gray-400">Price:</span> {program.price}</p>}
+                {program.duration && <p><span className="text-gray-400">Duration:</span> {program.duration}</p>}
+                {program.deliveryMode && <p><span className="text-gray-400">Mode:</span> {formatLabel(program.deliveryMode)}</p>}
+                {program.startDate && <p><span className="text-gray-400">Starts:</span> {formatDate(program.startDate)}</p>}
+                {program.location && <p><span className="text-gray-400">Location:</span> {program.location}</p>}
+              </div>
             </section>
 
-            {/* WHAT YOU WILL ACHIEVE Section */}
-            <motion.div 
-              className="mb-20 py-2 md:py-4 relative overflow-hidden"
-              variants={itemVariants}
-              style={{
-                width: '100vw',
-                marginLeft: 'calc(50% - 50vw)',
-                marginRight: 'calc(50% - 50vw)'
-              }}
-            >
-              
-              <div className="relative z-10 max-w-6xl mx-auto px-6">
-                <motion.div 
-                  className="text-center mb-8"
-                  initial={{ opacity: 0, y: -20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: false, amount: 0.3 }}
-                  transition={{ duration: 0.6 }}
-                >
-                  <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">WHAT YOU WILL ACHIEVE</h2>
-                  <div className="w-24 h-1 bg-white mx-auto rounded-full"></div>
-                </motion.div>
-
-                {/* Achievement List */}
-                <div className="max-w-4xl mx-auto mb-6 space-y-6">
-                  {[
-                    {
-                      title: "Move From Chaos to Clarity",
-                      description: "Stop reacting daily. Start operating with structure.",
-                      color: MAGNA_COLORS.M
-                    },
-                    {
-                      title: "Build Systems That Replace You",
-                      description: "Create SOPs, workflows, and AI-powered systems that reduce dependency.",
-                      color: MAGNA_COLORS.A
-                    },
-                    {
-                      title: "Design Predictable Growth Engines", 
-                      description: "No more guesswork-build repeatable marketing and sales systems.",
-                      color: MAGNA_COLORS.G
-                    },
-                    {
-                      title: "Gain Complete Financial Visibility",
-                      description: "Understand your numbers, cash flow, and profitability clearly.",
-                      color: MAGNA_COLORS.N
-                    },
-                    {
-                      title: "Scale Without Burnout",
-                      description: "Align your energy, team, and execution for long-term sustainability.",
-                      color: MAGNA_COLORS.A2
-                    }
-                  ].map((achievement, index) => (
-                    <motion.div
-                      key={index}
-                      className="relative"
-                      initial={{ opacity: 0, y: 30 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: false, amount: 0.3 }}
-                      transition={{ duration: 0.6, delay: index * 0.15 }}
-                    >
-                      <div 
-                        className="rounded-2xl p-6 shadow-[0_20px_40px_rgba(0,0,0,0.15)] border border-white/20"
-                        style={{
-                          background: `linear-gradient(135deg, ${achievement.color}20 0%, ${achievement.color}40 100%)`
-                        }}
-                      >
-                        <div className="flex items-start gap-4">
-                          {/* Numbered Circle */}
-                          <div 
-                            className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg"
-                            style={{ backgroundColor: achievement.color }}
-                          >
-                            <span className="text-white text-lg font-bold">{index + 1}</span>
-                          </div>
-                          
-                          {/* Content */}
-                          <div className="flex-1">
-                            <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 leading-tight">
-                              {achievement.title}
-                            </h3>
-                            
-                            <p className="text-gray-700 leading-relaxed">
-                              {achievement.description}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
+            {program.audience?.length > 0 && (
+              <section className="rounded-3xl bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
+                <h2 className="text-xl font-bold text-gray-950">Ideal For</h2>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {program.audience.map((item) => (
+                    <span key={item} className="rounded-full bg-primary-50 px-3 py-1.5 text-sm font-bold text-primary-700">{item}</span>
                   ))}
                 </div>
+              </section>
+            )}
+          </div>
+        </section>
 
-                
-              </div>
-            </motion.div>
-
-            {/* WHAT MAKES MAGNA DIFFERENT Section */}
-            <section
-              className="py-16 md:py-20 mb-20"
-              style={{
-                backgroundColor: '#000047',
-                width: '100vw',
-                marginLeft: 'calc(50% - 50vw)',
-                marginRight: 'calc(50% - 50vw)'
-              }}
-            >
-              <div className="px-6">
-                <motion.div 
-                  variants={itemVariants}
-                  className="max-w-6xl mx-auto"
-                >
-                  <div className="text-center mb-12">
-                    <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">WHAT MAKES MAGNA DIFFERENT</h2>
-                  </div>
-
-                  <div className="max-w-6xl mx-auto">
-                    <div className="grid md:grid-cols-4 gap-6">
-                      {/* Point 1 */}
-                      <motion.div 
-                        className="p-6 shadow-lg border border-white/20 relative overflow-hidden rounded-2xl"
-                        style={{
-                          background: 'linear-gradient(135deg, #3533cd 0%, #00ffff 100%)',
-                          boxShadow: '0 0 20px rgba(0, 255, 255, 0.15), 0 10px 30px rgba(53, 51, 205, 0.1)'
-                        }}
-                        whileHover={{ 
-                          scale: 1.05,
-                          boxShadow: '0 0 30px rgba(0, 255, 255, 0.25), 0 20px 40px rgba(53, 51, 205, 0.15), 0 0 0 1px rgba(0, 255, 255, 0.3)',
-                          y: -8
-                        }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <div className="flex flex-col items-center text-center">
-                          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 mb-4 border border-white/30">
-                            <RefreshCw className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-white mb-2">Not Just Training - Transformation</h3>
-                            <p className="text-sm text-white/90">We don't just teach. We redesign how your business operates.</p>
-                          </div>
-                        </div>
-                      </motion.div>
-
-                      {/* Point 2 */}
-                      <motion.div 
-                        className="p-6 shadow-lg border border-white/20 relative overflow-hidden rounded-2xl"
-                        style={{
-                          background: 'linear-gradient(135deg, #3533cd 0%, #00ffff 100%)',
-                          boxShadow: '0 0 20px rgba(0, 255, 255, 0.15), 0 10px 30px rgba(53, 51, 205, 0.1)'
-                        }}
-                        whileHover={{ 
-                          scale: 1.05,
-                          boxShadow: '0 0 30px rgba(0, 255, 255, 0.25), 0 20px 40px rgba(53, 51, 205, 0.15), 0 0 0 1px rgba(0, 255, 255, 0.3)',
-                          y: -8
-                        }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <div className="flex flex-col items-center text-center">
-                          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 mb-4 border border-white/30">
-                            <Factory className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-white mb-2">Built for MSME Reality</h3>
-                            <p className="text-sm text-white/90">No startup theory. Everything is designed for real Indian businesses.</p>
-                          </div>
-                        </div>
-                      </motion.div>
-
-                      {/* Point 3 */}
-                      <motion.div 
-                        className="p-6 shadow-lg border border-white/20 relative overflow-hidden rounded-2xl"
-                        style={{
-                          background: 'linear-gradient(135deg, #3533cd 0%, #00ffff 100%)',
-                          boxShadow: '0 0 20px rgba(0, 255, 255, 0.15), 0 10px 30px rgba(53, 51, 205, 0.1)'
-                        }}
-                        whileHover={{ 
-                          scale: 1.05,
-                          boxShadow: '0 0 30px rgba(0, 255, 255, 0.25), 0 20px 40px rgba(53, 51, 205, 0.15), 0 0 0 1px rgba(0, 255, 255, 0.3)',
-                          y: -8
-                        }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <div className="flex flex-col items-center text-center">
-                          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 mb-4 border border-white/30">
-                            <Zap className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-white mb-2">AI + Business Systems Integration</h3>
-                            <p className="text-sm text-white/90">We combine:<br/>- AI tools<br/>- Business frameworks<br/>- Execution systems</p>
-                          </div>
-                        </div>
-                      </motion.div>
-
-                      {/* Point 4 */}
-                      <motion.div 
-                        className="p-6 shadow-lg border border-white/20 relative overflow-hidden rounded-2xl"
-                        style={{
-                          background: 'linear-gradient(135deg, #3533cd 0%, #00ffff 100%)',
-                          boxShadow: '0 0 20px rgba(0, 255, 255, 0.15), 0 10px 30px rgba(53, 51, 205, 0.1)'
-                        }}
-                        whileHover={{ 
-                          scale: 1.05,
-                          boxShadow: '0 0 30px rgba(0, 255, 255, 0.25), 0 20px 40px rgba(53, 51, 205, 0.15), 0 0 0 1px rgba(0, 255, 255, 0.3)',
-                          y: -8
-                        }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <div className="flex flex-col items-center text-center">
-                          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 mb-4 border border-white/30">
-                            <Users className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-white mb-2">Founder + Business Growth Together</h3>
-                            <p className="text-sm text-white/90">Because scaling a business without evolving the founder leads to burnout.</p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </div>
-                  </div>
-                </motion.div>
+        <main>
+          {program.sections?.length > 0 ? (
+            program.sections.map((section, index) => (
+              <ProgramSection key={section._key || `${section.sectionTitle}-${index}`} section={section} />
+            ))
+          ) : (
+            <section className="w-full bg-[#f7f9ff] px-4 py-12 sm:px-6 lg:px-8">
+              <div className="mx-auto max-w-6xl rounded-3xl bg-white p-8 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
+                <h2 className="text-2xl font-bold text-gray-950">Program Details</h2>
+                <p className="mt-3 leading-8 text-gray-600">More details for this program will be published soon.</p>
               </div>
             </section>
+          )}
+        </main>
+      </div>
+    )
+  }
 
-            {/* WHO IS THIS FOR / NOT FOR Section */}
-            <section
-              
-              
-            >
-              <div className="px-6">
-                <motion.div variants={itemVariants} className="max-w-6xl mx-auto">
-                  <div className="text-center mb-12">
-                    <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-gray-900 tracking-tight">
-                      Who is this for?
-                    </h2>
-                    <p className="text-2xl font-semibold mb-8 text-gray-700 max-w-3xl mx-auto">
-                      Use this quick check to see if you're a fit for the Business MAGNA Program.
-                    </p>
-                  </div>
+  return (
+    <div className="min-h-screen bg-[#f7f9ff]">
+      <SEO title="Programs | Magnafic" description="Explore Magnafic programs, courses, live sessions, online sessions, meetups, and mentor-led learning experiences." path="/programs" />
+      <section className="bg-[#000047] px-4 pt-28 pb-16 text-white sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <p className="mb-4 text-sm font-black uppercase tracking-[0.22em] text-cyan-200">Programs</p>
+          <h1 className="max-w-4xl text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">Mentor-led programs for consumer brand growth</h1>
+          <p className="mt-6 max-w-3xl text-lg leading-8 text-cyan-50">
+            Explore live sessions, online programs, meetups, courses, workshops, and cohort experiences led by Magnafic mentors.
+          </p>
+        </div>
+      </section>
 
-                  <div className="grid lg:grid-cols-2 gap-8">
-                  {/* FOR */}
-                  <motion.div
-                    className="bg-gradient-to-br from-white to-[#f0f9ff] rounded-2xl shadow-xl border border-cyan-200/50 overflow-hidden"
-                    style={{
-                      boxShadow: '0 0 25px rgba(0, 255, 255, 0.2), 0 15px 35px rgba(53, 51, 205, 0.15)'
-                    }}
-                    variants={itemVariants}
-                    whileHover={{ 
-                      y: -4,
-                      boxShadow: '0 0 35px rgba(0, 255, 255, 0.3), 0 25px 45px rgba(53, 51, 205, 0.2), 0 0 0 1px rgba(0, 255, 255, 0.4)'
-                    }}
-                  >
-                    <div className="p-6 md:p-8 border-b border-gray-200">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-                        <div>
-                          <p className="text-base sm:text-sm font-semibold text-[#3533cd]">WHO THIS IS FOR</p>
-                          <h3 className="text-2xl font-extrabold text-[#000047] mt-1">This program is designed for:</h3>
-                        </div>
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-r from-[#3533cd] to-[#00ffff] flex items-center justify-center text-white shadow-sm flex-shrink-0">
-                          <Check className="h-5 w-5" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-6 md:p-8">
-                      <ul className="space-y-4 text-lg text-gray-800">
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-[#3533cd]/10 flex items-center justify-center text-[#3533cd] flex-shrink-0">
-                            <Check className="h-4 w-4" />
-                          </span>
-                          <span>MSME founders stuck in daily operations</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-[#3533cd]/10 flex items-center justify-center text-[#3533cd] flex-shrink-0">
-                            <Check className="h-4 w-4" />
-                          </span>
-                          <span>Business owners with Rs.20L-Rs.5Cr+ revenue looking to scale</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-[#3533cd]/10 flex items-center justify-center text-[#3533cd] flex-shrink-0">
-                            <Check className="h-4 w-4" />
-                          </span>
-                          <span>Entrepreneurs who want systems, not just ideas</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-[#3533cd]/10 flex items-center justify-center text-[#3533cd] flex-shrink-0">
-                            <Check className="h-4 w-4" />
-                          </span>
-                          <span>Founders ready to move from operator to architect to leader</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </motion.div>
-
-                  {/* NOT FOR */}
-                  <motion.div
-                    className="bg-gradient-to-br from-white to-[#f0f9ff] rounded-2xl shadow-xl border border-cyan-200/50 overflow-hidden"
-                    style={{
-                      boxShadow: '0 0 25px rgba(0, 255, 255, 0.2), 0 15px 35px rgba(53, 51, 205, 0.15)'
-                    }}
-                    variants={itemVariants}
-                    whileHover={{ 
-                      y: -4,
-                      boxShadow: '0 0 35px rgba(0, 255, 255, 0.3), 0 25px 45px rgba(53, 51, 205, 0.2), 0 0 0 1px rgba(0, 255, 255, 0.4)'
-                    }}
-                  >
-                    <div className="p-6 md:p-8 border-b border-red-200">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-                        <div>
-                          <p className="text-base sm:text-sm font-semibold text-red-600">WHO THIS IS NOT FOR</p>
-                          <h3 className="text-2xl font-extrabold text-[#000047] mt-1">This will not be a fit if:</h3>
-                        </div>
-                        <div className="w-12 h-12 rounded-2xl bg-red-600 flex items-center justify-center text-white shadow-sm flex-shrink-0">
-                          <X className="h-5 w-5" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-6 md:p-8">
-                      <ul className="space-y-4 text-lg text-gray-800 mb-8">
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-red-600/10 flex items-center justify-center text-red-600 flex-shrink-0">
-                            <X className="h-4 w-4" />
-                          </span>
-                          <span>People looking for quick hacks or shortcuts</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-red-600/10 flex items-center justify-center text-red-600 flex-shrink-0">
-                            <X className="h-4 w-4" />
-                          </span>
-                          <span>Founders unwilling to implement</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-red-600/10 flex items-center justify-center text-red-600 flex-shrink-0">
-                            <X className="h-4 w-4" />
-                          </span>
-                          <span>Those expecting "motivation-only" programs</span>
-                        </li>
-                      </ul>
-
-                      
-                    </div>
-                  </motion.div>
-                  </div>
-                </motion.div>
-                <p className="text-2xl font-semibold mb-8 text-gray-700 max-w-3xl mx-auto text-center pt-8 ">
-                          This is for builders who want real transformation.
-                        </p>
-              </div>
-            </section>
-
-            
-
-            {/* 2-DAY MAGNA BUSINESS PROGRAM Section */}
-            <motion.div 
-              className="relative mb-20 overflow-hidden py-24 md:py-32"
-              variants={itemVariants}
-              style={{
-                backgroundColor: '#000047',
-                width: '100vw',
-                marginLeft: 'calc(50% - 50vw)',
-                marginRight: 'calc(50% - 50vw)'
-              }}
-            >
-              <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(135deg,rgba(0,255,255,0.12)_0%,rgba(255,255,255,0)_36%,rgba(185,72,255,0.14)_100%)]" />
-
-              <div className="relative z-10 mx-auto mb-12 max-w-4xl px-6 text-center">
-                
-                <h2 className="text-4xl md:text-5xl font-extrabold leading-tight text-white">Join the MAGNA Business Program</h2>
-                <p className="mx-auto mt-5 max-w-3xl text-lg md:text-xl leading-relaxed text-white/75">
-                  Two focused days to move from founder-led chaos to a system-driven business with clearer growth, control, and execution.
-                </p>
-              </div>
-
-              <div className="relative z-10 max-w-6xl mx-auto px-6">
-                <div className="grid gap-8 lg:grid-cols-2">
-                  {/* DAY 1 */}
-                  <motion.div 
-                    className="group relative overflow-hidden rounded-3xl border border-white/30 shadow-[0_24px_70px_rgba(0,0,0,0.28)]"
-                    style={{
-                      background: 'linear-gradient(135deg, #3533cd 0%, #00ffff 100%)',
-                      boxShadow: '0 0 25px rgba(0, 255, 255, 0.2), 0 15px 35px rgba(53, 51, 205, 0.15)'
-                    }}
-                    variants={itemVariants}
-                    whileHover={{ 
-                      y: -5,
-                      boxShadow: '0 0 35px rgba(0, 255, 255, 0.3), 0 25px 45px rgba(53, 51, 205, 0.2), 0 0 0 1px rgba(0, 255, 255, 0.4)'
-                    }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <div className="h-1.5 w-full bg-gradient-to-r from-[#3533cd] via-[#7231EC] to-[#00ffff]" />
-                    <div 
-                      className="p-6 md:p-8"
-                    >
-                      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between items-center sm:items-start">
-                        
-                        <div className="flex h-16 w-20 shrink-0 items-center justify-center rounded-2xl bg-white text-lg font-extrabold text-[#3533cd] shadow-[0_0_24px_rgba(0,255,255,0.35)]">
-                          Day 1
-                        </div>
-                        <div className="text-center sm:text-left">
-                          <h3 className="text-2xl md:text-3xl font-extrabold leading-tight text-white">FOUNDATION & SYSTEMS</h3>
-                          
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="px-6 pb-6 md:px-8 md:pb-8 space-y-5">
-                      {/* Session 1 */}
-                      <div className="rounded-2xl border border-white/10 bg-white p-5 shadow-lg">
-                        <h5 className="mb-3 text-left text-lg font-extrabold text-gray-950">Session 1: M - Mindset </h5>
-                                           
-                      <div className="mb-3">
-                            <ul className="space-y-3 text-sm leading-relaxed text-gray-700">
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#3533cd]">-</span>
-                              <span>The 3 identity shifts required to scale beyond Rs.1Cr to Rs.100 Cr+</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#3533cd]">-</span>
-                              <span>Why "hard work" is killing growth (and what replaces it)</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#3533cd]">-</span>
-                              <span>Breaking "founder dependency loop"</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#3533cd]">-</span>
-                              <span>Moving from firefighting to foresight-driven leadership</span>
-                            </li>
-                          </ul>
-                        </div>
-                        
-                                              </div>
-                      
-                      
-                      
-                      {/* Session 2 */}
-                      <div className="rounded-2xl border border-white/10 bg-white p-5 shadow-lg">
-                        <h5 className="mb-3 text-left text-lg font-extrabold text-gray-950">Session 2: A - Architecture </h5>
-                                              
-                      <div className="mb-3">
-                            <ul className="space-y-3 text-sm leading-relaxed text-gray-700">
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#4E26E2]">-</span>
-                              <span>How to remove "people dependency"</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#4E26E2]">-</span>
-                              <span>Designing SOPs that actually get followed</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#4E26E2]">-</span>
-                              <span>Tools & workflows to reduce manual effort by 30-50%</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#4E26E2]">-</span>
-                              <span>Automating marketing, sales follow-ups, and operation</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#4E26E2]">-</span>
-                              <span>Where AI actually fits in MSME businesses </span>
-                            </li>
-                          </ul>
-                        </div>
-                        
-                                                
-                                              </div>
-                      
-                      
-                      {/* Session 3 */}
-                      <div className="rounded-2xl border border-white/10 bg-white p-5 shadow-lg">
-                        <h5 className="mb-3 text-left text-lg font-extrabold text-gray-950">Session 3: G - Growth </h5>
-                        
-                        
-                        <div className="mb-3">
-                        
-                          <ul className="space-y-3 text-sm leading-relaxed text-gray-700">
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#7231EC]">-</span>
-                              <span>How to create predictable monthly revenue</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#7231EC]">-</span>
-                              <span>Fixing inconsistent sales pipelines</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#7231EC]">-</span>
-                              <span>Positioning & messaging for premium growth</span>
-                            </li>
-                            
-                          </ul>
-                        </div>
-                        
-                                              </div>
-                      
-                                          </div>
-                  </motion.div>
-
-                  {/* DAY 2 */}
-                  <motion.div 
-                    className="group relative overflow-hidden rounded-3xl border border-white/30 shadow-[0_24px_70px_rgba(0,0,0,0.28)]"
-                    style={{
-                      background: 'linear-gradient(135deg, #3533cd 0%, #00ffff 100%)',
-                      boxShadow: '0 0 25px rgba(0, 255, 255, 0.2), 0 15px 35px rgba(53, 51, 205, 0.15)'
-                    }}
-                    variants={itemVariants}
-                    whileHover={{ 
-                      y: -5,
-                      boxShadow: '0 0 35px rgba(0, 255, 255, 0.3), 0 25px 45px rgba(53, 51, 205, 0.2), 0 0 0 1px rgba(0, 255, 255, 0.4)'
-                    }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <div className="h-1.5 w-full bg-gradient-to-r from-[#953DF5] via-[#B948FF] to-[#00ffff]" />
-                    <div 
-                      className="p-6 md:p-8"
-                    >
-                      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between items-center sm:items-start">
-                        
-                        <div className="flex h-16 w-20 shrink-0 items-center justify-center rounded-2xl bg-white text-lg font-extrabold text-[#953DF5] shadow-[0_0_24px_rgba(185,72,255,0.35)]">
-                          Day 2
-                        </div>
-                        <div className="text-center sm:text-left">
-                          <h3 className="text-2xl md:text-3xl font-extrabold leading-tight text-white">SCALE & SUSTAINABILITY</h3>
-                          
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="px-6 pb-6 md:px-8 md:pb-8 space-y-5">
-                      {/* Session 4 */}
-                      <div className="rounded-2xl border border-white/10 bg-white p-5 shadow-lg">
-                        <h5 className="mb-3 text-left text-lg font-extrabold text-gray-950">Session 4: N - Numbers </h5>
-                        
-                        
-                        
-                        <div className="mb-3">
-                          
-                          <ul className="space-y-3 text-sm leading-relaxed text-gray-700">
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#953DF5]">-</span>
-                              <span>The only KPIs that actually matter for founders</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#953DF5]">-</span>
-                              <span>Understanding CAC, LTV, conversion ratios, and margins</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#953DF5]">-</span>
-                              <span>How to stop "profit leaks" in your business</span>
-                            </li>
-                            
-                          </ul>
-                        </div>
-                        
-                                                
-                                              </div>
-                      
-                      
-                      {/* Session 5 */}
-                      <div className="rounded-2xl border border-white/10 bg-white p-5 shadow-lg">
-                        <h5 className="mb-3 text-left text-lg font-extrabold text-gray-950">Session 5:A - Alignment  </h5>
-                        
-                        
-                        
-                        <div className="mb-3">
-                          
-                          <ul className="space-y-3 text-sm leading-relaxed text-gray-700">
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#B948FF]">-</span>
-                              <span>Aligning team, systems, and founder energy</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#B948FF]">-</span>
-                              <span>Hiring for scale vs hiring for survival</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#B948FF]">-</span>
-                              <span>Time, energy & focus management for founders</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-[#B948FF]">-</span>
-                              <span>Creating a culture of ownership, not dependency</span>
-                            </li>
-                          </ul>
-                        </div>
-                        
-                                              </div>
-                      
-                      
-                      {/* Session 6 */}
-                      <div className="rounded-2xl border border-cyan-200/70 bg-gradient-to-br from-white to-cyan-50 p-5 shadow-lg">
-                        <h5 className="mb-3 text-left text-lg font-extrabold text-gray-950">Session 6: Q & A Session </h5>
-                        
-                        
-                        
-                        <div className="mb-3">
-                          
-                          <ul className="space-y-3 text-sm leading-relaxed text-gray-700">
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-cyan-600">-</span>
-                              <span>Addressing specific challenges and questions from participants</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="mt-1 font-bold text-cyan-600">-</span>
-                              <span>Final insights and next steps for implementation</span>
-                            </li>
-                          </ul>
-                        </div>
-                        
-                                              </div>
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* BEFORE vs AFTER MAGNA Section */}
-            <motion.div 
-              className="mb-20"
-              variants={itemVariants}
-            >
-              <div className="text-center mb-12">
-                
-                <h2 className="text-4xl md:text-5xl font-extrabold text-heading tracking-tight">
-                  BEFORE vs AFTER MAGNA
-                </h2>
-              </div>
-
-              <div className="max-w-5xl mx-auto">
-                <div className="grid md:grid-cols-2 gap-8">
-                  {/* Before Column */}
-                  <motion.div 
-                    className="relative bg-gradient-to-br from-white to-[#fff1f2] rounded-2xl shadow-xl border border-red-200 overflow-hidden"
-                    variants={itemVariants}
-                    whileHover={{ y: -4 }}
-                  >
-                    <div className="h-1.5 w-full bg-gradient-to-r from-red-500 to-rose-400" />
-                    <div className="p-6 md:p-8 border-b border-red-200">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-                        <div>
-                          <p className="text-lg sm:text-base font-semibold text-red-600">Before</p>
-                          <h3 className="text-xl sm:text-2xl font-extrabold text-[#000047] mt-1">Where most founders start</h3>
-                        </div>
-                        <div className="w-12 h-12 rounded-2xl bg-red-600 flex items-center justify-center text-white shadow-sm flex-shrink-0">
-                          <AlertTriangle className="h-5 w-5" />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-6 md:p-8">
-                      <ul className="space-y-4 text-lg text-gray-800">
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-red-600/10 flex items-center justify-center text-red-600 flex-shrink-0">
-                            <X className="h-4 w-4" />
-                          </span>
-                          <span>Constant firefighting</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-red-600/10 flex items-center justify-center text-red-600 flex-shrink-0">
-                            <X className="h-4 w-4" />
-                          </span>
-                          <span>No time to think</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-red-600/10 flex items-center justify-center text-red-600 flex-shrink-0">
-                            <X className="h-4 w-4" />
-                          </span>
-                          <span>Revenue is inconsistent</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-red-600/10 flex items-center justify-center text-red-600 flex-shrink-0">
-                            <X className="h-4 w-4" />
-                          </span>
-                          <span>Business depends on you</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </motion.div>
-
-                  {/* After Column */}
-                  <motion.div 
-                    className="relative bg-gradient-to-br from-white to-[#ecfeff] rounded-2xl shadow-xl border border-emerald-200 overflow-hidden"
-                    variants={itemVariants}
-                    whileHover={{ y: -4 }}
-                  >
-                    <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 to-cyan-400" />
-                    <div className="p-6 md:p-8 border-b border-emerald-200">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-                        <div>
-                          <p className="text-lg sm:text-base font-semibold text-emerald-600">After</p>
-                          <h3 className="text-xl sm:text-2xl font-extrabold text-[#000047] mt-1">What MAGNA unlocks</h3>
-                        </div>
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-400 flex items-center justify-center text-white shadow-sm flex-shrink-0">
-                          <Check className="h-5 w-5" />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-6 md:p-8">
-                      <ul className="space-y-4 text-lg text-gray-800">
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 flex-shrink-0">
-                            <Check className="h-4 w-4" />
-                          </span>
-                          <span>Structured systems in place</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 flex-shrink-0">
-                            <Check className="h-4 w-4" />
-                          </span>
-                          <span>Team operates independently</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 flex-shrink-0">
-                            <Check className="h-4 w-4" />
-                          </span>
-                          <span>Growth becomes predictable</span>
-                        </li>
-                        <li className="flex items-start gap-4">
-                          <span className="mt-1 w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 flex-shrink-0">
-                            <Check className="h-4 w-4" />
-                          </span>
-                          <span>You lead instead of execute</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* WHAT MAKES THIS PROGRAM A MUST-ATTEND Section */}
-            <section
-              className="py-16 md:py-20 mb-0"
-              style={{
-                backgroundColor: '#000047',
-                width: '100vw',
-                marginLeft: 'calc(50% - 50vw)',
-                marginRight: 'calc(50% - 50vw)'
-              }}
-            >
-              <div className="px-6">
-                <motion.div 
-                  variants={itemVariants}
-                  className="max-w-6xl mx-auto"
-                >
-                  <div className="text-center mb-12">
-                    <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">What Makes This Program a Must-Attend for Entrepreneurs</h2>
-                  </div>
-
-                  <div className="max-w-4xl mx-auto space-y-8">
-                    {/* Point 1 */}
-                    <div className="bg-gradient-to-br from-white to-[#f0f9ff] rounded-2xl p-6 shadow-lg border border-cyan-200/50" 
-                         style={{
-                           boxShadow: '0 0 20px rgba(0, 255, 255, 0.15), 0 10px 30px rgba(53, 51, 205, 0.1)'
-                         }}>
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                          <GraduationCap className="h-5 w-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">Learn from a Proven Business Builder</h3>
-                          <p className="text-gray-700">Gain real-world insights from a coach who has successfully built and scaled multiple businesses. No theory-only practical strategies tailored for MSMEs like yours.</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    
-                    {/* Point 2 */}
-                    <div className="bg-gradient-to-br from-white to-[#f0f9ff] rounded-2xl p-6 shadow-lg border border-cyan-200/50" 
-                         style={{
-                           boxShadow: '0 0 20px rgba(0, 255, 255, 0.15), 0 10px 30px rgba(53, 51, 205, 0.1)'
-                         }}>
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                          <Zap className="h-5 w-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">Follow a System That Drives Sustainable Growth</h3>
-                          <p className="text-gray-700">Understand a proven framework used by 25,000+ business owners to scale efficiently-without being stuck in day-to-day operations.</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    
-                    {/* Point 3 */}
-                    <div className="bg-gradient-to-br from-white to-[#f0f9ff] rounded-2xl p-6 shadow-lg border border-cyan-200/50" 
-                         style={{
-                           boxShadow: '0 0 20px rgba(0, 255, 255, 0.15), 0 10px 30px rgba(53, 51, 205, 0.1)'
-                         }}>
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                          <Crown className="h-5 w-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">Step into True Leadership</h3>
-                          <p className="text-gray-700">Move beyond managing tasks. Learn how to build, train, and empower a team that runs independently while you focus on growth.</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    
-                    {/* Point 4 */}
-                    <div className="bg-gradient-to-br from-white to-[#f0f9ff] rounded-2xl p-6 shadow-lg border border-cyan-200/50" 
-                         style={{
-                           boxShadow: '0 0 20px rgba(0, 255, 255, 0.15), 0 10px 30px rgba(53, 51, 205, 0.1)'
-                         }}>
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                          <Lightbulb className="h-5 w-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">Solve Your Most Critical Business Challenges</h3>
-                          <p className="text-gray-700">Whether it's low margins, delayed payments, or stagnant sales-discover actionable solutions you can implement immediately.</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    
-                    {/* Point 5 */}
-                    <div className="bg-gradient-to-br from-white to-[#f0f9ff] rounded-2xl p-6 shadow-lg border border-cyan-200/50" 
-                         style={{
-                           boxShadow: '0 0 20px rgba(0, 255, 255, 0.15), 0 10px 30px rgba(53, 51, 205, 0.1)'
-                         }}>
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                          <Clock className="h-5 w-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">Take Back Control of Your Time and Business</h3>
-                          <p className="text-gray-700">Break free from daily chaos by building strong systems and teams that allow your business to run smoothly without constant supervision.</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    
-                    {/* Point 6 */}
-                    <div className="bg-gradient-to-br from-white to-[#f0f9ff] rounded-2xl p-6 shadow-lg border border-cyan-200/50" 
-                         style={{
-                           boxShadow: '0 0 20px rgba(0, 255, 255, 0.15), 0 10px 30px rgba(53, 51, 205, 0.1)'
-                         }}>
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                          <ClipboardCheck className="h-5 w-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">Leave with a Clear, Actionable Growth Plan</h3>
-                          <p className="text-gray-700">Walk away with a personalized action plan tailored to your business-ready to implement from day one.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-            </section>
-
-            {/* LIMITED SEATS ONLY Section */}
-            <section
-              className="py-16 md:py-20 mb-20"
-              style={{
-                backgroundColor: '#000047',
-                width: '100vw',
-                marginLeft: 'calc(50% - 50vw)',
-                marginRight: 'calc(50% - 50vw)'
-              }}
-            >
-              <div className="px-6">
-                <motion.div 
-                  variants={itemVariants}
-                  className="max-w-6xl mx-auto"
-                >
-                  
-
-                  <div className="max-w-5xl mx-auto">
-                    <div className="relative">
-                      {/* Background decoration */}
-                      <div className="absolute -inset-4 bg-gradient-to-r from-white/5 to-white/10 rounded-3xl opacity-60" />
-                      
-                      {/* Main content */}
-                      <div className="relative bg-white/10 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
-                        {/* Top gradient bar */}
-                        <div className="h-2 w-full bg-gradient-to-r from-[#3533cd] to-[#00ffff]" />
-                        
-                        <div className="p-8 md:p-12">
-                          {/* Alert badge */}
-                          
-
-                      {/* Main message */}
-                      <div className="text-center mb-10">
-                        <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-                          We work closely with founders to ensure
-                        </h3>
-                        <p className="text-lg text-white/80">
-                          Real transformation requires deep focus and personalized attention
-                        </p>
-                      </div>
-
-                      {/* Feature grid */}
-                      <div className="grid md:grid-cols-3 gap-6 mb-10">
-                        <motion.div 
-                          className="text-center group"
-                          whileHover={{ y: -4 }}
-                        >
-                          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#3533cd] to-[#3533cd] flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
-                            <Brain className="h-7 w-7 text-white" />
-                          </div>
-                          <h4 className="text-lg font-bold text-white mb-2">Personal Clarity</h4>
-                          <p className="text-white/80 text-sm leading-relaxed">
-                            Deep dive into your unique business challenges and breakthrough opportunities
-                          </p>
-                        </motion.div>
-
-                        <motion.div 
-                          className="text-center group"
-                          whileHover={{ y: -4 }}
-                        >
-                          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#00ffff] to-[#3533cd] flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
-                            <Zap className="h-7 w-7 text-white" />
-                          </div>
-                          <h4 className="text-lg font-bold text-white mb-2">Real Implementation</h4>
-                          <p className="text-white/80 text-sm leading-relaxed">
-                            Build actual systems during the program, not just theoretical frameworks
-                          </p>
-                        </motion.div>
-
-                        <motion.div 
-                          className="text-center group"
-                          whileHover={{ y: -4 }}
-                        >
-                          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#3533cd] to-[#00ffff] flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
-                            <TrendingUp className="h-7 w-7 text-white" />
-                          </div>
-                          <h4 className="text-lg font-bold text-white mb-2">Measurable Outcomes</h4>
-                          <p className="text-white/80 text-sm leading-relaxed">
-                            Track concrete improvements in revenue, systems, and personal freedom
-                          </p>
-                        </motion.div>
-                      </div>
-
-                      
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-            </section>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, amount: 0.3 }}
-              transition={{ duration: 0.6 }}
-              className="text-center mt-12"
-            >
-              <motion.button
-                className="group relative inline-flex items-center justify-center px-12 py-6 text-xl font-bold text-white rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105"
-                style={{
-                  background: 'linear-gradient(135deg, #3533cd 0%, #00ffff 100%)',
-                  boxShadow: '0 0 30px rgba(0, 255, 255, 0.3), 0 15px 35px rgba(53, 51, 205, 0.2)'
-                }}
-                whileHover={{ 
-                  boxShadow: '0 0 40px rgba(0, 255, 255, 0.4), 0 20px 45px rgba(53, 51, 205, 0.25), 0 0 0 2px rgba(0, 255, 255, 0.5)',
-                  scale: 1.05
-                }}
-                transition={{ duration: 0.3 }}
-                onClick={() => {
-  window.scrollTo(0, 0);
-  navigate('/contact');
-}}
-              >
-                <span className="relative z-10">APPLY NOW</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-              </motion.button>
-              
-              <motion.p 
-                className="mt-6 mb-12 text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: false, amount: 0.3 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-              >
-                Build a business that doesn't just grow<br/>
-                but evolves intelligently.
-              </motion.p>
-            </motion.div>
-          </motion.div>
+      <section className="px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          {programs.length > 0 ? (
+            <>
+              <ProgramGroup
+                title="Upcoming Programs"
+                description="Programs scheduled to begin after today."
+                programs={groupedPrograms.upcoming}
+                emptyMessage="No upcoming programs are scheduled yet."
+              />
+              <ProgramGroup
+                title="Past Programs"
+                description="Completed programs, ordered by the most recent date first."
+                programs={groupedPrograms.past}
+                emptyMessage="No past programs to show yet."
+                separated
+              />
+            </>
+          ) : (
+            <div className="rounded-3xl bg-white p-8 text-center shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
+              <Loader2 className="mx-auto mb-4 h-8 w-8 text-primary-600" />
+              <h2 className="text-2xl font-bold text-gray-950">Programs are coming soon</h2>
+              <p className="mt-3 text-gray-600">Published programs from Sanity will appear here.</p>
+            </div>
+          )}
         </div>
       </section>
     </div>
-  );
-};
-
-export default Programs;
+  )
+}
