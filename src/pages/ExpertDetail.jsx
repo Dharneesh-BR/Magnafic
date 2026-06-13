@@ -917,7 +917,7 @@ export default function ExpertDetail() {
                       <div className="relative min-w-0 flex-1 pr-10">
                         <h3 className="font-semibold text-gray-950">{item.roleTitle}</h3>
                         <p className="mt-1 text-sm text-gray-700">
-                          {[item.companyName, item.employmentType].filter(Boolean).join(' · ')}
+                          {[item.companyName, item.employmentType].filter(Boolean).join(' | ')}
                         </p>
                         <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
                           {formatRange(item.startDate, item.endDate, item.currentlyWorkingHere) && (
@@ -935,14 +935,14 @@ export default function ExpertDetail() {
                         )}
                       </div>
                       {item.description?.length > 0 && (
-                        <div className="col-span-2 grid max-h-0 overflow-hidden opacity-0 transition-all duration-300 ease-out group-hover:mt-3 group-hover:max-h-[30rem] group-hover:opacity-100 group-focus:mt-3 group-focus:max-h-[30rem] group-focus:opacity-100 group-focus-within:mt-3 group-focus-within:max-h-[30rem] group-focus-within:opacity-100">
+                        <div className="col-span-2 grid max-h-0 overflow-hidden opacity-0 transition-all duration-300 ease-out group-hover:mt-3 group-hover:max-h-[80rem] group-hover:opacity-100 group-focus:mt-3 group-focus:max-h-[80rem] group-focus:opacity-100 group-focus-within:mt-3 group-focus-within:max-h-[80rem] group-focus-within:opacity-100">
                           <div className="space-y-3 border-t border-gray-100 pt-3 pl-0 [&_ol]:ml-0 [&_ul]:ml-0">
-                          {renderPortableText(item.description, true)}
+                            {renderPortableText(item.description, true)}
                           </div>
                         </div>
                       )}
                       {toTextList(item.skillsUsed).length > 0 && (
-                        <div className="col-span-2 flex max-h-0 flex-wrap gap-2 overflow-hidden opacity-0 transition-all duration-300 ease-out group-hover:mt-3 group-hover:max-h-40 group-hover:opacity-100 group-focus:mt-3 group-focus:max-h-40 group-focus:opacity-100 group-focus-within:mt-3 group-focus-within:max-h-40 group-focus-within:opacity-100">
+                        <div className="col-span-2 flex max-h-0 flex-wrap gap-2 overflow-hidden opacity-0 transition-all duration-300 ease-out group-hover:mt-3 group-hover:max-h-80 group-hover:opacity-100 group-focus:mt-3 group-focus:max-h-80 group-focus:opacity-100 group-focus-within:mt-3 group-focus-within:max-h-80 group-focus-within:opacity-100">
                           {toTextList(item.skillsUsed).map(skill => (
                             <span key={skill} className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">{skill}</span>
                           ))}
