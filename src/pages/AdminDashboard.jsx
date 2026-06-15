@@ -129,7 +129,7 @@ async function getAdminProfile(firebaseUser) {
 
 function getAdminError(error) {
   if (error?.code === 'permission-denied') {
-    return 'Firestore permissions are blocking admin dashboard data. Allow admin users to read users and clientBriefs.'
+    return 'Firestore permissions are blocking admin dashboard data. Allow admin users to read users, clientBriefs, and communityApplications.'
   }
 
   return error?.message || 'Unable to load admin dashboard right now.'
@@ -147,6 +147,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('')
   const [usersData, setUsersData] = useState([])
   const [briefs, setBriefs] = useState([])
+  const [communityApplications, setCommunityApplications] = useState([])
   const [capabilitiesByExpertId, setCapabilitiesByExpertId] = useState({})
   const [sanityExpertsById, setSanityExpertsById] = useState({})
   const [sanityExpertOptions, setSanityExpertOptions] = useState([])
@@ -163,6 +164,7 @@ export default function AdminDashboard() {
   const [detachingBriefId, setDetachingBriefId] = useState('')
   const [schedulingBriefId, setSchedulingBriefId] = useState('')
   const [allocatingReferralId, setAllocatingReferralId] = useState('')
+  const [updatingApplicationId, setUpdatingApplicationId] = useState('')
   const [scheduleDrafts, setScheduleDrafts] = useState({})
   const [allocationDrafts, setAllocationDrafts] = useState({})
   const [questionnaireDetails, setQuestionnaireDetails] = useState(null)
@@ -228,6 +230,17 @@ export default function AdminDashboard() {
         collection(db, 'clientBriefs'),
         (snapshot) => {
           setBriefs(snapshot.docs.map(normalizeDocument))
+          setDataLoading(false)
+        },
+        (snapshotError) => {
+          setDataError(getAdminError(snapshotError))
+          setDataLoading(false)
+        }
+      ),
+      onSnapshot(
+        collection(db, 'communityApplications'),
+        (snapshot) => {
+          setCommunityApplications(snapshot.docs.map(normalizeDocument))
           setDataLoading(false)
         },
         (snapshotError) => {
@@ -358,6 +371,19 @@ export default function AdminDashboard() {
     activeProjects: referralRequests.filter((brief) => brief.status === 'active').length,
   }), [referralRequests])
 
+  const sortedApplications = useMemo(() => [...communityApplications].sort((a, b) => {
+    const aTime = toDate(a.createdAt)?.getTime?.() || 0
+    const bTime = toDate(b.createdAt)?.getTime?.() || 0
+    return bTime - aTime
+  }), [communityApplications])
+
+  const applicationStats = useMemo(() => ({
+    submitted: sortedApplications.length,
+    new: sortedApplications.filter((application) => (application.status || 'new') === 'new').length,
+    reviewed: sortedApplications.filter((application) => application.status === 'reviewed').length,
+    accepted: sortedApplications.filter((application) => application.status === 'accepted').length,
+  }), [sortedApplications])
+
   const sortedBriefs = useMemo(() => [...briefs].sort((a, b) => {
     const aTime = a.createdAt?.toDate?.()?.getTime?.() || 0
     const bTime = b.createdAt?.toDate?.()?.getTime?.() || 0
@@ -449,9 +475,10 @@ export default function AdminDashboard() {
     clients: hasDashboardFilters ? dashboardClients.length : usersData.filter((item) => item.role === 'client').length,
     consultants: dashboardConsultants.length,
     briefs: dashboardBriefs.length,
+    applications: sortedApplications.length,
     projectPayments: dashboardConsultants.reduce((total, consultant) => total + getFilteredPaymentTotal(consultant, 'projectPayments'), 0),
     referralPayments: dashboardConsultants.reduce((total, consultant) => total + getFilteredPaymentTotal(consultant, 'referralPayments'), 0),
-  }), [dashboardBriefs.length, dashboardClients.length, dashboardConsultants, dashboardFilters.endDate, dashboardFilters.startDate, hasDashboardFilters, usersData])
+  }), [dashboardBriefs.length, dashboardClients.length, dashboardConsultants, dashboardFilters.endDate, dashboardFilters.startDate, hasDashboardFilters, sortedApplications.length, usersData])
 
   const updateDashboardFilter = (field, value) => {
     setDashboardFilters((current) => ({
@@ -685,6 +712,30 @@ export default function AdminDashboard() {
       setDataError(getAdminError(allocationError))
     } finally {
       setAllocatingReferralId('')
+    }
+  }
+
+  const handleUpdateApplicationStatus = async (application, status) => {
+    if (!application?.id) return
+
+    setUpdatingApplicationId(application.id)
+    setDataError('')
+    setDataMessage('')
+
+    try {
+      await updateDoc(doc(db, 'communityApplications', application.id), {
+        status,
+        reviewedAt: status === 'new' ? null : serverTimestamp(),
+        reviewedByAdminId: status === 'new' ? '' : adminProfile?.id || adminProfile?.uid || '',
+        reviewedByAdminEmail: status === 'new' ? '' : adminProfile?.email || '',
+        updatedAt: serverTimestamp(),
+      })
+      setDataMessage('Application status updated.')
+    } catch (applicationError) {
+      console.error('Admin application status update failed:', applicationError)
+      setDataError(getAdminError(applicationError))
+    } finally {
+      setUpdatingApplicationId('')
     }
   }
 
@@ -967,6 +1018,12 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {dataMessage && (
+          <div className="mb-6 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 ring-1 ring-emerald-100">
+            {dataMessage}
+          </div>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start">
           <aside className="rounded-2xl bg-white p-3 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
             <nav className="space-y-2">
@@ -974,6 +1031,7 @@ export default function AdminDashboard() {
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
                 { id: 'clients', label: 'Clients', icon: Users },
                 { id: 'consultants', label: 'Consultants', icon: ShieldCheck },
+                { id: 'applications', label: 'Applications', icon: Mail },
                 { id: 'referralRequests', label: 'Referrals', icon: UserPlus },
                 { id: 'scheduleCalls', label: 'Schedule Calls', icon: CalendarPlus },
               ].map((item) => (
@@ -1390,6 +1448,7 @@ export default function AdminDashboard() {
                     { icon: Users, label: 'Clients', value: stats.clients, card: 'bg-[#173f5f] border-white/10', badge: 'bg-white/12 text-white' },
                     { icon: ShieldCheck, label: 'Consultants', value: stats.consultants, card: 'bg-[#24285c] border-white/10', badge: 'bg-white/12 text-white' },
                     { icon: BriefcaseBusiness, label: 'Client briefs', value: stats.briefs, card: 'bg-[#303846] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: Mail, label: 'Community applications', value: stats.applications, card: 'bg-[#3a2f54] border-white/10', badge: 'bg-white/12 text-white' },
                     { icon: CircleDollarSign, label: 'Total project payment', value: formatCurrency(stats.projectPayments), card: 'bg-[#17463a] border-white/10', badge: 'bg-white/12 text-white' },
                     { icon: HandCoins, label: 'Total referral payment', value: formatCurrency(stats.referralPayments), card: 'bg-[#164e55] border-white/10', badge: 'bg-white/12 text-white' },
                   ].map((item) => (
@@ -1470,6 +1529,135 @@ export default function AdminDashboard() {
                             </td>
                           </tr>
                         ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {!isAdminDetailPage && activeView === 'applications' && (
+              <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
+                <div className="mb-6 flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-950">Community Applications</h2>
+                    <p className="mt-1 text-sm text-gray-500">{sortedApplications.length} founder and expert club applications.</p>
+                  </div>
+                  {dataLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
+                </div>
+
+                <div className="mb-6 grid gap-4 md:grid-cols-4">
+                  {[
+                    { icon: Mail, label: 'Submitted', value: applicationStats.submitted, card: 'bg-[#16324f] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: UserPlus, label: 'New', value: applicationStats.new, card: 'bg-[#303846] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: Eye, label: 'Reviewed', value: applicationStats.reviewed, card: 'bg-[#24285c] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: ShieldCheck, label: 'Accepted', value: applicationStats.accepted, card: 'bg-[#17463a] border-white/10', badge: 'bg-white/12 text-white' },
+                  ].map((item) => (
+                    <section key={item.label} className={`group relative min-h-[8rem] overflow-hidden rounded-2xl border p-5 text-white shadow-lg shadow-primary-900/10 ${item.card}`}>
+                      <span className={`absolute bottom-5 right-5 flex h-10 w-10 items-center justify-center rounded-xl ${item.badge}`}>
+                        <item.icon className="h-5 w-5" />
+                      </span>
+                      <div className="relative pr-12">
+                        <p className="text-3xl font-black leading-tight text-white">{dataLoading ? '-' : item.value}</p>
+                        <p className="mt-2 text-sm font-extrabold leading-5 text-white/80">{item.label}</p>
+                      </div>
+                    </section>
+                  ))}
+                </div>
+
+                {sortedApplications.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
+                    No community applications found.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-gray-100">
+                    <table className="min-w-[1100px] divide-y divide-gray-100 text-left text-sm">
+                      <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
+                        <tr className="text-xs font-extrabold uppercase tracking-wide text-white">
+                          <th className="px-3 py-4">Club</th>
+                          <th className="px-3 py-4">Applicant</th>
+                          <th className="px-3 py-4">Contact</th>
+                          <th className="px-3 py-4">LinkedIn</th>
+                          <th className="px-3 py-4">Why they want to join</th>
+                          <th className="px-3 py-4">Submitted</th>
+                          <th className="px-3 py-4 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {sortedApplications.map((application) => {
+                          const status = application.status || 'new'
+                          const isUpdating = updatingApplicationId === application.id
+
+                          return (
+                            <tr key={application.id} className="align-top transition hover:bg-primary-50/50">
+                              <td className="bg-blue-50/80 px-3 py-4 font-bold leading-6 text-gray-950">
+                                <p className="max-w-[11rem] break-words">{application.clubName || 'Magnafic Community'}</p>
+                                <span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.14em] ${
+                                  status === 'accepted'
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : status === 'rejected'
+                                      ? 'bg-red-100 text-red-700'
+                                      : status === 'reviewed'
+                                        ? 'bg-amber-100 text-amber-700'
+                                        : 'bg-cyan-100 text-cyan-700'
+                                }`}>
+                                  {status}
+                                </span>
+                              </td>
+                              <td className="bg-cyan-50/80 px-3 py-4 leading-6">
+                                <p className="font-bold text-gray-950">{application.name || 'Unnamed applicant'}</p>
+                                <p className="mt-1 break-words font-medium text-gray-700">{application.email || 'No email'}</p>
+                              </td>
+                              <td className="bg-blue-50/80 px-3 py-4 font-medium leading-6 text-gray-700">
+                                {application.contactNo || 'Not provided'}
+                              </td>
+                              <td className="bg-cyan-50/80 px-3 py-4 font-semibold leading-6">
+                                {application.linkedin ? (
+                                  <a
+                                    href={application.linkedin}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="break-words text-primary-700 underline decoration-primary-200 underline-offset-4 hover:text-primary-900"
+                                  >
+                                    View profile
+                                  </a>
+                                ) : (
+                                  <span className="text-gray-600">Not provided</span>
+                                )}
+                              </td>
+                              <td className="bg-blue-50/80 px-3 py-4 leading-6 text-gray-700">
+                                <p className="max-w-md whitespace-pre-wrap break-words">{application.reason || 'Not provided'}</p>
+                              </td>
+                              <td className="bg-cyan-50/80 px-3 py-4 font-medium leading-6 text-gray-700">
+                                {formatDateTime(application.createdAt)}
+                              </td>
+                              <td className="bg-blue-50/80 px-3 py-4 text-right">
+                                <div className="flex flex-wrap justify-end gap-2">
+                                  {['reviewed', 'accepted', 'rejected'].map((nextStatus) => (
+                                    <button
+                                      key={nextStatus}
+                                      type="button"
+                                      onClick={() => handleUpdateApplicationStatus(application, nextStatus)}
+                                      disabled={isUpdating || status === nextStatus}
+                                      className={`inline-flex items-center justify-center rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                                        nextStatus === 'accepted'
+                                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                          : nextStatus === 'rejected'
+                                            ? 'bg-red-50 text-red-700 hover:bg-red-100'
+                                            : 'bg-white text-primary-700 ring-1 ring-primary-100 hover:bg-primary-50'
+                                      }`}
+                                    >
+                                      {isUpdating ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      ) : null}
+                                      {nextStatus}
+                                    </button>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1705,12 +1893,6 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </div>
-
-            {dataMessage && (
-              <div className="mb-5 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 ring-1 ring-emerald-100">
-                {dataMessage}
-              </div>
-            )}
 
             {consultants.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">

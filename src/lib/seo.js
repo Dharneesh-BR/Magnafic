@@ -26,9 +26,19 @@ export const staticRouteSeo = {
       'Read Magnafic insights, research, articles, and case studies for consumer brand strategy, growth, operations, and transformation.',
   },
   '/join-experts-hub': {
-    title: 'Join the Experts Hub | Magnafic',
+    title: 'Join the Top 1% Expert Club | Magnafic',
     description:
-      'Join Magnafic as an expert consultant and work with ambitious consumer brands on high-impact growth challenges.',
+      'Apply to the Magnafic Top 1% Expert Club for accomplished CPG leaders, consultants, advisors, and fractional CXOs shaping high-growth consumer brands.',
+  },
+  '/founder-community': {
+    title: 'Top 1% Founder Community | Magnafic',
+    description:
+      'Join the Magnafic Founder Community for ambitious consumer brand founders learning from Top 1% experts, peers, workshops, and practical growth resources.',
+  },
+  '/add': {
+    title: 'Business Growth Masterclass | Magnafic',
+    description:
+      'Register for a 4-hour online business growth masterclass for MSME business owners, entrepreneurs, and founders ready to build systems, revenue, and scale.',
   },
   '/about': {
     title: 'About Magnafic',

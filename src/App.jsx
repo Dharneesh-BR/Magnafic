@@ -10,6 +10,8 @@ import DigitalTransformation from './pages/DigitalTransformation'
 import Insights from './pages/Insights'
 import BlogDetail from './pages/BlogDetail'
 import JoinExpertsHub from './pages/JoinExpertsHub'
+import FounderCommunity from './pages/FounderCommunity'
+import Add from './pages/Add'
 import About from './pages/About'
 import Login from './pages/Login'
 import ClientSignup from './pages/ClientSignup'
@@ -64,6 +66,8 @@ function AppContent() {
             <Route path="/insights" element={<Insights />} />
             <Route path="/insights/:slug" element={<BlogDetail />} />
             <Route path="/join-experts-hub" element={<JoinExpertsHub />} />
+            <Route path="/founder-community" element={<FounderCommunity />} />
+            <Route path="/add" element={<Add />} />
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<ClientSignup />} />

@@ -18,6 +18,8 @@ const staticRoutes = [
   { path: '/academy', priority: '0.7', changefreq: 'monthly' },
   { path: '/programs', priority: '0.7', changefreq: 'monthly' },
   { path: '/join-experts-hub', priority: '0.6', changefreq: 'monthly' },
+  { path: '/founder-community', priority: '0.6', changefreq: 'monthly' },
+  { path: '/add', priority: '0.6', changefreq: 'monthly' },
   { path: '/contact', priority: '0.6', changefreq: 'monthly' },
 ]
 
