@@ -5,6 +5,9 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
+const DEFAULT_CONTACT_EMAIL = 'dharneeshbr@magnafic.com'
+const AUTHENTICATED_DOMAIN = 'magnafic.com'
+
 function jsonResponse(statusCode, body) {
   return {
     statusCode,
@@ -48,12 +51,42 @@ function validatePayload(payload) {
   return ''
 }
 
+function normalizeEmail(value = '') {
+  return String(value).trim().toLowerCase()
+}
+
+function isEmail(value = '') {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
+function isAuthenticatedDomainEmail(value = '') {
+  return normalizeEmail(value).endsWith(`@${AUTHENTICATED_DOMAIN}`)
+}
+
 function getFromEmail() {
-  return process.env.SENDGRID_FROM_EMAIL ||
+  const configuredFromEmail = process.env.SENDGRID_FROM_EMAIL ||
     process.env.SENDGRID_VERIFIED_SENDER ||
     process.env.FROM_EMAIL ||
     process.env.CONTACT_TO_EMAIL ||
-    ''
+    DEFAULT_CONTACT_EMAIL
+
+  const fromEmail = normalizeEmail(configuredFromEmail)
+
+  if (!isEmail(fromEmail) || !isAuthenticatedDomainEmail(fromEmail)) {
+    console.warn('Invalid or unauthenticated sender email configured. Falling back to default sender.', {
+      configuredFromDomain: fromEmail.split('@')[1] || '',
+      authenticatedDomain: AUTHENTICATED_DOMAIN,
+      fallbackFromEmail: DEFAULT_CONTACT_EMAIL,
+    })
+    return DEFAULT_CONTACT_EMAIL
+  }
+
+  return fromEmail
+}
+
+function getToEmail() {
+  const toEmail = normalizeEmail(process.env.CONTACT_TO_EMAIL || DEFAULT_CONTACT_EMAIL)
+  return isEmail(toEmail) ? toEmail : DEFAULT_CONTACT_EMAIL
 }
 
 function buildSendgridPayload(payload) {
@@ -62,7 +95,7 @@ function buildSendgridPayload(payload) {
   const safeContactNo = escapeHtml(payload.contactNo)
   const safeMessage = escapeHtml(payload.message).replace(/\n/g, '<br>')
   const safeSourcePath = escapeHtml(payload.sourcePath)
-  const toEmail = process.env.CONTACT_TO_EMAIL || 'dharneeshbr@magnafic.com'
+  const toEmail = getToEmail()
   const fromEmail = getFromEmail()
 
   return {
@@ -110,6 +143,36 @@ function buildSendgridPayload(payload) {
   }
 }
 
+function getSendgridHeaders(response) {
+  return {
+    messageId: response.headers.get('x-message-id') || '',
+    requestId: response.headers.get('x-request-id') || '',
+    rateLimitRemaining: response.headers.get('x-ratelimit-remaining') || '',
+  }
+}
+
+async function getSendgridBounceDetails(email) {
+  const response = await fetch(`https://api.sendgrid.com/v3/suppression/bounces/${encodeURIComponent(email)}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+  })
+
+  const bodyText = await response.text()
+
+  if (response.status === 404) {
+    return { found: false, status: response.status, body: bodyText }
+  }
+
+  if (!response.ok) {
+    return { found: false, status: response.status, error: bodyText }
+  }
+
+  return { found: true, status: response.status, body: bodyText }
+}
+
 export async function handler(event) {
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -123,11 +186,15 @@ export async function handler(event) {
     return jsonResponse(405, { error: 'Method not allowed' })
   }
 
-  if (!process.env.SENDGRID_API_KEY || !getFromEmail()) {
+  const fromEmail = getFromEmail()
+  const toEmail = getToEmail()
+
+  if (!process.env.SENDGRID_API_KEY || !fromEmail) {
     console.error('Missing contact email environment:', {
       hasSendgridApiKey: Boolean(process.env.SENDGRID_API_KEY),
-      hasFromEmail: Boolean(getFromEmail()),
-      contactToEmail: process.env.CONTACT_TO_EMAIL || '',
+      hasFromEmail: Boolean(fromEmail),
+      fromEmail,
+      toEmail,
     })
     return jsonResponse(500, { error: 'Email sender is not configured.' })
   }
@@ -147,20 +214,71 @@ export async function handler(event) {
     return jsonResponse(400, { error: validationError })
   }
 
+  console.info('Sending contact form email with SendGrid:', {
+    fromEmail,
+    toEmail,
+    replyToEmail: payload.email,
+    authenticatedDomain: AUTHENTICATED_DOMAIN,
+    sourcePath: payload.sourcePath,
+  })
+
+  const sendgridPayload = buildSendgridPayload(payload)
   const sendgridResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(buildSendgridPayload(payload)),
+    body: JSON.stringify(sendgridPayload),
   })
+
+  const responseHeaders = getSendgridHeaders(sendgridResponse)
 
   if (!sendgridResponse.ok) {
     const errorText = await sendgridResponse.text()
-    console.error('SendGrid contact email failed:', errorText)
+    console.error('SendGrid contact email failed:', {
+      status: sendgridResponse.status,
+      statusText: sendgridResponse.statusText,
+      headers: responseHeaders,
+      body: errorText,
+      fromEmail,
+      toEmail,
+      replyToEmail: payload.email,
+    })
     return jsonResponse(500, { error: 'Unable to send your message right now.' })
   }
 
-  return jsonResponse(200, { success: true })
+  let bounceDetails = null
+
+  try {
+    bounceDetails = await getSendgridBounceDetails(toEmail)
+    if (bounceDetails?.found) {
+      console.error('SendGrid recipient is currently on the bounce suppression list:', {
+        toEmail,
+        bounceDetails,
+      })
+    }
+  } catch (bounceError) {
+    console.warn('Unable to retrieve SendGrid bounce details:', {
+      toEmail,
+      error: bounceError?.message || String(bounceError),
+    })
+  }
+
+  console.info('SendGrid contact email accepted:', {
+    status: sendgridResponse.status,
+    statusText: sendgridResponse.statusText,
+    headers: responseHeaders,
+    messageId: responseHeaders.messageId,
+    fromEmail,
+    toEmail,
+    replyToEmail: payload.email,
+    bounceCheck: bounceDetails,
+  })
+
+  return jsonResponse(200, {
+    success: true,
+    messageId: responseHeaders.messageId,
+    bounceSuppressionFound: Boolean(bounceDetails?.found),
+  })
 }
