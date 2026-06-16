@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { deleteApp, getApp, getApps, initializeApp } from 'firebase/app'
 import { createUserWithEmailAndPassword, getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { arrayUnion, collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
-import { AlertCircle, BriefcaseBusiness, CalendarPlus, CircleDollarSign, HandCoins, LayoutDashboard, Eye, EyeOff, Loader2, Lock, LogOut, Mail, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react'
+import { AlertCircle, Bell, BriefcaseBusiness, CalendarPlus, CircleDollarSign, HandCoins, LayoutDashboard, Eye, EyeOff, Loader2, Lock, LogOut, Mail, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import SEO from '../components/SEO'
 import { auth, db, firebaseConfig } from '../lib/firebase'
@@ -110,6 +110,11 @@ function normalizeDocument(documentSnapshot) {
   }
 }
 
+function getActivityTime(value) {
+  const date = toComparableDate(value)
+  return date?.getTime?.() || 0
+}
+
 async function getAdminProfile(firebaseUser) {
   if (!firebaseUser) return null
 
@@ -129,7 +134,7 @@ async function getAdminProfile(firebaseUser) {
 
 function getAdminError(error) {
   if (error?.code === 'permission-denied') {
-    return 'Firestore permissions are blocking admin dashboard data. Allow admin users to read users, clientBriefs, and communityApplications.'
+    return 'Firestore permissions are blocking admin dashboard data. Allow admin users to read users, clientBriefs, communityApplications, and contactMessages.'
   }
 
   return error?.message || 'Unable to load admin dashboard right now.'
@@ -148,6 +153,7 @@ export default function AdminDashboard() {
   const [usersData, setUsersData] = useState([])
   const [briefs, setBriefs] = useState([])
   const [communityApplications, setCommunityApplications] = useState([])
+  const [contactMessages, setContactMessages] = useState([])
   const [capabilitiesByExpertId, setCapabilitiesByExpertId] = useState({})
   const [sanityExpertsById, setSanityExpertsById] = useState({})
   const [sanityExpertOptions, setSanityExpertOptions] = useState([])
@@ -159,6 +165,10 @@ export default function AdminDashboard() {
     expertId: '',
     startDate: '',
     endDate: '',
+  })
+  const [notificationSeenAt, setNotificationSeenAt] = useState(() => {
+    const storedValue = Number(localStorage.getItem('magnafic-admin-notification-seen-at'))
+    return Number.isFinite(storedValue) ? storedValue : 0
   })
   const [removingClientId, setRemovingClientId] = useState('')
   const [detachingBriefId, setDetachingBriefId] = useState('')
@@ -241,6 +251,17 @@ export default function AdminDashboard() {
         collection(db, 'communityApplications'),
         (snapshot) => {
           setCommunityApplications(snapshot.docs.map(normalizeDocument))
+          setDataLoading(false)
+        },
+        (snapshotError) => {
+          setDataError(getAdminError(snapshotError))
+          setDataLoading(false)
+        }
+      ),
+      onSnapshot(
+        collection(db, 'contactMessages'),
+        (snapshot) => {
+          setContactMessages(snapshot.docs.map(normalizeDocument))
           setDataLoading(false)
         },
         (snapshotError) => {
@@ -384,6 +405,130 @@ export default function AdminDashboard() {
     accepted: sortedApplications.filter((application) => application.status === 'accepted').length,
   }), [sortedApplications])
 
+  const activityNotifications = useMemo(() => {
+    const activities = []
+
+    communityApplications.forEach((application) => {
+      activities.push({
+        id: `application-created-${application.id}`,
+        type: 'application',
+        title: 'New community application',
+        description: `${application.name || 'Applicant'} applied for ${application.clubName || 'Magnafic Community'}.`,
+        actor: application.email || application.contactNo || '',
+        createdAt: application.createdAt,
+        viewId: 'applications',
+      })
+
+      if (application.reviewedAt) {
+        activities.push({
+          id: `application-reviewed-${application.id}`,
+          type: 'application',
+          title: 'Application status updated',
+          description: `${application.name || 'Applicant'} was marked ${application.status || 'reviewed'}.`,
+          actor: application.reviewedByAdminEmail || 'Admin',
+          createdAt: application.reviewedAt,
+          viewId: 'applications',
+        })
+      }
+    })
+
+    contactMessages.forEach((message) => {
+      activities.push({
+        id: `contact-message-${message.id}`,
+        type: 'contact',
+        title: 'New contact form message',
+        description: `${message.name || 'Website visitor'} sent a message from the contact page.`,
+        actor: message.email || message.contactNo || '',
+        createdAt: message.createdAt,
+        viewId: 'notifications',
+      })
+    })
+
+    usersData.forEach((userRecord) => {
+      activities.push({
+        id: `user-created-${userRecord.id}`,
+        type: 'user',
+        title: userRecord.role === 'consultant' ? 'Consultant login created' : 'New user signup',
+        description: `${userRecord.name || userRecord.email || 'User'} joined as ${userRecord.role || 'user'}.`,
+        actor: userRecord.email || '',
+        createdAt: userRecord.createdAt,
+        viewId: userRecord.role === 'consultant' ? 'consultants' : 'clients',
+      })
+
+      const paymentKeys = ['projectPayments', 'referralPayments']
+      paymentKeys.forEach((paymentKey) => {
+        const payments = Array.isArray(userRecord[paymentKey]) ? userRecord[paymentKey] : []
+        payments.forEach((payment, index) => {
+          activities.push({
+            id: `payment-${userRecord.id}-${paymentKey}-${payment.createdAt || payment.paidAt || index}`,
+            type: 'payment',
+            title: paymentKey === 'referralPayments' ? 'Referral payment recorded' : 'Project payment recorded',
+            description: `${formatCurrency(payment.amount)} recorded for ${userRecord.name || userRecord.email || 'consultant'}.`,
+            actor: payment.recordedByAdminEmail || userRecord.email || '',
+            createdAt: payment.createdAt || payment.paidAt,
+            viewId: 'consultants',
+          })
+        })
+      })
+    })
+
+    briefs.forEach((brief) => {
+      activities.push({
+        id: `brief-created-${brief.id}`,
+        type: 'brief',
+        title: brief.source === 'consultant-referral' ? 'New consultant referral' : 'New client brief',
+        description: `${brief.clientName || brief.company || 'Client'} submitted ${brief.capability || brief.title || 'a business request'}.`,
+        actor: brief.businessEmail || brief.clientEmail || brief.referredBy?.email || '',
+        createdAt: brief.createdAt,
+        viewId: brief.source === 'consultant-referral' ? 'referralRequests' : 'clients',
+      })
+
+      if (brief.acceptedAt) {
+        activities.push({
+          id: `brief-accepted-${brief.id}`,
+          type: 'brief',
+          title: 'Opportunity accepted',
+          description: `${brief.acceptedBy?.name || brief.assignedConsultantName || 'Consultant'} accepted ${brief.clientName || brief.company || 'a client brief'}.`,
+          actor: brief.acceptedBy?.email || brief.allocatedConsultantEmail || '',
+          createdAt: brief.acceptedAt,
+          viewId: 'consultants',
+        })
+      }
+
+      if (brief.scheduleRequestedAt) {
+        activities.push({
+          id: `brief-schedule-${brief.id}`,
+          type: 'schedule',
+          title: 'Schedule call requested',
+          description: `${brief.scheduleRequestedBy?.name || 'Consultant'} requested a call for ${brief.clientName || brief.company || 'a client'}.`,
+          actor: brief.scheduleRequestedBy?.email || '',
+          createdAt: brief.scheduleRequestedAt,
+          viewId: 'scheduleCalls',
+        })
+      }
+
+      if (brief.allocatedAt) {
+        activities.push({
+          id: `brief-allocated-${brief.id}`,
+          type: 'referral',
+          title: 'Referral allocated',
+          description: `${brief.allocatedConsultantName || 'Consultant'} was allocated to ${brief.clientName || brief.company || 'a referral'}.`,
+          actor: brief.allocatedByAdminEmail || '',
+          createdAt: brief.allocatedAt,
+          viewId: 'referralRequests',
+        })
+      }
+    })
+
+    return activities
+      .filter((activity) => getActivityTime(activity.createdAt) > 0)
+      .sort((a, b) => getActivityTime(b.createdAt) - getActivityTime(a.createdAt))
+  }, [briefs, communityApplications, contactMessages, usersData])
+
+  const unreadNotificationCount = useMemo(() => (
+    activityNotifications.filter((activity) => getActivityTime(activity.createdAt) > notificationSeenAt).length
+  ), [activityNotifications, notificationSeenAt])
+
   const sortedBriefs = useMemo(() => [...briefs].sort((a, b) => {
     const aTime = a.createdAt?.toDate?.()?.getTime?.() || 0
     const bTime = b.createdAt?.toDate?.()?.getTime?.() || 0
@@ -493,6 +638,18 @@ export default function AdminDashboard() {
       startDate: '',
       endDate: '',
     })
+  }
+
+  const markNotificationsSeen = () => {
+    const latestTime = getActivityTime(activityNotifications[0]?.createdAt) || Date.now()
+    localStorage.setItem('magnafic-admin-notification-seen-at', String(latestTime))
+    setNotificationSeenAt(latestTime)
+  }
+
+  const openAdminView = (viewId) => {
+    setActiveView(viewId)
+    if (viewId === 'notifications') markNotificationsSeen()
+    navigate('/admin')
   }
 
   const selectedRouteConsultant = useMemo(
@@ -1029,6 +1186,7 @@ export default function AdminDashboard() {
             <nav className="space-y-2">
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+                { id: 'notifications', label: 'Notifications', icon: Bell },
                 { id: 'clients', label: 'Clients', icon: Users },
                 { id: 'consultants', label: 'Consultants', icon: ShieldCheck },
                 { id: 'applications', label: 'Applications', icon: Mail },
@@ -1038,10 +1196,7 @@ export default function AdminDashboard() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => {
-                    setActiveView(item.id)
-                    navigate('/admin')
-                  }}
+                  onClick={() => openAdminView(item.id)}
                   className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
                     activeView === item.id
                       ? 'bg-primary-600 text-white shadow-lg shadow-primary-900/15'
@@ -1049,7 +1204,16 @@ export default function AdminDashboard() {
                   }`}
                 >
                   <item.icon className="h-5 w-5" />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {item.id === 'notifications' && unreadNotificationCount > 0 && (
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-black ${
+                      activeView === item.id
+                        ? 'bg-white text-primary-700'
+                        : 'bg-red-600 text-white'
+                    }`}>
+                      {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                    </span>
+                  )}
                 </button>
               ))}
             </nav>
@@ -1464,6 +1628,91 @@ export default function AdminDashboard() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {!isAdminDetailPage && activeView === 'notifications' && (
+              <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
+                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-950">Notifications</h2>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Live website activity from clients, consultants, referrals, calls, payments, and community applications.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={markNotificationsSeen}
+                    className="inline-flex w-fit items-center justify-center rounded-xl bg-primary-50 px-4 py-3 text-sm font-bold text-primary-700 transition hover:bg-primary-100"
+                  >
+                    <Bell className="mr-2 h-4 w-4" />
+                    Mark all seen
+                  </button>
+                </div>
+
+                <div className="mb-6 grid gap-4 md:grid-cols-4">
+                  {[
+                    { icon: Bell, label: 'Unread', value: unreadNotificationCount, card: 'bg-[#16324f] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: Mail, label: 'Forms', value: activityNotifications.filter((item) => ['application', 'contact'].includes(item.type)).length, card: 'bg-[#3a2f54] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: BriefcaseBusiness, label: 'Briefs & referrals', value: activityNotifications.filter((item) => ['brief', 'referral'].includes(item.type)).length, card: 'bg-[#303846] border-white/10', badge: 'bg-white/12 text-white' },
+                    { icon: CalendarPlus, label: 'Calls & payments', value: activityNotifications.filter((item) => ['schedule', 'payment'].includes(item.type)).length, card: 'bg-[#17463a] border-white/10', badge: 'bg-white/12 text-white' },
+                  ].map((item) => (
+                    <section key={item.label} className={`group relative min-h-[8rem] overflow-hidden rounded-2xl border p-5 text-white shadow-lg shadow-primary-900/10 ${item.card}`}>
+                      <span className={`absolute bottom-5 right-5 flex h-10 w-10 items-center justify-center rounded-xl ${item.badge}`}>
+                        <item.icon className="h-5 w-5" />
+                      </span>
+                      <div className="relative pr-12">
+                        <p className="text-3xl font-black leading-tight text-white">{dataLoading ? '-' : item.value}</p>
+                        <p className="mt-2 text-sm font-extrabold leading-5 text-white/80">{item.label}</p>
+                      </div>
+                    </section>
+                  ))}
+                </div>
+
+                {activityNotifications.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
+                    No website activity found yet.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {activityNotifications.slice(0, 120).map((activity) => {
+                      const isUnread = getActivityTime(activity.createdAt) > notificationSeenAt
+
+                      return (
+                        <article
+                          key={activity.id}
+                          className={`flex flex-col gap-4 rounded-2xl border p-4 transition sm:flex-row sm:items-start sm:justify-between ${
+                            isUnread
+                              ? 'border-primary-200 bg-primary-50/70'
+                              : 'border-gray-100 bg-white hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {isUnread && <span className="h-2.5 w-2.5 rounded-full bg-red-600" />}
+                              <h3 className="font-black text-gray-950">{activity.title}</h3>
+                              <span className="rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-primary-700 ring-1 ring-primary-100">
+                                {activity.type}
+                              </span>
+                            </div>
+                            <p className="mt-2 break-words text-sm font-medium leading-6 text-gray-700">{activity.description}</p>
+                            <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold text-gray-500">
+                              <span>{formatDateTime(activity.createdAt)}</span>
+                              {activity.actor && <span className="break-words">{activity.actor}</span>}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openAdminView(activity.viewId)}
+                            className="inline-flex w-fit items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-bold text-primary-700 ring-1 ring-primary-100 transition hover:bg-primary-50"
+                          >
+                            View
+                          </button>
+                        </article>
+                      )
+                    })}
+                  </div>
+                )}
+              </section>
             )}
 
             {!isAdminDetailPage && activeView === 'clients' && (

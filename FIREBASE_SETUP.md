@@ -300,33 +300,19 @@ match /insightSubscribers/{subscriberId} {
 }
 ```
 
-Subscriber notification is handled by the Firebase Cloud Function in `functions/index.js`.
+Subscriber notification is handled by the Netlify Function in `netlify/functions/notify-insight-subscribers.js`.
 
 ### Deploy Insight Notifications
 
-Install and deploy the functions package:
+Configure these Netlify environment variables:
 
-```bash
-cd functions
-npm install
-cd ..
-firebase deploy --only functions
-```
-
-Configure the function secrets/environment:
-
-```bash
-firebase functions:config:set \
-  sendgrid.key="SENDGRID_API_KEY" \
-  insights.from_email="notifications@magnafic.com" \
-  site.url="https://magnafic.com" \
-  sanity.webhook_secret="choose-a-long-random-secret"
-```
-
-Then redeploy functions after changing config:
-
-```bash
-firebase deploy --only functions
+```text
+SENDGRID_API_KEY=SENDGRID_API_KEY
+INSIGHTS_FROM_EMAIL=notifications@magnafic.com
+SITE_URL=https://magnafic.com
+SANITY_WEBHOOK_SECRET=choose-a-long-random-secret
+FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
+FIREBASE_PROJECT_ID=magnafic-3eddc
 ```
 
 Create a Sanity webhook for published insights:
@@ -335,7 +321,7 @@ Create a Sanity webhook for published insights:
 - Filter: `_type == "blog" && status == "published"`
 - Projection/body: full document payload is fine
 - Method: `POST`
-- URL: the deployed `notifyInsightSubscribers` function URL
+- URL: `https://YOUR_NETLIFY_SITE.netlify.app/.netlify/functions/notify-insight-subscribers`
 - Header: `x-sanity-webhook-secret: choose-a-long-random-secret`
 
 The function reads active documents from `insightSubscribers`, sends emails via SendGrid, and records one document per sent insight in `insightNotifications/{insightId}`. That prevents the same insight from being emailed twice.

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import emailjs from '@emailjs/browser';
+import { db } from '../lib/firebase';
+
+const contactEndpoint = import.meta.env.VITE_SEND_CONTACT_MESSAGE_URL || '/.netlify/functions/send-contact-message';
+
 const ContactUs = () => {
   useEffect(() => {
     // Scroll to top when page loads
@@ -15,6 +19,7 @@ const ContactUs = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(''); // 'success', 'error', ''
+  const [submitMessage, setSubmitMessage] = useState('');
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -44,24 +49,49 @@ const ContactUs = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitStatus('');
+    setSubmitMessage('');
+
     try {
-      // EmailJS configuration
-      const serviceId = 'service_wrxc15j'; // EmailJS service ID
-      const templateId = 'template_i9py1ut'; // EmailJS template ID
-      const publicKey = 'QaaFaWtiDe2OpRfzE'; // EmailJS public key
-      // Prepare email data
-      const emailData = {
-        to_email: 'dharneeshbr@gmail.com',
-        from_name: formData.name,
-        from_email: formData.email,
-        contact_number: formData.contactNo,
-        message: formData.message,
-        subject: 'New Contact Form Submission from Website'
-      };
-      // Send email using EmailJS
-      await emailjs.send(serviceId, templateId, emailData, publicKey);
+      const response = await fetch(contactEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          contactNo: formData.contactNo,
+          message: formData.message,
+          sourcePath: window.location.pathname,
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to send your message right now.');
+      }
+
       setSubmitStatus('success');
-      // Reset form
+      setSubmitMessage('Thank you! Your message has been sent successfully. We\'ll get back to you soon.');
+
+      try {
+        await addDoc(collection(db, 'contactMessages'), {
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          contactNo: formData.contactNo.trim(),
+          message: formData.message.trim(),
+          sourcePath: window.location.pathname,
+          status: 'sent',
+          channel: 'netlify-sendgrid',
+          toEmail: 'dharneeshbr@magnafic.com',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (recordError) {
+        console.warn('Contact message was emailed but could not be recorded for admin notifications:', recordError);
+      }
+
       setFormData({
         name: '',
         email: '',
@@ -69,23 +99,9 @@ const ContactUs = () => {
         message: ''
       });
     } catch (error) {
-      console.error('Error sending email:', error);
-      // Fallback: Open email client with pre-filled data
-      const subject = encodeURIComponent('New Contact Form Submission from Website');
-      const body = encodeURIComponent(
-        `Name: ${formData.name}\n` +
-        `Email: ${formData.email}\n` +
-        `Phone: ${formData.contactNo}\n\n` +
-        `Message:\n${formData.message}`
-      );
-      window.location.href = `mailto:dharneeshbr@gmail.com?subject=${subject}&body=${body}`;
-      setSubmitStatus('success'); // Still show success since email client opened
-      setFormData({
-        name: '',
-        email: '',
-        contactNo: '',
-        message: ''
-      });
+      console.error('Error sending contact form:', error);
+      setSubmitStatus('error');
+      setSubmitMessage(error.message || 'Oops! Something went wrong. Please try again later.');
     } finally {
       setIsSubmitting(false);
     }
@@ -291,10 +307,7 @@ const ContactUs = () => {
                             : 'bg-red-100 text-red-700 border border-red-300'
                         }`}
                       >
-                        {submitStatus === 'success' 
-                          ? 'Thank you! Your message has been sent successfully. We\'ll get back to you soon.'
-                          : 'Oops! Something went wrong. Please try again later.'
-                        }
+                        {submitMessage}
                       </motion.div>
                     )}
                     {/* Submit Button */}
