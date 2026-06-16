@@ -48,6 +48,14 @@ function validatePayload(payload) {
   return ''
 }
 
+function getFromEmail() {
+  return process.env.SENDGRID_FROM_EMAIL ||
+    process.env.SENDGRID_VERIFIED_SENDER ||
+    process.env.FROM_EMAIL ||
+    process.env.CONTACT_TO_EMAIL ||
+    ''
+}
+
 function buildSendgridPayload(payload) {
   const safeName = escapeHtml(payload.name)
   const safeEmail = escapeHtml(payload.email)
@@ -55,7 +63,7 @@ function buildSendgridPayload(payload) {
   const safeMessage = escapeHtml(payload.message).replace(/\n/g, '<br>')
   const safeSourcePath = escapeHtml(payload.sourcePath)
   const toEmail = process.env.CONTACT_TO_EMAIL || 'dharneeshbr@magnafic.com'
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL
+  const fromEmail = getFromEmail()
 
   return {
     personalizations: [
@@ -115,7 +123,12 @@ export async function handler(event) {
     return jsonResponse(405, { error: 'Method not allowed' })
   }
 
-  if (!process.env.SENDGRID_API_KEY || !process.env.SENDGRID_FROM_EMAIL) {
+  if (!process.env.SENDGRID_API_KEY || !getFromEmail()) {
+    console.error('Missing contact email environment:', {
+      hasSendgridApiKey: Boolean(process.env.SENDGRID_API_KEY),
+      hasFromEmail: Boolean(getFromEmail()),
+      contactToEmail: process.env.CONTACT_TO_EMAIL || '',
+    })
     return jsonResponse(500, { error: 'Email sender is not configured.' })
   }
 
