@@ -84,7 +84,7 @@ const ContactUs = () => {
           sourcePath: window.location.pathname,
           status: 'sent',
           channel: 'netlify-sendgrid',
-          toEmail: 'dharneeshbr@magnafic.com',
+          toEmail: 'dharneesh@magnafic.com',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });

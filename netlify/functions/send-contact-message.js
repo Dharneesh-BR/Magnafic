@@ -5,7 +5,8 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
-const DEFAULT_CONTACT_EMAIL = 'dharneeshbr@magnafic.com'
+const DEFAULT_CONTACT_EMAIL = 'dharneesh@magnafic.com'
+const DEFAULT_SENDER_EMAIL = 'no-reply@magnafic.com'
 const AUTHENTICATED_DOMAIN = 'magnafic.com'
 
 function jsonResponse(statusCode, body) {
@@ -67,8 +68,7 @@ function getFromEmail() {
   const configuredFromEmail = process.env.SENDGRID_FROM_EMAIL ||
     process.env.SENDGRID_VERIFIED_SENDER ||
     process.env.FROM_EMAIL ||
-    process.env.CONTACT_TO_EMAIL ||
-    DEFAULT_CONTACT_EMAIL
+    DEFAULT_SENDER_EMAIL
 
   const fromEmail = normalizeEmail(configuredFromEmail)
 
@@ -76,9 +76,9 @@ function getFromEmail() {
     console.warn('Invalid or unauthenticated sender email configured. Falling back to default sender.', {
       configuredFromDomain: fromEmail.split('@')[1] || '',
       authenticatedDomain: AUTHENTICATED_DOMAIN,
-      fallbackFromEmail: DEFAULT_CONTACT_EMAIL,
+      fallbackFromEmail: DEFAULT_SENDER_EMAIL,
     })
-    return DEFAULT_CONTACT_EMAIL
+    return DEFAULT_SENDER_EMAIL
   }
 
   return fromEmail
