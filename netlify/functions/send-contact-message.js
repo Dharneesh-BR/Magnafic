@@ -89,6 +89,14 @@ function getToEmail() {
   return isEmail(toEmail) ? toEmail : DEFAULT_CONTACT_EMAIL
 }
 
+function getSendgridApiKey() {
+  return process.env.SENDGRID_API_KEY || ''
+}
+
+function getSendgridSuppressionsApiKey() {
+  return process.env.SENDGRID_SUPPRESSIONS_API_KEY || getSendgridApiKey()
+}
+
 function buildSendgridPayload(payload) {
   const safeName = escapeHtml(payload.name)
   const safeEmail = escapeHtml(payload.email)
@@ -155,7 +163,7 @@ async function getSendgridBounceDetails(email) {
   const response = await fetch(`https://api.sendgrid.com/v3/suppression/bounces/${encodeURIComponent(email)}`, {
     method: 'GET',
     headers: {
-      Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+      Authorization: `Bearer ${getSendgridSuppressionsApiKey()}`,
       'Content-Type': 'application/json',
     },
   })
@@ -171,6 +179,30 @@ async function getSendgridBounceDetails(email) {
   }
 
   return { found: true, status: response.status, body: bodyText }
+}
+
+function shouldClearBounceSuppression(email) {
+  if (process.env.SENDGRID_AUTO_CLEAR_CONTACT_BOUNCE === 'false') return false
+  return normalizeEmail(email) === DEFAULT_CONTACT_EMAIL || isAuthenticatedDomainEmail(email)
+}
+
+async function clearSendgridBounceSuppression(email) {
+  const response = await fetch(`https://api.sendgrid.com/v3/suppression/bounces/${encodeURIComponent(email)}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${getSendgridSuppressionsApiKey()}`,
+      'Content-Type': 'application/json',
+    },
+  })
+
+  const bodyText = await response.text()
+
+  return {
+    cleared: response.ok,
+    status: response.status,
+    statusText: response.statusText,
+    body: bodyText,
+  }
 }
 
 export async function handler(event) {
@@ -189,9 +221,9 @@ export async function handler(event) {
   const fromEmail = getFromEmail()
   const toEmail = getToEmail()
 
-  if (!process.env.SENDGRID_API_KEY || !fromEmail) {
+  if (!getSendgridApiKey() || !fromEmail) {
     console.error('Missing contact email environment:', {
-      hasSendgridApiKey: Boolean(process.env.SENDGRID_API_KEY),
+      hasSendgridApiKey: Boolean(getSendgridApiKey()),
       hasFromEmail: Boolean(fromEmail),
       fromEmail,
       toEmail,
@@ -222,11 +254,61 @@ export async function handler(event) {
     sourcePath: payload.sourcePath,
   })
 
+  let preflightBounceDetails = null
+  let bounceClearResult = null
+  let postClearBounceDetails = null
+
+  try {
+    preflightBounceDetails = await getSendgridBounceDetails(toEmail)
+
+    if (preflightBounceDetails?.found) {
+      console.error('SendGrid recipient is on the bounce suppression list before send:', {
+        toEmail,
+        preflightBounceDetails,
+      })
+
+      if (shouldClearBounceSuppression(toEmail)) {
+        bounceClearResult = await clearSendgridBounceSuppression(toEmail)
+        console.info('Attempted to clear SendGrid bounce suppression before send:', {
+          toEmail,
+          bounceClearResult,
+        })
+
+        postClearBounceDetails = await getSendgridBounceDetails(toEmail)
+        if (postClearBounceDetails?.found) {
+          console.error('SendGrid recipient remains suppressed after clear attempt. Email will not be sent.', {
+            toEmail,
+            preflightBounceDetails,
+            bounceClearResult,
+            postClearBounceDetails,
+          })
+
+          return jsonResponse(409, {
+            error: 'Recipient email is suppressed in SendGrid. Remove the bounced address from SendGrid suppressions and try again.',
+            reason: 'Bounced Address',
+            toEmail,
+          })
+        }
+      } else {
+        return jsonResponse(409, {
+          error: 'Recipient email is suppressed in SendGrid.',
+          reason: 'Bounced Address',
+          toEmail,
+        })
+      }
+    }
+  } catch (bounceError) {
+    console.warn('Unable to check or clear SendGrid bounce suppression before send:', {
+      toEmail,
+      error: bounceError?.message || String(bounceError),
+    })
+  }
+
   const sendgridPayload = buildSendgridPayload(payload)
   const sendgridResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+      Authorization: `Bearer ${getSendgridApiKey()}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(sendgridPayload),
@@ -273,12 +355,16 @@ export async function handler(event) {
     fromEmail,
     toEmail,
     replyToEmail: payload.email,
-    bounceCheck: bounceDetails,
+    preflightBounceCheck: preflightBounceDetails,
+    bounceClearResult,
+    postClearBounceCheck: postClearBounceDetails,
+    postSendBounceCheck: bounceDetails,
   })
 
   return jsonResponse(200, {
     success: true,
     messageId: responseHeaders.messageId,
+    bounceSuppressionCleared: Boolean(bounceClearResult?.cleared),
     bounceSuppressionFound: Boolean(bounceDetails?.found),
   })
 }
