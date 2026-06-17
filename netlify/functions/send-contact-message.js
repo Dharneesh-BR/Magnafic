@@ -169,16 +169,34 @@ async function getSendgridBounceDetails(email) {
   })
 
   const bodyText = await response.text()
+  let parsedBody = null
+
+  try {
+    parsedBody = bodyText ? JSON.parse(bodyText) : null
+  } catch {
+    parsedBody = null
+  }
 
   if (response.status === 404) {
-    return { found: false, status: response.status, body: bodyText }
+    return { found: false, status: response.status, body: bodyText, records: [] }
   }
 
   if (!response.ok) {
-    return { found: false, status: response.status, error: bodyText }
+    return { found: false, status: response.status, error: bodyText, records: [] }
   }
 
-  return { found: true, status: response.status, body: bodyText }
+  const records = Array.isArray(parsedBody)
+    ? parsedBody
+    : parsedBody && typeof parsedBody === 'object'
+      ? [parsedBody]
+      : []
+
+  return {
+    found: records.length > 0,
+    status: response.status,
+    body: bodyText,
+    records,
+  }
 }
 
 function shouldClearBounceSuppression(email) {
