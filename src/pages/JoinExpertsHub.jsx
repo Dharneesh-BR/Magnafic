@@ -119,6 +119,8 @@ const magnaficDifference = [
   }
 ]
 
+const expertCommunityWhatsAppLink = 'https://chat.whatsapp.com/CbnhDBLZr334Aj7HMLo0C4'
+
 export default function JoinExpertsHub() {
   const [isApplicationOpen, setIsApplicationOpen] = useState(false)
 
@@ -351,6 +353,8 @@ export default function JoinExpertsHub() {
         onClose={() => setIsApplicationOpen(false)}
         clubName="Magnafic Top 1% Expert Club"
         reasonLabel="Why do you want to join the Expert Club?"
+        successJoinLink={expertCommunityWhatsAppLink}
+        successJoinLabel="Join the WhatsApp Community"
       />
     </div>
   )

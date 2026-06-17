@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
-import { Send, X } from 'lucide-react'
+import { MessageCircle, Send, X } from 'lucide-react'
 import { db } from '../lib/firebase'
 
 const initialForm = {
@@ -15,7 +15,10 @@ export default function CommunityApplicationModal({
   open,
   onClose,
   clubName = 'Magnafic Community',
-  reasonLabel = 'Why do you want to join?'
+  reasonLabel = 'Why do you want to join?',
+  successJoinLink = '',
+  successJoinLabel = 'Join the community',
+  linkedinRequired = true
 }) {
   const [formData, setFormData] = useState(initialForm)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -75,13 +78,7 @@ export default function CommunityApplicationModal({
         </button>
 
         <div className="bg-gradient-primary px-6 py-8 text-white sm:px-8">
-          <p className="mb-2 text-sm font-extrabold uppercase tracking-[0.16em] text-cyan-50">
-            Application Form
-          </p>
           <h2 className="pr-10 text-2xl font-extrabold sm:text-3xl">{clubName}</h2>
-          <p className="mt-3 leading-7 text-white/80">
-            Share your details and Magnafic will review your application.
-          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 p-6 sm:p-8">
@@ -137,7 +134,7 @@ export default function CommunityApplicationModal({
 
           <div>
             <label htmlFor="application-linkedin" className="mb-2 block text-sm font-bold text-gray-800">
-              LinkedIn Link *
+              LinkedIn Link{linkedinRequired ? ' *' : ''}
             </label>
             <input
               id="application-linkedin"
@@ -145,7 +142,7 @@ export default function CommunityApplicationModal({
               type="url"
               value={formData.linkedin}
               onChange={handleInputChange}
-              required
+              required={linkedinRequired}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
               placeholder="https://www.linkedin.com/in/your-profile"
             />
@@ -169,7 +166,20 @@ export default function CommunityApplicationModal({
 
           {submitStatus === 'success' && (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center font-semibold text-emerald-700">
-              Thank you. Your application has been submitted successfully and is now available in the admin dashboard.
+              <p>
+                Thank you. Your application has been submitted successfully and is now available in the admin dashboard.
+              </p>
+              {successJoinLink && (
+                <a
+                  href={successJoinLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  {successJoinLabel}
+                </a>
+              )}
             </div>
           )}
 

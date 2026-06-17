@@ -123,6 +123,8 @@ const magnaficReasons = [
   }
 ]
 
+const founderCommunityWhatsAppLink = 'https://chat.whatsapp.com/LQ5FXWQl8lo4vjG0P1v8WC'
+
 export default function FounderCommunity() {
   const [isApplicationOpen, setIsApplicationOpen] = useState(false)
 
@@ -382,6 +384,9 @@ export default function FounderCommunity() {
         onClose={() => setIsApplicationOpen(false)}
         clubName="Magnafic Founder Community"
         reasonLabel="Why do you want to join the Founder Community?"
+        successJoinLink={founderCommunityWhatsAppLink}
+        successJoinLabel="Join the WhatsApp Community"
+        linkedinRequired={false}
       />
     </div>
   )

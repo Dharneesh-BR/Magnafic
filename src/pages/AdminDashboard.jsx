@@ -8,6 +8,42 @@ import SEO from '../components/SEO'
 import { auth, db, firebaseConfig } from '../lib/firebase'
 import { mentorClient } from '../lib/sanityClient'
 
+const meetingPlatforms = [
+  { value: 'google-meet', label: 'Google Meet' },
+  { value: 'zoom', label: 'Zoom' },
+  { value: 'teams', label: 'Microsoft Teams' },
+]
+
+function getMeetingPlatformLabel(value) {
+  return meetingPlatforms.find((platform) => platform.value === value)?.label || 'Google Meet'
+}
+
+function getScheduledCallHistory(brief) {
+  const calls = Array.isArray(brief?.scheduledCalls) ? brief.scheduledCalls : []
+  const normalizedCalls = calls
+    .map((call) => ({
+      ...call,
+      scheduledCallAt: call.scheduledCallAt || call.date || call.at,
+    }))
+    .filter((call) => call.scheduledCallAt)
+
+  const latestCallTime = toComparableDate(brief?.scheduledCallAt)?.getTime?.()
+  const hasLatestInHistory = normalizedCalls.some((call) => (
+    toComparableDate(call.scheduledCallAt)?.getTime?.() === latestCallTime
+  ))
+
+  if (brief?.scheduledCallAt && !hasLatestInHistory) {
+    normalizedCalls.push({
+      scheduledCallAt: brief.scheduledCallAt,
+      meetingPlatform: brief.meetingPlatform,
+      meetingPlatformLabel: brief.meetingPlatformLabel,
+      scheduledByAdminEmail: brief.scheduledByAdminEmail,
+    })
+  }
+
+  return normalizedCalls.sort((a, b) => getActivityTime(b.scheduledCallAt) - getActivityTime(a.scheduledCallAt))
+}
+
 function formatDateTime(value) {
   const date = value?.toDate?.() || value
   if (!date) return 'Not available'
@@ -76,10 +112,11 @@ function formatGoogleCalendarDate(date) {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
 }
 
-function getScheduledCallCalendarUrl(brief, scheduledDate) {
+function getScheduledCallCalendarUrl(brief, scheduledDate, meetingPlatform) {
   const start = new Date(scheduledDate)
   const end = new Date(start)
   end.setMinutes(end.getMinutes() + 30)
+  const meetingPlatformLabel = getMeetingPlatformLabel(meetingPlatform)
 
   const answerLines = (brief.problemAnswers || [])
     .map((answer) => `${answer.question}: ${answer.label || answer.value}`)
@@ -89,13 +126,14 @@ function getScheduledCallCalendarUrl(brief, scheduledDate) {
     `Client: ${brief.clientName || 'Client'}`,
     `Company: ${brief.company || 'Not provided'}`,
     `Capability: ${brief.capability || 'Not provided'}`,
+    `Meeting Platform: ${meetingPlatformLabel}`,
     brief.description ? `Context: ${brief.description}` : '',
     answerLines.length ? `Answers:\n${answerLines.join('\n')}` : '',
   ].filter(Boolean).join('\n\n')
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
-    text: `Magnafic client call - ${brief.clientName || 'Client'}`,
+    text: `Magnafic ${meetingPlatformLabel} call - ${brief.clientName || 'Client'}`,
     dates: `${formatGoogleCalendarDate(start)}/${formatGoogleCalendarDate(end)}`,
     details,
   })
@@ -176,6 +214,7 @@ export default function AdminDashboard() {
   const [allocatingReferralId, setAllocatingReferralId] = useState('')
   const [updatingApplicationId, setUpdatingApplicationId] = useState('')
   const [scheduleDrafts, setScheduleDrafts] = useState({})
+  const [schedulePlatformDrafts, setSchedulePlatformDrafts] = useState({})
   const [allocationDrafts, setAllocationDrafts] = useState({})
   const [questionnaireDetails, setQuestionnaireDetails] = useState(null)
   const [paymentDraft, setPaymentDraft] = useState(null)
@@ -793,6 +832,13 @@ export default function AdminDashboard() {
     }))
   }
 
+  const updateSchedulePlatformDraft = (briefId, value) => {
+    setSchedulePlatformDrafts((current) => ({
+      ...current,
+      [briefId]: value,
+    }))
+  }
+
   const updateAllocationDraft = (briefId, value) => {
     setAllocationDrafts((current) => ({
       ...current,
@@ -897,7 +943,8 @@ export default function AdminDashboard() {
   }
 
   const handleAdminScheduleCall = async (brief) => {
-    const draftValue = scheduleDrafts[brief.id] || formatDateTimeInput(brief.scheduledCallAt)
+    const draftValue = scheduleDrafts[brief.id] || ''
+    const meetingPlatform = schedulePlatformDrafts[brief.id] || brief.meetingPlatform || 'google-meet'
     if (!draftValue) {
       setDataError('Please select a call date and time before scheduling.')
       return
@@ -913,16 +960,33 @@ export default function AdminDashboard() {
     setDataError('')
 
     try {
+      const scheduledCall = {
+        scheduledCallAt: scheduledDate,
+        meetingPlatform,
+        meetingPlatformLabel: getMeetingPlatformLabel(meetingPlatform),
+        scheduledByAdminId: adminProfile?.id || adminProfile?.uid || '',
+        scheduledByAdminEmail: adminProfile?.email || '',
+        scheduledAt: new Date().toISOString(),
+      }
+
       await updateDoc(doc(db, 'clientBriefs', brief.id), {
         scheduleRequestStatus: 'scheduled',
         scheduledCallAt: scheduledDate,
+        meetingPlatform,
+        meetingPlatformLabel: getMeetingPlatformLabel(meetingPlatform),
+        scheduledCalls: arrayUnion(scheduledCall),
         scheduledByAdminId: adminProfile?.id || adminProfile?.uid || '',
         scheduledByAdminEmail: adminProfile?.email || '',
         status: 'scheduled',
         updatedAt: serverTimestamp(),
       })
 
-      window.open(getScheduledCallCalendarUrl(brief, scheduledDate), '_blank', 'width=720,height=640')
+      setScheduleDrafts((current) => {
+        const nextDrafts = { ...current }
+        delete nextDrafts[brief.id]
+        return nextDrafts
+      })
+      window.open(getScheduledCallCalendarUrl(brief, scheduledDate, meetingPlatform), '_blank', 'width=720,height=640')
     } catch (scheduleError) {
       console.error('Admin schedule call failed:', scheduleError)
       setDataError(getAdminError(scheduleError))
@@ -2065,12 +2129,15 @@ export default function AdminDashboard() {
                           <th className="break-words px-2 py-4 lg:px-3">Consultant</th>
                           <th className="break-words px-2 py-4 lg:px-3">Requested</th>
                           <th className="break-words px-2 py-4 lg:px-3">Call Time</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Platform</th>
                           <th className="break-words px-2 py-4 text-right lg:px-3">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 bg-white">
                         {scheduleRequests.map((brief) => {
-                          const scheduledInputValue = scheduleDrafts[brief.id] ?? formatDateTimeInput(brief.scheduledCallAt)
+                          const scheduledInputValue = scheduleDrafts[brief.id] ?? ''
+                          const platformValue = schedulePlatformDrafts[brief.id] || brief.meetingPlatform || 'google-meet'
+                          const scheduledCallHistory = getScheduledCallHistory(brief)
                           return (
                             <tr key={brief.id} className="transition hover:bg-primary-50/50">
                               <td className="break-words bg-blue-50/80 px-2 py-4 font-bold leading-6 text-gray-950 lg:px-3">{brief.clientName || 'Client'}</td>
@@ -2085,8 +2152,36 @@ export default function AdminDashboard() {
                                   onChange={(event) => updateScheduleDraft(brief.id, event.target.value)}
                                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                                 />
-                                {brief.scheduledCallAt && (
-                                  <p className="mt-2 break-words text-xs font-semibold text-emerald-700">Scheduled: {formatDateTime(brief.scheduledCallAt)}</p>
+                                {scheduledCallHistory.length > 0 && (
+                                  <div className="mt-3 space-y-2">
+                                    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-emerald-700">
+                                      {scheduledCallHistory.length} scheduled call{scheduledCallHistory.length === 1 ? '' : 's'}
+                                    </p>
+                                    {scheduledCallHistory.slice(0, 3).map((call, index) => (
+                                      <p key={`${brief.id}-scheduled-call-${index}`} className="break-words rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-100">
+                                        {formatDateTime(call.scheduledCallAt)}
+                                        <span className="mt-1 block font-medium text-emerald-700">
+                                          {call.meetingPlatformLabel || getMeetingPlatformLabel(call.meetingPlatform)}
+                                        </span>
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="bg-blue-50/80 px-2 py-4 lg:px-3">
+                                <select
+                                  value={platformValue}
+                                  onChange={(event) => updateSchedulePlatformDraft(brief.id, event.target.value)}
+                                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                                >
+                                  {meetingPlatforms.map((platform) => (
+                                    <option key={platform.value} value={platform.value}>{platform.label}</option>
+                                  ))}
+                                </select>
+                                {brief.meetingPlatformLabel && (
+                                  <p className="mt-2 break-words text-xs font-semibold text-emerald-700">
+                                    Selected: {brief.meetingPlatformLabel}
+                                  </p>
                                 )}
                               </td>
                               <td className="bg-blue-50/80 px-2 py-4 text-right lg:px-3">

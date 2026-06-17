@@ -32,8 +32,51 @@ function formatDateTime(date) {
   }).format(date)
 }
 
+function getMeetingPlatformLabel(value) {
+  const platforms = {
+    'google-meet': 'Google Meet',
+    zoom: 'Zoom',
+    teams: 'Microsoft Teams',
+  }
+
+  return platforms[value] || value || 'Not selected'
+}
+
 function toDate(value) {
   return value?.toDate?.() || value || null
+}
+
+function getComparableTime(value) {
+  const date = toDate(value)
+  if (!date) return 0
+
+  const parsedDate = date instanceof Date ? date : new Date(date)
+  return Number.isNaN(parsedDate.getTime()) ? 0 : parsedDate.getTime()
+}
+
+function getScheduledCallHistory(opportunity) {
+  const calls = Array.isArray(opportunity?.scheduledCalls) ? opportunity.scheduledCalls : []
+  const normalizedCalls = calls
+    .map((call) => ({
+      ...call,
+      scheduledCallAt: call.scheduledCallAt || call.date || call.at,
+    }))
+    .filter((call) => call.scheduledCallAt)
+
+  const latestCallTime = getComparableTime(opportunity?.scheduledCallAt)
+  const hasLatestInHistory = normalizedCalls.some((call) => (
+    getComparableTime(call.scheduledCallAt) === latestCallTime
+  ))
+
+  if (opportunity?.scheduledCallAt && !hasLatestInHistory) {
+    normalizedCalls.push({
+      scheduledCallAt: opportunity.scheduledCallAt,
+      meetingPlatform: opportunity.meetingPlatform,
+      meetingPlatformLabel: opportunity.meetingPlatformLabel,
+    })
+  }
+
+  return normalizedCalls.sort((a, b) => getComparableTime(b.scheduledCallAt) - getComparableTime(a.scheduledCallAt))
 }
 
 function getAcceptedDate(item) {
@@ -864,7 +907,22 @@ export default function ConsultantDashboard() {
                           <p className="rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100"><span className="block font-semibold text-emerald-950">Accepted</span>{formatDateTime(getAcceptedDate(selectedOpportunity))}</p>
                           <p className="rounded-2xl bg-indigo-50 p-4 ring-1 ring-indigo-100"><span className="block font-semibold text-indigo-950">Status</span>{selectedOpportunity.status || 'assigned'}</p>
                           <p className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100"><span className="block font-semibold text-amber-950">Call</span>{selectedOpportunity.scheduledCallAt ? formatDateTime(toDate(selectedOpportunity.scheduledCallAt)) : selectedOpportunity.scheduleRequestStatus || 'Not requested'}</p>
+                          <p className="rounded-2xl bg-violet-50 p-4 ring-1 ring-violet-100"><span className="block font-semibold text-violet-950">Platform</span>{selectedOpportunity.meetingPlatformLabel || getMeetingPlatformLabel(selectedOpportunity.meetingPlatform)}</p>
                         </div>
+
+                        {getScheduledCallHistory(selectedOpportunity).length > 0 && (
+                          <div className="mb-6 rounded-2xl bg-white p-4 ring-1 ring-gray-100">
+                            <h3 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-gray-500">Scheduled Call History</h3>
+                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                              {getScheduledCallHistory(selectedOpportunity).map((call, index) => (
+                                <div key={`${selectedOpportunity.id}-scheduled-call-${index}`} className="rounded-xl bg-amber-50 p-4 text-sm ring-1 ring-amber-100">
+                                  <p className="font-black text-amber-950">{formatDateTime(toDate(call.scheduledCallAt))}</p>
+                                  <p className="mt-1 font-semibold text-amber-700">{call.meetingPlatformLabel || getMeetingPlatformLabel(call.meetingPlatform)}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         {selectedOpportunity.problemAnswers?.length > 0 ? (
                           <div className="space-y-3">
