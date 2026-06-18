@@ -1,16 +1,18 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
 import {
   ArrowRight,
   BadgeCheck,
   CheckCircle2,
+  CreditCard,
   Gift,
   HelpCircle,
+  Loader2,
   LockKeyhole,
   Rocket,
   ShieldCheck,
   Star,
   TrendingUp,
+  X,
   XCircle
 } from 'lucide-react'
 
@@ -242,20 +244,42 @@ function formatTime(seconds) {
   return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
 }
 
-function RegisterButton({ children = 'REGISTER NOW AT Rs 99/- ONLY', className = '' }) {
+function loadRazorpayCheckout() {
+  if (window.Razorpay) return Promise.resolve(true)
+
+  return new Promise((resolve) => {
+    const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(true), { once: true })
+      existingScript.addEventListener('error', () => resolve(false), { once: true })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.async = true
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
+
+function RegisterButton({ onClick, children = 'REGISTER NOW AT Rs 99/- ONLY', className = '' }) {
   return (
-    <Link
-      to="/contact"
+    <button
+      type="button"
+      onClick={onClick}
       className={`inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-primary px-6 py-4 text-center text-base font-extrabold uppercase tracking-wide text-white shadow-glow-combined transition hover:-translate-y-0.5 sm:w-auto ${className}`}
     >
       {children}
       <ArrowRight className="h-5 w-5" />
-    </Link>
+    </button>
   )
 }
 
 export default function Add() {
   const [timeLeft, setTimeLeft] = useState(900)
+  const [isRegistrationOpen, setIsRegistrationOpen] = useState(false)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -265,6 +289,9 @@ export default function Add() {
 
     return () => clearInterval(timer)
   }, [])
+
+  const openRegistration = useCallback(() => setIsRegistrationOpen(true), [])
+  const closeRegistration = useCallback(() => setIsRegistrationOpen(false), [])
 
   return (
     <div className="bg-neutral-100 pt-16">
@@ -342,7 +369,7 @@ export default function Add() {
             <p className="text-lg font-semibold">Minutes Seconds</p>
           </div>
           <p className="mb-6 text-lg font-bold text-gray-700">To Unlock Bonuses Worth Rs 6,487</p>
-          <RegisterButton />
+          <RegisterButton onClick={openRegistration} />
         </div>
       </section>
 
@@ -478,7 +505,7 @@ export default function Add() {
           <div className="mx-auto mb-8 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-primary p-4 text-center text-lg font-extrabold text-[#000047] shadow-glow-cyan">
             Business Breakthrough
           </div>
-          <RegisterButton />
+          <RegisterButton onClick={openRegistration} />
         </div>
       </section>
 
@@ -499,7 +526,7 @@ export default function Add() {
             <p className="text-lg font-semibold">Offer Ends In</p>
           </div>
           <p className="mb-4 text-2xl font-extrabold">Today's Price: Rs 99/-</p>
-          <RegisterButton>Register Now at Rs 99/- Only</RegisterButton>
+          <RegisterButton onClick={openRegistration}>Register Now at Rs 99/- Only</RegisterButton>
           <p className="mt-5 text-white/80">Reserve your seat before the timer ends to unlock bonuses worth Rs 6,487/-</p>
         </div>
       </section>
@@ -574,6 +601,241 @@ export default function Add() {
           ))}
         </div>
       </section>
+
+      <WorkshopRegistrationModal
+        open={isRegistrationOpen}
+        onClose={closeRegistration}
+      />
+    </div>
+  )
+}
+
+function WorkshopRegistrationModal({ open, onClose }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    contactNo: '',
+    email: '',
+  })
+  const [isPaying, setIsPaying] = useState(false)
+  const [error, setError] = useState('')
+  const [paymentComplete, setPaymentComplete] = useState(false)
+
+  useEffect(() => {
+    if (!open) return undefined
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && !isPaying) onClose()
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    document.body.style.overflow = 'hidden'
+    loadRazorpayCheckout()
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.body.style.overflow = ''
+    }
+  }, [open, isPaying, onClose])
+
+  if (!open) return null
+
+  const updateField = (event) => {
+    const { name, value } = event.target
+    setFormData((current) => ({ ...current, [name]: value }))
+  }
+
+  const closeModal = () => {
+    if (isPaying) return
+    setError('')
+    setPaymentComplete(false)
+    onClose()
+  }
+
+  const handlePayment = async (event) => {
+    event.preventDefault()
+    setIsPaying(true)
+    setError('')
+
+    try {
+      const checkoutLoaded = await loadRazorpayCheckout()
+      if (!checkoutLoaded || !window.Razorpay) {
+        throw new Error('Unable to load the payment gateway. Please check your connection and try again.')
+      }
+
+      const orderResponse = await fetch('/.netlify/functions/create-workshop-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+      const orderResult = await orderResponse.json().catch(() => ({}))
+
+      if (!orderResponse.ok) {
+        throw new Error(orderResult.error || 'Unable to start payment.')
+      }
+
+      const razorpay = new window.Razorpay({
+        key: orderResult.keyId,
+        amount: orderResult.order.amount,
+        currency: orderResult.order.currency,
+        name: 'Magnafic',
+        description: 'Business Growth Masterclass',
+        order_id: orderResult.order.id,
+        prefill: {
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          contact: formData.contactNo.trim(),
+        },
+        notes: {
+          program: 'Business Growth Masterclass',
+        },
+        theme: {
+          color: '#000047',
+        },
+        modal: {
+          ondismiss: () => setIsPaying(false),
+        },
+        handler: async (paymentResponse) => {
+          try {
+            const verificationResponse = await fetch('/.netlify/functions/verify-workshop-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...formData,
+                razorpayOrderId: paymentResponse.razorpay_order_id,
+                razorpayPaymentId: paymentResponse.razorpay_payment_id,
+                razorpaySignature: paymentResponse.razorpay_signature,
+              }),
+            })
+            const verificationResult = await verificationResponse.json().catch(() => ({}))
+
+            if (!verificationResponse.ok || !verificationResult.verified) {
+              throw new Error(verificationResult.error || 'Payment could not be verified.')
+            }
+
+            setPaymentComplete(true)
+            setFormData({ name: '', contactNo: '', email: '' })
+          } catch (verificationError) {
+            console.error('Workshop payment verification failed:', verificationError)
+            setError(`${verificationError.message} Please contact our team with payment ID ${paymentResponse.razorpay_payment_id}.`)
+          } finally {
+            setIsPaying(false)
+          }
+        },
+      })
+
+      razorpay.on('payment.failed', (response) => {
+        console.error('Razorpay payment failed:', response.error)
+        setError(response.error?.description || 'Payment failed. Please try again.')
+        setIsPaying(false)
+      })
+
+      razorpay.open()
+    } catch (paymentError) {
+      console.error('Workshop checkout failed:', paymentError)
+      setError(paymentError.message || 'Unable to start payment.')
+      setIsPaying(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#000047]/80 px-4 py-6 backdrop-blur-sm">
+      <div className="relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white shadow-2xl">
+        <button
+          type="button"
+          onClick={closeModal}
+          disabled={isPaying}
+          className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25 disabled:opacity-50"
+          aria-label="Close registration form"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="bg-gradient-primary px-6 py-8 text-white sm:px-8">
+          <h2 className="pr-12 text-2xl font-extrabold sm:text-3xl">
+            {paymentComplete ? 'Registration Complete' : 'Reserve Your Workshop Seat'}
+          </h2>
+          {!paymentComplete && (
+            <p className="mt-2 text-white/80">Business Growth Masterclass - Rs 99/-</p>
+          )}
+        </div>
+
+        {paymentComplete ? (
+          <div className="p-8 text-center">
+            <CheckCircle2 className="mx-auto h-16 w-16 text-emerald-500" />
+            <h3 className="mt-5 text-2xl font-extrabold text-[#000047]">Thank you for registering!</h3>
+            <p className="mt-3 leading-7 text-gray-600">Our team will contact you shortly.</p>
+            <button
+              type="button"
+              onClick={closeModal}
+              className="mt-7 inline-flex w-full items-center justify-center rounded-lg bg-gradient-primary px-6 py-4 font-extrabold text-white"
+            >
+              Done
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handlePayment} className="space-y-5 p-6 sm:p-8">
+            <div>
+              <label htmlFor="workshop-name" className="mb-2 block text-sm font-bold text-gray-800">Name *</label>
+              <input
+                id="workshop-name"
+                name="name"
+                type="text"
+                value={formData.name}
+                onChange={updateField}
+                required
+                autoComplete="name"
+                placeholder="Your full name"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="workshop-contact" className="mb-2 block text-sm font-bold text-gray-800">Contact Number *</label>
+              <input
+                id="workshop-contact"
+                name="contactNo"
+                type="tel"
+                value={formData.contactNo}
+                onChange={updateField}
+                required
+                autoComplete="tel"
+                placeholder="+91 98765 43210"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="workshop-email" className="mb-2 block text-sm font-bold text-gray-800">Email ID *</label>
+              <input
+                id="workshop-email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={updateField}
+                required
+                autoComplete="email"
+                placeholder="you@example.com"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isPaying}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-primary px-6 py-4 font-extrabold text-white shadow-glow-combined transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isPaying ? <Loader2 className="h-5 w-5 animate-spin" /> : <CreditCard className="h-5 w-5" />}
+              {isPaying ? 'Opening Payment...' : 'Pay Rs 99/-'}
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   )
 }

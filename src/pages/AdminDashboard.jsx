@@ -112,17 +112,13 @@ function formatGoogleCalendarDate(date) {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
 }
 
-function getScheduledCallCalendarUrl(brief, scheduledDate, meetingPlatform) {
-  const start = new Date(scheduledDate)
-  const end = new Date(start)
-  end.setMinutes(end.getMinutes() + 30)
+function getScheduledCallDetails(brief, meetingPlatform) {
   const meetingPlatformLabel = getMeetingPlatformLabel(meetingPlatform)
-
   const answerLines = (brief.problemAnswers || [])
     .map((answer) => `${answer.question}: ${answer.label || answer.value}`)
     .filter(Boolean)
 
-  const details = [
+  return [
     `Client: ${brief.clientName || 'Client'}`,
     `Company: ${brief.company || 'Not provided'}`,
     `Capability: ${brief.capability || 'Not provided'}`,
@@ -130,10 +126,34 @@ function getScheduledCallCalendarUrl(brief, scheduledDate, meetingPlatform) {
     brief.description ? `Context: ${brief.description}` : '',
     answerLines.length ? `Answers:\n${answerLines.join('\n')}` : '',
   ].filter(Boolean).join('\n\n')
+}
+
+function getScheduledCallUrl(brief, scheduledDate, meetingPlatform) {
+  const start = new Date(scheduledDate)
+  const end = new Date(start)
+  end.setMinutes(end.getMinutes() + 30)
+  const meetingPlatformLabel = getMeetingPlatformLabel(meetingPlatform)
+  const title = `Magnafic ${meetingPlatformLabel} call - ${brief.clientName || 'Client'}`
+  const details = getScheduledCallDetails(brief, meetingPlatform)
+
+  if (meetingPlatform === 'zoom') {
+    return 'https://zoom.us/meeting/schedule'
+  }
+
+  if (meetingPlatform === 'teams') {
+    const teamsParams = new URLSearchParams({
+      subject: title,
+      startTime: start.toISOString(),
+      endTime: end.toISOString(),
+      content: details,
+    })
+
+    return `https://teams.microsoft.com/l/meeting/new?${teamsParams.toString()}`
+  }
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
-    text: `Magnafic ${meetingPlatformLabel} call - ${brief.clientName || 'Client'}`,
+    text: title,
     dates: `${formatGoogleCalendarDate(start)}/${formatGoogleCalendarDate(end)}`,
     details,
   })
@@ -211,6 +231,7 @@ export default function AdminDashboard() {
   const [removingClientId, setRemovingClientId] = useState('')
   const [detachingBriefId, setDetachingBriefId] = useState('')
   const [schedulingBriefId, setSchedulingBriefId] = useState('')
+  const [cancellingScheduledCallKey, setCancellingScheduledCallKey] = useState('')
   const [allocatingReferralId, setAllocatingReferralId] = useState('')
   const [updatingApplicationId, setUpdatingApplicationId] = useState('')
   const [scheduleDrafts, setScheduleDrafts] = useState({})
@@ -961,6 +982,7 @@ export default function AdminDashboard() {
 
     try {
       const scheduledCall = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
         scheduledCallAt: scheduledDate,
         meetingPlatform,
         meetingPlatformLabel: getMeetingPlatformLabel(meetingPlatform),
@@ -986,12 +1008,61 @@ export default function AdminDashboard() {
         delete nextDrafts[brief.id]
         return nextDrafts
       })
-      window.open(getScheduledCallCalendarUrl(brief, scheduledDate, meetingPlatform), '_blank', 'width=720,height=640')
+      window.open(getScheduledCallUrl(brief, scheduledDate, meetingPlatform), '_blank', 'width=960,height=720')
     } catch (scheduleError) {
       console.error('Admin schedule call failed:', scheduleError)
       setDataError(getAdminError(scheduleError))
     } finally {
       setSchedulingBriefId('')
+    }
+  }
+
+  const handleCancelScheduledCall = async (brief, callIndex) => {
+    const scheduledCallHistory = getScheduledCallHistory(brief)
+    const callToCancel = scheduledCallHistory[callIndex]
+    if (!callToCancel) return
+
+    const confirmed = window.confirm(
+      `Cancel the ${formatDateTime(callToCancel.scheduledCallAt)} ${callToCancel.meetingPlatformLabel || getMeetingPlatformLabel(callToCancel.meetingPlatform)} call?\n\nThis removes it from Magnafic. If the meeting was already saved in Zoom, Teams, or Google Calendar, cancel that external event separately.`
+    )
+    if (!confirmed) return
+
+    const cancellationKey = `${brief.id}-${callToCancel.id || callIndex}`
+    const cleanCall = (call) => Object.fromEntries(
+      Object.entries(call).filter(([, value]) => value !== undefined)
+    )
+    const remainingCalls = scheduledCallHistory
+      .filter((_, index) => index !== callIndex)
+      .map(cleanCall)
+    const latestCall = remainingCalls[0] || null
+
+    setCancellingScheduledCallKey(cancellationKey)
+    setDataError('')
+    setDataMessage('')
+
+    try {
+      await updateDoc(doc(db, 'clientBriefs', brief.id), {
+        scheduledCalls: remainingCalls,
+        cancelledScheduledCalls: arrayUnion({
+          ...cleanCall(callToCancel),
+          cancelledAt: new Date(),
+          cancelledByAdminId: adminProfile?.id || adminProfile?.uid || '',
+          cancelledByAdminEmail: adminProfile?.email || '',
+        }),
+        scheduledCallAt: latestCall?.scheduledCallAt || null,
+        meetingPlatform: latestCall?.meetingPlatform || '',
+        meetingPlatformLabel: latestCall?.meetingPlatformLabel || (latestCall ? getMeetingPlatformLabel(latestCall.meetingPlatform) : ''),
+        scheduleRequestStatus: latestCall ? 'scheduled' : 'cancelled',
+        status: latestCall ? 'scheduled' : (brief.acceptedAt || brief.acceptedAtDate ? 'accepted' : 'assigned'),
+        updatedAt: serverTimestamp(),
+      })
+
+      setDataMessage('Scheduled call cancelled. Cancel any saved external calendar event separately.')
+    } catch (cancelError) {
+      console.error('Admin cancel scheduled call failed:', cancelError)
+      setDataError(getAdminError(cancelError))
+    } finally {
+      setCancellingScheduledCallKey('')
     }
   }
 
@@ -2157,14 +2228,37 @@ export default function AdminDashboard() {
                                     <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-emerald-700">
                                       {scheduledCallHistory.length} scheduled call{scheduledCallHistory.length === 1 ? '' : 's'}
                                     </p>
-                                    {scheduledCallHistory.slice(0, 3).map((call, index) => (
-                                      <p key={`${brief.id}-scheduled-call-${index}`} className="break-words rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-100">
-                                        {formatDateTime(call.scheduledCallAt)}
-                                        <span className="mt-1 block font-medium text-emerald-700">
-                                          {call.meetingPlatformLabel || getMeetingPlatformLabel(call.meetingPlatform)}
-                                        </span>
-                                      </p>
-                                    ))}
+                                    <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+                                      {scheduledCallHistory.map((call, index) => {
+                                        const cancellationKey = `${brief.id}-${call.id || index}`
+                                        const isCancelling = cancellingScheduledCallKey === cancellationKey
+
+                                        return (
+                                          <div key={`${brief.id}-scheduled-call-${call.id || index}`} className="flex items-start justify-between gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-100">
+                                            <div className="min-w-0 break-words">
+                                              {formatDateTime(call.scheduledCallAt)}
+                                              <span className="mt-1 block font-medium text-emerald-700">
+                                                {call.meetingPlatformLabel || getMeetingPlatformLabel(call.meetingPlatform)}
+                                              </span>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleCancelScheduledCall(brief, index)}
+                                              disabled={Boolean(cancellingScheduledCallKey)}
+                                              className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white text-red-600 ring-1 ring-red-100 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                              aria-label={`Cancel call scheduled for ${formatDateTime(call.scheduledCallAt)}`}
+                                              title="Cancel scheduled call"
+                                            >
+                                              {isCancelling ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                              ) : (
+                                                <Trash2 className="h-4 w-4" />
+                                              )}
+                                            </button>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
                                   </div>
                                 )}
                               </td>
