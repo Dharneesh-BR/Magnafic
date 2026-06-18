@@ -1290,7 +1290,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#f7f9ff] px-4 py-8 sm:px-6 lg:px-8">
       <SEO title="Admin Dashboard" description="Magnafic admin dashboard." path="/admin" noIndex />
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[1600px]">
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary-600">Magnafic Admin</p>
@@ -1316,9 +1316,8 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start">
-          <aside className="rounded-2xl bg-white p-3 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
-            <nav className="space-y-2">
+        <nav className="sticky top-3 z-40 mb-6 overflow-x-auto rounded-2xl border border-gray-100 bg-white/95 p-2 shadow-xl shadow-primary-900/5 backdrop-blur">
+          <div className="flex min-w-max items-center gap-2">
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
                 { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -1332,7 +1331,7 @@ export default function AdminDashboard() {
                   key={item.id}
                   type="button"
                   onClick={() => openAdminView(item.id)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+                  className={`inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-semibold transition ${
                     activeView === item.id
                       ? 'bg-primary-600 text-white shadow-lg shadow-primary-900/15'
                       : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'
@@ -1351,10 +1350,10 @@ export default function AdminDashboard() {
                   )}
                 </button>
               ))}
-            </nav>
-          </aside>
+          </div>
+        </nav>
 
-          <div className="min-w-0">
+        <div className="min-w-0">
             {isClientDetailsPage && (
               <section className="rounded-3xl bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
                 <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -2409,7 +2408,6 @@ export default function AdminDashboard() {
             )}
           </section>
             )}
-          </div>
         </div>
       </div>
       {paymentDraft && (

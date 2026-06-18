@@ -42,15 +42,34 @@ export default function CommunityApplicationModal({
     setSubmitError('')
 
     try {
-      await addDoc(collection(db, 'communityApplications'), {
+      const applicationPayload = {
         clubName,
         name: formData.name.trim(),
         contactNo: formData.contactNo.trim(),
         email: formData.email.trim(),
         linkedin: formData.linkedin.trim(),
         reason: formData.reason.trim(),
+        sourcePath: window.location.pathname
+      }
+
+      const emailResponse = await fetch('/.netlify/functions/send-community-application-emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(applicationPayload)
+      })
+      const emailResult = await emailResponse.json().catch(() => ({}))
+
+      if (!emailResponse.ok) {
+        throw new Error(emailResult.error || 'Unable to send application emails.')
+      }
+
+      await addDoc(collection(db, 'communityApplications'), {
+        ...applicationPayload,
         status: 'new',
-        sourcePath: window.location.pathname,
+        adminEmailNotificationSent: true,
+        acknowledgementEmailSent: true,
+        adminEmailMessageId: emailResult.adminMessageId || '',
+        acknowledgementEmailMessageId: emailResult.acknowledgementMessageId || '',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       })
@@ -59,7 +78,7 @@ export default function CommunityApplicationModal({
     } catch (error) {
       console.error('Application submission failed:', error)
       setSubmitStatus('error')
-      setSubmitError('Unable to submit right now. Please try again in a moment.')
+      setSubmitError(error.message || 'Unable to submit right now. Please try again in a moment.')
     } finally {
       setIsSubmitting(false)
     }
