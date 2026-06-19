@@ -141,7 +141,7 @@ export default function CommunityApplicationModal({
               <input
                 id="application-email"
                 name="email"
-                type="email"
+              type="text"
                 value={formData.email}
                 onChange={handleInputChange}
                 required

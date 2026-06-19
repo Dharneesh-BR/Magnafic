@@ -2,15 +2,15 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Building2, Mail, MapPin, Phone, User } from 'lucide-react'
 import SEO from '../components/SEO'
-import { isProfessionalEmail, signupClient } from '../lib/auth'
+import { signupClient } from '../lib/auth'
 import { createProblemBriefFromStoredAnswers } from '../lib/dashboard'
 
 function getSignupErrorMessage(error) {
   switch (error?.code) {
     case 'auth/email-already-in-use':
-      return 'This email is already registered. Please log in or use a different professional email.'
+      return 'This email is already registered. Please log in or use a different email.'
     case 'auth/invalid-email':
-      return 'Please enter a valid professional email address.'
+      return 'Firebase could not accept this email value.'
     case 'auth/operation-not-allowed':
       return 'Email submission is not enabled right now. Please try again later.'
     case 'permission-denied':
@@ -42,12 +42,6 @@ export default function ClientSignup() {
     setSubmitting(true)
     setError('')
 
-    if (!isProfessionalEmail(form.email)) {
-      setError('Please use your Business email ID. Personal email IDs are not allowed.')
-      setSubmitting(false)
-      return
-    }
-
     try {
       await signupClient(form)
       try {
@@ -66,7 +60,7 @@ export default function ClientSignup() {
 
   return (
     <div className="min-h-screen bg-[#f7f9ff] px-4 pt-28 pb-16 sm:px-6 lg:px-8">
-      <SEO title="Submit Details" description="Submit your details to Magnafic with a professional company email." path="/signup" noIndex />
+      <SEO title="Submit Details" description="Submit your details to Magnafic." path="/signup" noIndex />
       <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1fr_440px] lg:items-start">
         <section>
           <h1 className="max-w-5xl text-3xl leading-tight text-gray-950 sm:text-4xl md:text-5xl">
@@ -106,12 +100,12 @@ export default function ClientSignup() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Business email Id</label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Email ID</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <input
                   required
-                  type="email"
+                  type="text"
                   value={form.email}
                   onChange={event => updateField('email', event.target.value)}
                   className="w-full rounded-xl border border-gray-300 py-3 pl-12 pr-4 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"

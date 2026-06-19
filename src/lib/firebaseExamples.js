@@ -20,7 +20,7 @@ function getFirebaseErrorMessage(error) {
     case 'auth/email-already-in-use':
       return 'An account already exists with this email.'
     case 'auth/invalid-email':
-      return 'Please enter a valid email address.'
+      return 'The authentication provider could not accept this email value.'
     case 'auth/user-not-found':
     case 'auth/wrong-password':
     case 'auth/invalid-credential':

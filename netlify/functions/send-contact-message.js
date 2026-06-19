@@ -41,10 +41,6 @@ function validatePayload(payload) {
     return 'Please complete all required fields.'
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
-    return 'Please enter a valid email address.'
-  }
-
   if (payload.message.length > 5000) {
     return 'Message is too long.'
   }
@@ -106,7 +102,7 @@ function buildSendgridPayload(payload) {
   const toEmail = getToEmail()
   const fromEmail = getFromEmail()
 
-  return {
+  const emailPayload = {
     personalizations: [
       {
         to: [{ email: toEmail }],
@@ -114,7 +110,6 @@ function buildSendgridPayload(payload) {
       },
     ],
     from: { email: fromEmail },
-    reply_to: { email: payload.email, name: payload.name },
     content: [
       {
         type: 'text/plain',
@@ -149,6 +144,12 @@ function buildSendgridPayload(payload) {
       },
     ],
   }
+
+  if (isEmail(payload.email)) {
+    emailPayload.reply_to = { email: payload.email, name: payload.name }
+  }
+
+  return emailPayload
 }
 
 function getSendgridHeaders(response) {

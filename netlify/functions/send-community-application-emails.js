@@ -84,10 +84,6 @@ function validatePayload(payload) {
     return 'Please complete all required fields.'
   }
 
-  if (!isEmail(payload.email)) {
-    return 'Please enter a valid email address.'
-  }
-
   return ''
 }
 
@@ -95,13 +91,12 @@ function buildAdminEmail(payload, fromEmail, adminEmail) {
   const safeReason = escapeHtml(payload.reason).replace(/\n/g, '<br>')
   const safeLinkedin = escapeHtml(payload.linkedin)
 
-  return {
+  const emailPayload = {
     personalizations: [{
       to: [{ email: adminEmail }],
       subject: `New ${payload.clubName} application - ${payload.name}`,
     }],
     from: { email: fromEmail, name: 'Magnafic Website' },
-    reply_to: { email: payload.email, name: payload.name },
     content: [
       {
         type: 'text/plain',
@@ -139,6 +134,12 @@ function buildAdminEmail(payload, fromEmail, adminEmail) {
       },
     ],
   }
+
+  if (isEmail(payload.email)) {
+    emailPayload.reply_to = { email: payload.email, name: payload.name }
+  }
+
+  return emailPayload
 }
 
 function buildAcknowledgementEmail(payload, fromEmail) {
@@ -338,9 +339,12 @@ export async function handler(event) {
       sourcePath: payload.sourcePath,
     })
 
+    const applicantEmailIsDeliverable = isEmail(payload.email)
     const [adminRecipient, applicantRecipient] = await Promise.all([
       prepareRecipient(adminEmail, { allowClear: true }),
-      prepareRecipient(payload.email),
+      applicantEmailIsDeliverable
+        ? prepareRecipient(payload.email)
+        : Promise.resolve({ ready: false, skipped: true, reason: 'Unrestricted email value is not deliverable by SendGrid.' }),
     ])
 
     if (!adminRecipient.ready) {
@@ -367,6 +371,8 @@ export async function handler(event) {
           apiKey
         )
       )
+    } else if (applicantRecipient.skipped) {
+      emailJobs.push(Promise.resolve(''))
     } else {
       emailJobs.push(Promise.reject(new Error(
         'The applicant email is suppressed in SendGrid due to an earlier bounce.'
@@ -410,7 +416,7 @@ export async function handler(event) {
     return jsonResponse(200, {
       success: true,
       adminNotificationSent: true,
-      acknowledgementSent: true,
+      acknowledgementSent: applicantRecipient.ready && acknowledgementResult.status === 'fulfilled',
       adminMessageId,
       acknowledgementMessageId,
     })

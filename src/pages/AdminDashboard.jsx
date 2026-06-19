@@ -1311,7 +1311,7 @@ export default function AdminDashboard() {
                 <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <input
                   required
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(event) => {
                     setEmail(event.target.value)
@@ -2675,7 +2675,7 @@ export default function AdminDashboard() {
                   <span className="mb-2 block text-sm font-bold text-gray-700">Email</span>
                   <input
                     required
-                    type="email"
+                    type="text"
                     value={credentialDraft.email}
                     onChange={(event) => updateCredentialDraft('email', event.target.value)}
                     className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base font-bold text-gray-950 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"

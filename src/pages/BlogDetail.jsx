@@ -929,7 +929,7 @@ export default function BlogDetail() {
                 </span>
                 <input
                   id="blog-insight-subscription-email"
-                  type="email"
+                  type="text"
                   value={subscriberEmail}
                   onChange={(event) => setSubscriberEmail(event.target.value)}
                   placeholder="Email address"

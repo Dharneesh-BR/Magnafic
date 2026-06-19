@@ -14,27 +14,6 @@ import { auth, db } from './firebase'
 
 const AUTH_KEY = 'magnafic-auth-user'
 
-const personalEmailDomains = new Set([
-  'gmail.com',
-  'googlemail.com',
-  'yahoo.com',
-  'ymail.com',
-  'outlook.com',
-  'hotmail.com',
-  'live.com',
-  'msn.com',
-  'icloud.com',
-  'me.com',
-  'mac.com',
-  'aol.com',
-  'proton.me',
-  'protonmail.com',
-  'zoho.com',
-  'mail.com',
-  'gmx.com',
-  'rediffmail.com',
-])
-
 function nameFromEmail(email = '') {
   const localPart = email.split('@')[0] || ''
 
@@ -43,12 +22,6 @@ function nameFromEmail(email = '') {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
-}
-
-export function isProfessionalEmail(email = '') {
-  const domain = email.trim().toLowerCase().split('@')[1]
-
-  return Boolean(domain) && !personalEmailDomains.has(domain)
 }
 
 export function getAuthUser() {

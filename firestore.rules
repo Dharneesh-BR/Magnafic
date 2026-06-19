@@ -1,0 +1,29 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Contact Form Submissions
+    match /contactMessages/{document} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // Community Application Submissions
+    match /communityApplications/{document} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // Public expert 1:1 call requests. Scheduling remains authenticated.
+    match /expertCallRequests/{document} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // All other collections require authentication.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

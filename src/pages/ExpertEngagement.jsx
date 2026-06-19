@@ -302,7 +302,7 @@ function ExpertCallRequest({ expert }) {
                 <label htmlFor="call-request-email" className="mb-2 block text-sm font-bold text-gray-800">Email ID *</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                  <input id="call-request-email" type="email" required value={formData.email} onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))} className="w-full rounded-lg border border-gray-300 py-3 pl-12 pr-4 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" placeholder="you@example.com" />
+                  <input id="call-request-email" type="text" required value={formData.email} onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))} className="w-full rounded-lg border border-gray-300 py-3 pl-12 pr-4 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" placeholder="you@example.com" />
                 </div>
               </div>
               <div>

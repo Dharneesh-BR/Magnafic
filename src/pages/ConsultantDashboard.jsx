@@ -1193,10 +1193,10 @@ export default function ConsultantDashboard() {
               </div>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-gray-700">Business email ID</span>
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Email ID</span>
                 <input
                   required
-                  type="email"
+                  type="text"
                   value={referralForm.businessEmail}
                   onChange={(event) => updateReferralField('businessEmail', event.target.value)}
                   className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"

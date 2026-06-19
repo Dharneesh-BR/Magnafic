@@ -809,7 +809,7 @@ function WorkshopRegistrationModal({ open, onClose }) {
               <input
                 id="workshop-email"
                 name="email"
-                type="email"
+                type="text"
                 value={formData.email}
                 onChange={updateField}
                 required

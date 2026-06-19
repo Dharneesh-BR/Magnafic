@@ -339,7 +339,7 @@ export default function Insights() {
                     <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary-500" />
                     <input
                       id="insight-subscription-email"
-                      type="email"
+                      type="text"
                       value={subscriberEmail}
                       onChange={(event) => setSubscriberEmail(event.target.value)}
                       placeholder="Enter your email"

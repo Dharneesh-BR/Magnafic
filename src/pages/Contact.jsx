@@ -240,7 +240,7 @@ const ContactUs = () => {
                       </label>
                       <div className="relative">
                         <input
-                          type="email"
+                          type="text"
                           id="email"
                           name="email"
                           value={formData.email}

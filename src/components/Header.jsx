@@ -1,8 +1,42 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, X, ChevronDown, UserCircle } from 'lucide-react'
+import {
+  BarChart3,
+  Bot,
+  BrainCircuit,
+  BriefcaseBusiness,
+  ChevronDown,
+  Globe2,
+  Lightbulb,
+  Menu,
+  Network,
+  ShoppingBag,
+  ShoppingCart,
+  Sparkles,
+  Target,
+  TrendingUp,
+  User,
+  UserCircle,
+  X,
+} from 'lucide-react'
 import { clearAuthUser, getAuthUser } from '../lib/auth'
 import { mentorClient } from '../lib/sanityClient'
+
+const capabilityIcons = {
+  sparkles: Sparkles,
+  'trending-up': TrendingUp,
+  target: Target,
+  'brain-circuit': BrainCircuit,
+  'shopping-bag': ShoppingBag,
+  network: Network,
+  briefcase: BriefcaseBusiness,
+  'bar-chart': BarChart3,
+  'shopping-cart': ShoppingCart,
+  lightbulb: Lightbulb,
+  globe: Globe2,
+  user: User,
+  bot: Bot,
+}
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -32,7 +66,8 @@ export default function Header() {
           _id,
           "slug": slug.current,
           title,
-          subtitle
+          subtitle,
+          icon
         }`
         const data = await mentorClient.fetch(query)
         setCapabilities(data || [])
@@ -117,17 +152,26 @@ export default function Header() {
               </button>
 
               {isCapabilitiesOpen && (
-                <div className="absolute left-0 mt-2 w-64 rounded-2xl bg-white shadow-xl shadow-gray-200/50 ring-1 ring-gray-100 overflow-hidden z-50">
-                  <div className="max-h-96 overflow-y-auto py-2">
-                    {capabilities.map((capability) => (
-                      <button
-                        key={capability._id}
-                        onClick={() => handleCapabilitySelect(capability.slug || capability._id)}
-                        className="w-full border-b border-gray-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-primary-50"
-                      >
-                        <div className="font-medium text-gray-950">{capability.title}</div>
-                      </button>
-                    ))}
+                <div className="absolute left-0 mt-2 inline-grid min-w-72 max-w-[calc(100vw-2rem)] rounded-2xl bg-white shadow-xl shadow-gray-200/50 ring-1 ring-gray-100 overflow-hidden z-50">
+                  <div className="grid max-h-96 overflow-x-hidden overflow-y-auto py-2">
+                    {capabilities.map((capability) => {
+                      const Icon = capabilityIcons[capability.icon] || Sparkles
+
+                      return (
+                        <button
+                          key={capability._id}
+                          onClick={() => handleCapabilitySelect(capability.slug || capability._id)}
+                          className="group border-b border-gray-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-primary-50"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Icon className="h-5 w-5 shrink-0 text-primary-600" aria-hidden="true" />
+                            <span className="whitespace-nowrap font-medium text-gray-950 transition-colors group-hover:text-primary-700">
+                              {capability.title}
+                            </span>
+                          </div>
+                        </button>
+                      )
+                    })}
                     {capabilities.length === 0 && (
                       <div className="px-4 py-3 text-gray-500">No Expert services available</div>
                     )}
@@ -188,15 +232,22 @@ export default function Header() {
 
               {isCapabilitiesOpen && (
                 <div className="mt-2 ml-4 space-y-1">
-                  {capabilities.map((capability) => (
-                    <button
-                      key={capability._id}
-                      onClick={() => handleCapabilitySelect(capability.slug || capability._id)}
-                      className="block w-full border-b border-gray-100 px-3 py-2 text-left text-sm text-gray-700 transition-colors last:border-b-0 hover:bg-primary-50 hover:text-primary"
-                    >
-                      <div className="font-medium">{capability.title}</div>
-                    </button>
-                  ))}
+                  {capabilities.map((capability) => {
+                    const Icon = capabilityIcons[capability.icon] || Sparkles
+
+                    return (
+                      <button
+                        key={capability._id}
+                        onClick={() => handleCapabilitySelect(capability.slug || capability._id)}
+                        className="group block w-full border-b border-gray-100 px-3 py-2 text-left text-sm text-gray-700 transition-colors last:border-b-0 hover:bg-primary-50 hover:text-primary"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className="h-5 w-5 shrink-0 text-primary-600" aria-hidden="true" />
+                          <span className="whitespace-nowrap font-medium">{capability.title}</span>
+                        </div>
+                      </button>
+                    )
+                  })}
                   {capabilities.length === 0 && (
                     <div className="px-3 py-2 text-sm text-gray-500">No Expert services available</div>
                   )}

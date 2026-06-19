@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, CheckCircle2, Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import SEO from '../components/SEO'
-import { isProfessionalEmail, loginUser, sendAccountPasswordReset } from '../lib/auth'
+import { loginUser, sendAccountPasswordReset } from '../lib/auth'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -26,12 +26,6 @@ export default function Login() {
     setError('')
     setMessage('')
 
-    if (!isProfessionalEmail(email)) {
-      setError('Please login with your professional email ID. Personal email IDs are not allowed.')
-      setSubmitting(false)
-      return
-    }
-
     try {
       await loginUser({ email, password, fallbackRole: 'consultant' })
       setLoginComplete(true)
@@ -51,8 +45,8 @@ export default function Login() {
     setError('')
     setMessage('')
 
-    if (!isProfessionalEmail(email)) {
-      setError('Enter your professional email ID first, then request a password reset.')
+    if (!email.trim()) {
+      setError('Enter your email ID first, then request a password reset.')
       return
     }
 
@@ -85,18 +79,18 @@ export default function Login() {
         <>
         <div className="mb-8 text-center">
           <h1 className="mb-2 text-3xl font-bold text-gray-900">Login</h1>
-          <p className="text-gray-600">Login with your Business email ID</p>
+          <p className="text-gray-600">Login with your email ID</p>
         </div>
 
         <div className="rounded-3xl bg-white p-5 shadow-2xl shadow-primary-900/10 ring-1 ring-gray-100 sm:p-8">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Business email Id</label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Email ID</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <input
                   required
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={event => {
                     setEmail(event.target.value)
