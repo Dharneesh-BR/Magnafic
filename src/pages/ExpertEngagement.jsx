@@ -11,6 +11,7 @@ import {
   GraduationCap,
   Loader2,
   Mail,
+  MessageSquareQuote,
   Phone,
   UserRound,
 } from 'lucide-react'
@@ -63,7 +64,15 @@ export default function ExpertEngagement() {
             headline,
             currentDesignation,
             designation,
-            "imageUrl": profileImage.asset->url
+            "imageUrl": profileImage.asset->url,
+            recommendations[]{
+              name,
+              designation,
+              company,
+              relationship,
+              testimonial,
+              "profileImageUrl": profileImage.asset->url
+            }
           }`,
           { slug }
         )
@@ -86,7 +95,7 @@ export default function ExpertEngagement() {
             { expertId: expertData._id }
           ),
           mentorClient.fetch(
-            `*[_type == "blog" && status == "published" && $expertId in experts[]._ref] | order(featured desc, publishedAt desc) {
+            `*[_type == "blog" && status == "published" && $expertId in experts[]._ref] | order(publishedAt desc, _updatedAt desc) {
               _id,
               title,
               "slug": slug.current,
@@ -180,7 +189,7 @@ export default function ExpertEngagement() {
 
         <div className="py-10">
           {activeSection === 'call' && <ExpertCallRequest expert={expert} />}
-          {activeSection === 'programs' && <ExpertPrograms programs={programs} />}
+          {activeSection === 'programs' && <ExpertPrograms programs={programs} testimonials={expert.recommendations || []} />}
           {activeSection === 'insights' && <ExpertInsights insights={insights} />}
 
           <div className="mt-10 flex justify-center">
@@ -254,8 +263,9 @@ function ExpertCallRequest({ expert }) {
   }
 
   return (
-    <section className="mx-auto max-w-3xl">
-      <div className="rounded-lg bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
+    <div className="space-y-10">
+      <section className="mx-auto max-w-3xl">
+        <div className="rounded-lg bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
         <p className="text-sm font-black uppercase tracking-[0.16em] text-primary-600">Private consultation</p>
         <h2 className="mt-2 text-3xl font-black text-[#000047]">Request a 1:1 call with {expert.fullName}</h2>
         <p className="mt-3 leading-7 text-gray-600">Choose your preferred date and time. The Magnafic team will review the request and confirm the final call schedule.</p>
@@ -316,33 +326,76 @@ function ExpertCallRequest({ expert }) {
             {status.message}
           </div>
         )}
-      </div>
-    </section>
+        </div>
+      </section>
+      <ExpertTestimonials testimonials={expert.recommendations || []} />
+    </div>
   )
 }
 
-function ExpertPrograms({ programs }) {
-  if (!programs.length) return <EmptyState title="No sessions published yet" copy="Sessions led by this expert will appear here." />
+function ExpertPrograms({ programs, testimonials }) {
+  return (
+    <div className="space-y-10">
+      {programs.length ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {programs.map((program) => (
+            <Link key={program._id} to={`/programs/${program.slug || program._id}`} className="group overflow-hidden rounded-lg bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1">
+              <div className="aspect-[16/10] bg-[#000047]">
+                {program.heroImageUrl ? <img src={program.heroImageUrl} alt={program.title} className="h-full w-full object-cover" /> : <GraduationCap className="mx-auto h-full w-14 text-white/70" />}
+              </div>
+              <div className="p-5">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-primary-600">{formatProgramType(program.programType)}</p>
+                <h2 className="mt-2 text-xl font-black text-gray-950">{program.title}</h2>
+                <p className="mt-3 line-clamp-3 leading-7 text-gray-600">{program.shortDescription}</p>
+                <div className="mt-4 flex flex-wrap gap-3 text-sm font-bold text-gray-500">
+                  {program.startDate && <span className="inline-flex items-center"><CalendarDays className="mr-1.5 h-4 w-4" />{formatDate(program.startDate)}</span>}
+                  {program.duration && <span className="inline-flex items-center"><Clock className="mr-1.5 h-4 w-4" />{program.duration}</span>}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <EmptyState title="No sessions published yet" copy="Sessions led by this expert will appear here." />
+      )}
+      <ExpertTestimonials testimonials={testimonials} />
+    </div>
+  )
+}
+
+function ExpertTestimonials({ testimonials = [] }) {
+  const items = testimonials.filter((item) => item?.testimonial)
+  if (!items.length) return null
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {programs.map((program) => (
-        <Link key={program._id} to={`/programs/${program.slug || program._id}`} className="group overflow-hidden rounded-lg bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1">
-          <div className="aspect-[16/10] bg-[#000047]">
-            {program.heroImageUrl ? <img src={program.heroImageUrl} alt={program.title} className="h-full w-full object-cover" /> : <GraduationCap className="mx-auto h-full w-14 text-white/70" />}
-          </div>
-          <div className="p-5">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-primary-600">{formatProgramType(program.programType)}</p>
-            <h2 className="mt-2 text-xl font-black text-gray-950">{program.title}</h2>
-            <p className="mt-3 line-clamp-3 leading-7 text-gray-600">{program.shortDescription}</p>
-            <div className="mt-4 flex flex-wrap gap-3 text-sm font-bold text-gray-500">
-              {program.startDate && <span className="inline-flex items-center"><CalendarDays className="mr-1.5 h-4 w-4" />{formatDate(program.startDate)}</span>}
-              {program.duration && <span className="inline-flex items-center"><Clock className="mr-1.5 h-4 w-4" />{program.duration}</span>}
+    <section>
+      <div className="mb-6 text-center">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-primary-600">Testimonials</p>
+        <h2 className="mt-2 text-2xl font-black text-[#000047] sm:text-3xl">What people say about this expert</h2>
+      </div>
+      <div className="grid gap-5 md:grid-cols-2">
+        {items.map((item, index) => (
+          <article key={`${item.name || 'testimonial'}-${index}`} className="rounded-lg bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
+            <MessageSquareQuote className="h-7 w-7 text-primary-500" />
+            <p className="mt-4 text-sm leading-7 text-gray-700 sm:text-base">{item.testimonial}</p>
+            <div className="mt-5 flex items-center gap-3 border-t border-gray-100 pt-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-primary-700">
+                {item.profileImageUrl ? (
+                  <img src={item.profileImageUrl} alt={item.name || 'Testimonial author'} className="h-full w-full object-cover" />
+                ) : (
+                  <UserRound className="h-5 w-5" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <h3 className="truncate font-extrabold text-gray-950">{item.name || 'Client'}</h3>
+                <p className="truncate text-sm text-gray-600">{[item.designation, item.company].filter(Boolean).join(' | ')}</p>
+                {item.relationship && <p className="mt-1 text-xs font-bold uppercase tracking-wide text-primary-600">{item.relationship}</p>}
+              </div>
             </div>
-          </div>
-        </Link>
-      ))}
-    </div>
+          </article>
+        ))}
+      </div>
+    </section>
   )
 }
 

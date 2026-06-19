@@ -1,5 +1,5 @@
-import { FileText, Lightbulb, Briefcase, Calendar, Clock, Share2, Facebook, Linkedin, Twitter, PlayCircle, Mail, Bell } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { FileText, Lightbulb, Briefcase, Calendar, Clock, Share2, Facebook, Linkedin, Twitter, PlayCircle, Mail, Bell, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { mentorClient } from '../lib/sanityClient'
 import MagnaLoader from '../components/MagnaLoader'
@@ -15,6 +15,8 @@ export default function Insights() {
   const [subscriberEmail, setSubscriberEmail] = useState('')
   const [subscribing, setSubscribing] = useState(false)
   const [subscriptionStatus, setSubscriptionStatus] = useState({ type: '', message: '' })
+  const insightScrollerRef = useRef(null)
+  const [isInsightScrollerPaused, setIsInsightScrollerPaused] = useState(false)
 
   const tabs = [
     { id: 'all', label: 'All' },
@@ -27,7 +29,7 @@ export default function Insights() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const query = `*[_type == "blog" && status != "archived"] | order(featured desc, publishedAt desc) {
+        const query = `*[_type == "blog" && status != "archived"] | order(publishedAt desc, _updatedAt desc) {
           _id,
           title,
           "slug": slug.current,
@@ -51,7 +53,7 @@ export default function Insights() {
             designation
           }
         }`
-        const videosQuery = `*[_type == "youtubeVideos"] | order(featured desc, publishedAt desc, title asc) {
+        const videosQuery = `*[_type == "youtubeVideos"] | order(publishedAt desc, _updatedAt desc, title asc) {
           _id,
           title,
           "slug": slug.current,
@@ -91,6 +93,44 @@ export default function Insights() {
       : blogs.filter(item => item.type === activeTab)
 
   const visibleVideos = activeTab === 'all' || activeTab === 'videos' ? videos : []
+  const latestInsights = filteredContent.slice(0, 3)
+  const remainingInsights = filteredContent.slice(3)
+
+  const scrollInsights = (direction) => {
+    insightScrollerRef.current?.scrollBy({
+      left: direction * Math.min(insightScrollerRef.current.clientWidth * 0.85, 960),
+      behavior: 'smooth',
+    })
+  }
+
+  useEffect(() => {
+    if (remainingInsights.length < 2 || isInsightScrollerPaused) return undefined
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+
+    let animationFrameId
+    let previousTimestamp
+
+    const moveInsights = (timestamp) => {
+      const scroller = insightScrollerRef.current
+      if (!scroller) return
+
+      if (previousTimestamp === undefined) previousTimestamp = timestamp
+      const elapsedSeconds = Math.min((timestamp - previousTimestamp) / 1000, 0.1)
+      previousTimestamp = timestamp
+
+      const loopWidth = scroller.scrollWidth / 2
+      scroller.scrollLeft += elapsedSeconds * 32
+
+      if (loopWidth > 0 && scroller.scrollLeft >= loopWidth) {
+        scroller.scrollLeft -= loopWidth
+      }
+
+      animationFrameId = window.requestAnimationFrame(moveInsights)
+    }
+
+    animationFrameId = window.requestAnimationFrame(moveInsights)
+    return () => window.cancelAnimationFrame(animationFrameId)
+  }, [isInsightScrollerPaused, remainingInsights.length])
 
   const formatDate = (dateString) => {
     if (!dateString) return ''
@@ -194,19 +234,79 @@ export default function Insights() {
     }
   }
 
+  const InsightCard = ({ item, className = '', isDuplicate = false }) => (
+    <article aria-hidden={isDuplicate} className={`group relative overflow-hidden rounded-[1.5rem] bg-white pb-1.5 shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/12 ${className}`}>
+      <Link tabIndex={isDuplicate ? -1 : undefined} to={`/insights/${item.slug || item._id}`} className={`relative block min-h-[28rem] overflow-hidden ${getGradientByType(item.type)}`}>
+        {getImageUrl(item.imageUrl) ? (
+          <img
+            src={getImageUrl(item.imageUrl)}
+            alt={item.title}
+            className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            {item.type === 'research' && <Lightbulb className="h-16 w-16 text-white/80" />}
+            {item.type === 'article' && <FileText className="h-16 w-16 text-white/80" />}
+            {item.type === 'case-study' && <Briefcase className="h-16 w-16 text-white/80" />}
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/5 to-black/35"></div>
+        <div className="absolute right-5 top-5 h-12 w-12">
+          <img src="/favicon.png" alt="" className="h-full w-full object-contain" />
+        </div>
+        <div className="absolute left-5 right-20 top-5">
+          <span className="inline-flex max-w-full items-center justify-center rounded-[1.35rem] border border-white bg-gray-950/65 px-6 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-black/20 backdrop-blur-sm">
+            <span className="truncate">{item.capability?.title || formatCategory(item.category)}</span>
+          </span>
+        </div>
+        <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-gray-100/70 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-sm">
+          <h3 className="text-xl font-semibold leading-snug text-gray-950">{item.title}</h3>
+        </div>
+      </Link>
+      {item.experts?.length > 0 && (
+        <div className="border-x border-b border-gray-100 bg-gray-50 px-5 py-4">
+          {item.experts.map((expert) => (
+            <div key={expert._id} className="min-w-0">
+              <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-extrabold uppercase tracking-[0.14em]">
+                <span className="text-gray-900">Author</span>
+                <span className="text-gray-300">|</span>
+                <span className="text-gray-700">{getTypeLabel(item.type)}</span>
+                {item.publishedAt && <span className="text-gray-700">{formatDate(item.publishedAt)}</span>}
+                {item.readTime && <span className="text-gray-700">{item.readTime}</span>}
+              </div>
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-sm font-bold text-primary-700 ring-1 ring-primary-100">
+                  {expert.imageUrl ? (
+                    <img src={expert.imageUrl} alt={expert.fullName} className="h-full w-full object-cover object-center" />
+                  ) : (
+                    <span>{expert.fullName?.split(' ').map((name) => name[0]).join('').slice(0, 2).toUpperCase()}</span>
+                  )}
+                </div>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-bold text-gray-950">{expert.fullName}</span>
+                  {(expert.headline || expert.currentDesignation || expert.designation) && (
+                    <span className="mt-1 block line-clamp-2 text-xs font-medium leading-5 text-gray-600">
+                      {expert.headline || expert.currentDesignation || expert.designation}
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400" aria-hidden="true"></div>
+    </article>
+  )
+
   return (
     <div className="min-h-screen bg-white">
       <div className="relative h-[320px] w-full overflow-hidden md:h-[500px]">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover"
-        >
-          <source src="/Insights Banner.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
+        <img
+          src="/Magna-globe.jpg"
+          alt=""
+          className="h-full w-full object-cover"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60"></div>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center px-4">
@@ -291,75 +391,55 @@ export default function Insights() {
                 <div className="mb-16">
                   <h2 className="text-2xl font-bold text-gray-900 mb-6">Articles & Insights</h2>
                   <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredContent.map((item) => (
-                      <article key={item._id} className="group overflow-hidden rounded-[1.5rem] bg-white shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/12">
-                        <Link to={`/insights/${item.slug || item._id}`} className={`relative block min-h-[28rem] overflow-hidden ${getGradientByType(item.type)}`}>
-                          {getImageUrl(item.imageUrl) ? (
-                            <img
-                              src={getImageUrl(item.imageUrl)}
-                              alt={item.title}
-                              className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              {item.type === 'research' && <Lightbulb className="h-16 w-16 text-white/80" />}
-                              {item.type === 'article' && <FileText className="h-16 w-16 text-white/80" />}
-                              {item.type === 'case-study' && <Briefcase className="h-16 w-16 text-white/80" />}
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/5 to-black/35"></div>
-
-                          <div className="absolute right-5 top-5 h-12 w-12">
-                            <img src="/favicon.png" alt="" className="h-full w-full object-contain" />
-                          </div>
-
-                          <div className="absolute left-5 right-20 top-5">
-                            <span className="inline-flex max-w-full items-center justify-center rounded-[1.35rem] border border-white bg-gray-950/65 px-6 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-black/20 backdrop-blur-sm">
-                              <span className="truncate">{item.capability?.title || formatCategory(item.category)}</span>
-                            </span>
-                          </div>
-
-                          <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-gray-100/70 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-sm">
-                            <h3 className="text-xl font-semibold leading-snug text-gray-950">
-                              {item.title}
-                            </h3>
-                          </div>
-                        </Link>
-                        {item.experts?.length > 0 && (
-                          <div className="border-x border-b border-gray-100 bg-gray-50 px-5 py-4">
-                            {item.experts.map((expert) => (
-                              <div key={expert._id} className="min-w-0">
-                                <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-extrabold uppercase tracking-[0.14em]">
-                                  <span className="text-gray-900">Author</span>
-                                  <span className="text-gray-300">|</span>
-                                  <span className="text-gray-700">{getTypeLabel(item.type)}</span>
-                                  {item.publishedAt && <span className="text-gray-700">{formatDate(item.publishedAt)}</span>}
-                                  {item.readTime && <span className="text-gray-700">{item.readTime}</span>}
-                                </div>
-                                <div className="flex min-w-0 items-center gap-3">
-                                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-sm font-bold text-primary-700 ring-1 ring-primary-100">
-                                    {expert.imageUrl ? (
-                                      <img src={expert.imageUrl} alt={expert.fullName} className="h-full w-full object-cover object-center" />
-                                    ) : (
-                                      <span>{expert.fullName?.split(' ').map((name) => name[0]).join('').slice(0, 2).toUpperCase()}</span>
-                                    )}
-                                  </div>
-                                  <span className="min-w-0">
-                                    <span className="block truncate text-sm font-bold text-gray-950">{expert.fullName}</span>
-                                    {(expert.headline || expert.currentDesignation || expert.designation) && (
-                                      <span className="mt-1 block line-clamp-2 text-xs font-medium leading-5 text-gray-600">
-                                        {expert.headline || expert.currentDesignation || expert.designation}
-                                      </span>
-                                    )}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </article>
+                    {latestInsights.map((item) => (
+                      <InsightCard key={item._id} item={item} />
                     ))}
                   </div>
+
+                  {remainingInsights.length > 0 && (
+                    <div className="mt-12">
+                      <div className="mb-5 flex items-center justify-between gap-4">
+                        <h3 className="text-xl font-bold text-gray-900">More Insights</h3>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => scrollInsights(-1)}
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-primary-100 bg-white text-primary-700 shadow-sm transition hover:bg-primary-50"
+                            aria-label="Previous insights"
+                          >
+                            <ChevronLeft className="h-5 w-5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => scrollInsights(1)}
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-primary-100 bg-white text-primary-700 shadow-sm transition hover:bg-primary-50"
+                            aria-label="Next insights"
+                          >
+                            <ChevronRight className="h-5 w-5" />
+                          </button>
+                        </div>
+                      </div>
+                      <div
+                        ref={insightScrollerRef}
+                        onMouseEnter={() => setIsInsightScrollerPaused(true)}
+                        onMouseLeave={() => setIsInsightScrollerPaused(false)}
+                        onFocus={() => setIsInsightScrollerPaused(true)}
+                        onBlur={() => setIsInsightScrollerPaused(false)}
+                        className="flex overflow-x-auto pb-5 [scrollbar-width:thin] [scrollbar-color:#3533cd_#e8e7fc]"
+                      >
+                        <div className="flex shrink-0 gap-6 pr-6">
+                          {remainingInsights.map((item) => (
+                            <InsightCard key={item._id} item={item} className="w-[86vw] max-w-[23rem] shrink-0 sm:w-[22rem]" />
+                          ))}
+                        </div>
+                        <div className="flex shrink-0 gap-6 pr-6" aria-hidden="true">
+                          {remainingInsights.map((item) => (
+                            <InsightCard key={`${item._id}-duplicate`} item={item} isDuplicate className="w-[86vw] max-w-[23rem] shrink-0 sm:w-[22rem]" />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -441,11 +521,6 @@ export default function Insights() {
             </>
           )}
 
-          <div className="text-center mt-12">
-            <button className="bg-primary-600 text-white px-8 py-4 rounded-full font-semibold hover:bg-primary-700 transition-colors">
-              Load More Insights
-            </button>
-          </div>
         </div>
       </div>
     </div>

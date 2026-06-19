@@ -40,25 +40,25 @@ function ExpertCard({ mentor, isDuplicate = false, compact = false, className = 
       </div>
 
       <div className={`flex flex-1 flex-col text-center ${compact ? 'p-3 pt-12 pb-4' : 'p-4 pt-14 pb-6 sm:p-4 sm:pt-16'}`}>
-        <h3 className={`${compact ? 'min-h-[2.35rem] text-base' : 'min-h-[2.75rem] text-lg'} line-clamp-2 font-bold leading-tight text-gray-950`}>{mentor.fullName}</h3>
+        <h3 className={`${compact ? 'text-base' : 'text-lg'} line-clamp-2 font-bold leading-tight text-gray-950`}>{mentor.fullName}</h3>
         {(mentor.headline || mentor.currentDesignation || mentor.designation) && (
-          <p className={`${compact ? 'min-h-[2.75rem] text-[11px] leading-[16px]' : 'min-h-[3.35rem] text-[12px] leading-[18px]'} mt-0 line-clamp-3 font-medium text-primary-600`}>{mentor.headline || mentor.currentDesignation || mentor.designation}</p>
+          <p className={`${compact ? 'text-[11px] leading-[16px]' : 'text-[12px] leading-[18px]'} mt-2.5 line-clamp-3 font-medium text-primary-700`}>{mentor.headline || mentor.currentDesignation || mentor.designation}</p>
         )}
         {!(mentor.headline || mentor.currentDesignation || mentor.designation) && (
-          <span className={`${compact ? 'min-h-[2.75rem]' : 'min-h-[3.35rem]'} mt-0.5 block`} aria-hidden="true"></span>
+          <span className="mt-1.5 block" aria-hidden="true"></span>
         )}
         {mentor.totalYearsOfExperience ? (
-          <p className="mt-2 line-clamp-1 min-h-[1rem] text-xs font-bold text-primary-700">
+          <p className="mt-2 line-clamp-1 text-xs font-bold text-primary-700">
             {mentor.totalYearsOfExperience}+ years experience
           </p>
         ) : (
-          <span className="mt-2 block min-h-[1rem]" aria-hidden="true"></span>
+          <span className="mt-2 block" aria-hidden="true"></span>
         )}
         {(mentor.location || mentor.city) && (
-          <p className="mt-2 mb-3 line-clamp-1 min-h-[1rem] text-xs font-bold text-primary-700">{mentor.location || mentor.city}</p>
+          <p className="mb-2 mt-2 line-clamp-1 text-xs font-bold text-primary-700">{mentor.location || mentor.city}</p>
         )}
         {!(mentor.location || mentor.city) && (
-          <span className="mt-2 mb-3 block min-h-[1rem]" aria-hidden="true"></span>
+          <span className="mb-2 mt-2 block" aria-hidden="true"></span>
         )}
         <span className={`mx-auto mt-auto inline-flex items-center justify-center rounded-full bg-gradient-to-r from-primary-600 to-cyan-400 font-bold text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600 group-hover:shadow-primary-600/30 ${compact ? 'px-3 py-2 text-[11px]' : 'px-4 py-2.5 text-xs'}`}>
           View Profile

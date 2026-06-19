@@ -159,8 +159,13 @@ export default function Header() {
                 </button>
               </>
             ) : (
-              <Link to="/login" className="bg-gradient-primary text-white px-6 py-2 rounded-2xl hover:shadow-glow-combined transition-all hover:scale-105 font-semibold">
-                Login
+              <Link
+                to="/login"
+                aria-label="Login"
+                title="Login"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-primary text-white shadow-md shadow-primary-900/15 transition-all hover:scale-105 hover:shadow-glow-combined"
+              >
+                <UserCircle className="h-7 w-7" />
               </Link>
             )}
           </div>

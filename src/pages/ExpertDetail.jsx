@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -183,7 +183,7 @@ const sectionIcons = {
   Education: GraduationCap,
   'Licenses & Certifications': Award,
   'Projects / Case Studies': FileText,
-  Recommendations: MessageSquareQuote,
+  Testimonials: MessageSquareQuote,
   'Key skills': Wrench,
   'My Growth Story': Route,
 }
@@ -236,6 +236,7 @@ function SkillPills({ title, items = [] }) {
 }
 
 function RoadmapSection({ experienceItems = [] }) {
+  const gradientId = `growth-road-gradient-${useId().replace(/:/g, '')}`
   if (!experienceItems.length) return null
 
   return (
@@ -246,7 +247,7 @@ function RoadmapSection({ experienceItems = [] }) {
       <div className="relative space-y-4 overflow-hidden py-1">
         <svg className="absolute left-6 top-6 h-[calc(100%-3rem)] w-12 overflow-visible" viewBox="0 0 48 420" preserveAspectRatio="none" aria-hidden="true">
           <defs>
-            <linearGradient id="growth-road-gradient" x1="0" y1="0" x2="0" y2="420" gradientUnits="userSpaceOnUse">
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="420" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#00ffff" />
               <stop offset="48%" stopColor="#3534cd" />
               <stop offset="100%" stopColor="#00bfcf" />
@@ -265,7 +266,7 @@ function RoadmapSection({ experienceItems = [] }) {
           <path
             d="M20 0 C 2 58, 44 96, 22 154 S 5 260, 27 322 S 20 390, 28 420"
             fill="none"
-            stroke="url(#growth-road-gradient)"
+            stroke={`url(#${gradientId})`}
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeDasharray="20 7"
@@ -337,10 +338,14 @@ function wrapCanvasText(context, text, x, y, maxWidth, lineHeight, maxLines = 3)
 
   if (line) lines.push(line)
 
-  lines.slice(0, maxLines).forEach((lineText, index) => {
+  const visibleLines = lines.slice(0, maxLines)
+
+  visibleLines.forEach((lineText, index) => {
     const isLastVisibleLine = index === maxLines - 1 && lines.length > maxLines
     context.fillText(isLastVisibleLine ? `${lineText.replace(/\s+\S+$/, '')}...` : lineText, x, y + (index * lineHeight))
   })
+
+  return visibleLines.length
 }
 
 function roundedRect(context, x, y, width, height, radius) {
@@ -399,7 +404,7 @@ async function createExpertShareCard({ expert, expertImage, headline }) {
   const headerGradient = context.createLinearGradient(cardX, cardY, cardX + cardWidth, cardY + 175)
   headerGradient.addColorStop(0, '#000047')
   headerGradient.addColorStop(0.58, '#3534cd')
-  headerGradient.addColorStop(1, '#00ffff')
+  headerGradient.addColorStop(1, '#00bfcf')
   context.fillStyle = headerGradient
   context.fillRect(cardX, cardY, cardWidth, 180)
 
@@ -458,25 +463,48 @@ async function createExpertShareCard({ expert, expertImage, headline }) {
 
   context.textAlign = 'center'
   context.fillStyle = '#030712'
-  context.font = '700 34px Arial'
-  wrapCanvasText(context, expert.fullName, profileX, cardY + 280, cardWidth - 68, 38, 2)
+  context.font = '700 32px Arial'
+  const nameStartY = cardY + 276
+  const nameLineHeight = 35
+  const nameLineCount = wrapCanvasText(context, expert.fullName, profileX, nameStartY, cardWidth - 64, nameLineHeight, 2)
 
-  context.fillStyle = '#1d4ed8'
-  context.font = '700 18px Arial'
-  wrapCanvasText(context, headline, profileX, cardY + 338, cardWidth - 80, 24, 3)
+  context.fillStyle = '#202279'
+  context.font = '500 22px Arial'
+  const headlineStartY = nameStartY + (nameLineCount * nameLineHeight) + 4
+  const headlineLineHeight = 28
+  const headlineLineCount = wrapCanvasText(context, headline, profileX, headlineStartY, cardWidth - 64, headlineLineHeight, 3)
+  let contentY = headlineStartY + (headlineLineCount * headlineLineHeight) + 8
 
+  context.fillStyle = '#202279'
+  context.font = '700 20px Arial'
   if (expert.totalYearsOfExperience) {
-    context.fillText(`${expert.totalYearsOfExperience}+ years experience`, profileX, cardY + 472)
+    context.fillText(`${expert.totalYearsOfExperience}+ years experience`, profileX, contentY)
+    contentY += 28
   }
 
   const expertLocation = expert.location || expert.city
   if (expertLocation) {
-    context.fillText(expertLocation, profileX, cardY + 512)
+    context.fillText(expertLocation, profileX, contentY)
+    contentY += 34
   }
+
+  const buttonWidth = 154
+  const buttonHeight = 42
+  const buttonX = profileX - (buttonWidth / 2)
+  const buttonY = Math.min(Math.max(contentY + 2, cardY + 466), cardY + cardHeight - 68)
+  const buttonGradient = context.createLinearGradient(buttonX, buttonY, buttonX + buttonWidth, buttonY)
+  buttonGradient.addColorStop(0, '#3534cd')
+  buttonGradient.addColorStop(1, '#00bfcf')
+  roundedRect(context, buttonX, buttonY, buttonWidth, buttonHeight, 21)
+  context.fillStyle = buttonGradient
+  context.fill()
+  context.fillStyle = '#ffffff'
+  context.font = '700 17px Arial'
+  context.fillText('View Profile', profileX, buttonY + 27)
 
   const footerGradient = context.createLinearGradient(cardX, cardY + cardHeight - 10, cardX + cardWidth, cardY + cardHeight - 10)
   footerGradient.addColorStop(0, '#3534cd')
-  footerGradient.addColorStop(1, '#00ffff')
+  footerGradient.addColorStop(1, '#00bfcf')
   context.fillStyle = footerGradient
   context.fillRect(cardX, cardY + cardHeight - 10, cardWidth, 10)
   context.restore()
@@ -600,12 +628,8 @@ export default function ExpertDetail() {
         const data = await mentorClient.fetch(query, { slug })
         setExpert(data)
 
-        const capabilityIds = (data?.capabilities || [])
-          .map(capability => capability?._id)
-          .filter(Boolean)
-
-        if (capabilityIds.length > 0) {
-          const insightsQuery = `*[_type == "blog" && status != "archived" && capability._ref in $capabilityIds] | order(featured desc, publishedAt desc) {
+        if (data?._id) {
+          const insightsQuery = `*[_type == "blog" && status != "archived" && $expertId in experts[]._ref] | order(publishedAt desc, _updatedAt desc) {
             _id,
             title,
             "slug": slug.current,
@@ -615,7 +639,7 @@ export default function ExpertDetail() {
               "slug": slug.current
             }
           }`
-          const insightsData = await mentorClient.fetch(insightsQuery, { capabilityIds })
+          const insightsData = await mentorClient.fetch(insightsQuery, { expertId: data._id })
           setRelatedInsights(insightsData || [])
         } else {
           setRelatedInsights([])
@@ -835,6 +859,27 @@ export default function ExpertDetail() {
                   )}
                 </div>
 
+                <nav className="mt-4 grid grid-cols-3 gap-1.5 sm:max-w-2xl sm:gap-2">
+                  {[
+                    { id: 'call', label: '1:1 Call', icon: CalendarDays },
+                    { id: 'programs', label: 'Sessions', icon: GraduationCap },
+                    { id: 'insights', label: 'Insights', icon: FileText },
+                  ].map((item) => (
+                    <Link
+                      key={item.id}
+                      to={`/experts/${expert.slug || expert._id}/${item.id}`}
+                      className="group flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#000047] via-[#3534cd] to-[#00bfcf] px-1.5 text-center text-white shadow-lg shadow-primary-900/20 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-cyan-400/25 sm:h-14 sm:gap-3 sm:px-4 sm:text-left"
+                    >
+                      <span className="flex shrink-0 items-center justify-center text-white sm:h-10 sm:w-10 sm:rounded-md sm:bg-white/15 sm:ring-1 sm:ring-white/25 sm:transition sm:group-hover:bg-white sm:group-hover:text-primary-700">
+                        <item.icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </span>
+                      <span className="min-w-0 text-[11px] font-extrabold leading-tight text-white sm:text-sm">
+                        {item.label}
+                      </span>
+                    </Link>
+                  ))}
+                </nav>
+
                 {intro && (
                   <p className="mt-4 max-w-3xl text-left text-sm font-medium leading-6 text-gray-700 sm:text-base sm:leading-7">{intro}</p>
                 )}
@@ -858,27 +903,6 @@ export default function ExpertDetail() {
             </div>
           </div>
         </section>
-
-        <nav className="mt-5 grid grid-cols-3 gap-1.5 sm:gap-2">
-          {[
-            { id: 'call', label: '1:1 Call', icon: CalendarDays },
-            { id: 'programs', label: 'Sessions', icon: GraduationCap },
-            { id: 'insights', label: 'Insights', icon: FileText },
-          ].map((item) => (
-            <Link
-              key={item.id}
-              to={`/experts/${expert.slug || expert._id}/${item.id}`}
-              className="group flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#000047] via-[#3534cd] to-[#00bfcf] px-1.5 text-center text-white shadow-lg shadow-primary-900/20 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-cyan-400/25 sm:h-14 sm:gap-3 sm:px-4 sm:text-left"
-            >
-              <span className="flex shrink-0 items-center justify-center text-white sm:h-10 sm:w-10 sm:rounded-md sm:bg-white/15 sm:ring-1 sm:ring-white/25 sm:transition sm:group-hover:bg-white sm:group-hover:text-primary-700">
-                <item.icon className="h-4 w-4 sm:h-5 sm:w-5" />
-              </span>
-              <span className="min-w-0 text-[11px] font-extrabold leading-tight text-white sm:text-sm">
-                {item.label}
-              </span>
-            </Link>
-          ))}
-        </nav>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <main className="space-y-4">
@@ -1068,7 +1092,7 @@ export default function ExpertDetail() {
             )}
 
             {recommendationItems.length > 0 && (
-              <Section title="Recommendations">
+              <Section title="Testimonials">
                 <div className="space-y-5">
                   {recommendationItems.map((item, index) => (
                     <article key={`${item.name}-${index}`} className="border-b border-gray-100 pb-5 last:border-0 last:pb-0">
