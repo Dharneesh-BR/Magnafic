@@ -66,8 +66,8 @@ export default function CommunityApplicationModal({
       await addDoc(collection(db, 'communityApplications'), {
         ...applicationPayload,
         status: 'new',
-        adminEmailNotificationSent: true,
-        acknowledgementEmailSent: true,
+        adminEmailNotificationSent: emailResult.adminNotificationSent === true,
+        acknowledgementEmailSent: emailResult.acknowledgementSent === true,
         adminEmailMessageId: emailResult.adminMessageId || '',
         acknowledgementEmailMessageId: emailResult.acknowledgementMessageId || '',
         createdAt: serverTimestamp(),

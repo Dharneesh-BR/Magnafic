@@ -63,6 +63,10 @@ function getAdminEmail() {
   return isEmail(configuredEmail) ? configuredEmail : DEFAULT_ADMIN_EMAIL
 }
 
+function getSuppressionsApiKey() {
+  return process.env.SENDGRID_SUPPRESSIONS_API_KEY || process.env.SENDGRID_API_KEY || ''
+}
+
 function normalizePayload(body = {}) {
   return {
     clubName: String(body.clubName || 'Magnafic Community').trim().slice(0, 150),
@@ -208,6 +212,98 @@ async function sendEmail(label, payload, apiKey) {
   return messageId
 }
 
+async function getBounceSuppression(email) {
+  const response = await fetch(
+    `https://api.sendgrid.com/v3/suppression/bounces/${encodeURIComponent(email)}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${getSuppressionsApiKey()}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  )
+
+  if (response.status === 404) {
+    return { suppressed: false, status: response.status, records: [] }
+  }
+
+  const responseText = await response.text()
+  let records = []
+
+  try {
+    const parsedBody = responseText ? JSON.parse(responseText) : []
+    records = Array.isArray(parsedBody) ? parsedBody : parsedBody ? [parsedBody] : []
+  } catch {
+    records = []
+  }
+
+  if (!response.ok) {
+    console.warn('Unable to read SendGrid bounce suppression:', {
+      email,
+      status: response.status,
+      response: responseText,
+    })
+    return { suppressed: false, status: response.status, records: [], checkFailed: true }
+  }
+
+  return {
+    suppressed: records.length > 0,
+    status: response.status,
+    records,
+  }
+}
+
+async function clearBounceSuppression(email) {
+  const response = await fetch(
+    `https://api.sendgrid.com/v3/suppression/bounces/${encodeURIComponent(email)}`,
+    {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${getSuppressionsApiKey()}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  )
+
+  const responseText = await response.text()
+  console.info('SendGrid bounce suppression clear result:', {
+    email,
+    status: response.status,
+    cleared: response.ok,
+    response: responseText,
+  })
+
+  return response.ok
+}
+
+async function prepareRecipient(email, { allowClear = false } = {}) {
+  const bounce = await getBounceSuppression(email)
+
+  if (!bounce.suppressed) {
+    return { ready: true, bounce }
+  }
+
+  console.error('SendGrid recipient is bounce-suppressed:', {
+    email,
+    bounce,
+  })
+
+  if (!allowClear) {
+    return { ready: false, bounce }
+  }
+
+  const cleared = await clearBounceSuppression(email)
+  const afterClear = await getBounceSuppression(email)
+
+  return {
+    ready: cleared && !afterClear.suppressed,
+    bounce,
+    cleared,
+    afterClear,
+  }
+}
+
 export async function handler(event) {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: corsHeaders, body: '' }
@@ -242,19 +338,79 @@ export async function handler(event) {
       sourcePath: payload.sourcePath,
     })
 
-    const adminMessageId = await sendEmail(
-      'admin notification',
-      buildAdminEmail(payload, fromEmail, adminEmail),
-      apiKey
-    )
-    const acknowledgementMessageId = await sendEmail(
-      'applicant acknowledgement',
-      buildAcknowledgementEmail(payload, fromEmail),
-      apiKey
-    )
+    const [adminRecipient, applicantRecipient] = await Promise.all([
+      prepareRecipient(adminEmail, { allowClear: true }),
+      prepareRecipient(payload.email),
+    ])
+
+    if (!adminRecipient.ready) {
+      return jsonResponse(409, {
+        error: 'The Magnafic notification email is suppressed in SendGrid. Remove it from SendGrid Bounces and try again.',
+        recipient: adminEmail,
+        reason: adminRecipient.bounce?.records?.[0]?.reason || 'Bounced Address',
+      })
+    }
+
+    const emailJobs = [
+      sendEmail(
+        'admin notification',
+        buildAdminEmail(payload, fromEmail, adminEmail),
+        apiKey
+      ),
+    ]
+
+    if (applicantRecipient.ready) {
+      emailJobs.push(
+        sendEmail(
+          'applicant acknowledgement',
+          buildAcknowledgementEmail(payload, fromEmail),
+          apiKey
+        )
+      )
+    } else {
+      emailJobs.push(Promise.reject(new Error(
+        'The applicant email is suppressed in SendGrid due to an earlier bounce.'
+      )))
+    }
+
+    const [adminResult, acknowledgementResult] = await Promise.allSettled(emailJobs)
+
+    const adminMessageId = adminResult.status === 'fulfilled' ? adminResult.value : ''
+    const acknowledgementMessageId = acknowledgementResult.status === 'fulfilled'
+      ? acknowledgementResult.value
+      : ''
+
+    console.info('Community application email results:', {
+      admin: adminResult.status === 'fulfilled'
+        ? { sent: true, messageId: adminMessageId }
+        : { sent: false, error: adminResult.reason?.message || String(adminResult.reason) },
+      acknowledgement: acknowledgementResult.status === 'fulfilled'
+        ? { sent: true, messageId: acknowledgementMessageId }
+        : { sent: false, error: acknowledgementResult.reason?.message || String(acknowledgementResult.reason) },
+      adminRecipient,
+      applicantRecipient,
+    })
+
+    if (adminResult.status === 'rejected' || acknowledgementResult.status === 'rejected') {
+      return jsonResponse(502, {
+        error: 'One or more application emails could not be delivered by SendGrid.',
+        adminNotificationSent: adminResult.status === 'fulfilled',
+        acknowledgementSent: acknowledgementResult.status === 'fulfilled',
+        adminMessageId,
+        acknowledgementMessageId,
+        adminError: adminResult.status === 'rejected'
+          ? adminResult.reason?.message || String(adminResult.reason)
+          : '',
+        acknowledgementError: acknowledgementResult.status === 'rejected'
+          ? acknowledgementResult.reason?.message || String(acknowledgementResult.reason)
+          : '',
+      })
+    }
 
     return jsonResponse(200, {
       success: true,
+      adminNotificationSent: true,
+      acknowledgementSent: true,
       adminMessageId,
       acknowledgementMessageId,
     })

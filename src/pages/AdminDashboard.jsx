@@ -192,7 +192,7 @@ async function getAdminProfile(firebaseUser) {
 
 function getAdminError(error) {
   if (error?.code === 'permission-denied') {
-    return 'Firestore permissions are blocking admin dashboard data. Allow admin users to read users, clientBriefs, communityApplications, and contactMessages.'
+    return 'Firestore permissions are blocking admin dashboard data. Allow admin users to read users, clientBriefs, communityApplications, contactMessages, and expertCallRequests.'
   }
 
   return error?.message || 'Unable to load admin dashboard right now.'
@@ -212,6 +212,7 @@ export default function AdminDashboard() {
   const [briefs, setBriefs] = useState([])
   const [communityApplications, setCommunityApplications] = useState([])
   const [contactMessages, setContactMessages] = useState([])
+  const [expertCallRequests, setExpertCallRequests] = useState([])
   const [capabilitiesByExpertId, setCapabilitiesByExpertId] = useState({})
   const [sanityExpertsById, setSanityExpertsById] = useState({})
   const [sanityExpertOptions, setSanityExpertOptions] = useState([])
@@ -329,6 +330,17 @@ export default function AdminDashboard() {
           setDataLoading(false)
         }
       ),
+      onSnapshot(
+        collection(db, 'expertCallRequests'),
+        (snapshot) => {
+          setExpertCallRequests(snapshot.docs.map(normalizeDocument))
+          setDataLoading(false)
+        },
+        (snapshotError) => {
+          setDataError(getAdminError(snapshotError))
+          setDataLoading(false)
+        }
+      ),
     ]
 
     return () => unsubscribes.forEach((unsubscribe) => unsubscribe())
@@ -435,6 +447,10 @@ export default function AdminDashboard() {
       return bTime - aTime
     }), [briefs])
 
+  const sortedExpertCallRequests = useMemo(() => [...expertCallRequests]
+    .filter((request) => ['requested', 'scheduled'].includes(request.status || 'requested'))
+    .sort((a, b) => getActivityTime(b.createdAt) - getActivityTime(a.createdAt)), [expertCallRequests])
+
   const referralRequests = useMemo(() => briefs
     .filter((brief) => brief.source === 'consultant-referral')
     .sort((a, b) => {
@@ -501,6 +517,18 @@ export default function AdminDashboard() {
         actor: message.email || message.contactNo || '',
         createdAt: message.createdAt,
         viewId: 'notifications',
+      })
+    })
+
+    expertCallRequests.forEach((request) => {
+      activities.push({
+        id: `expert-call-request-${request.id}`,
+        type: 'schedule',
+        title: 'New expert 1:1 call request',
+        description: `${request.name || 'Website visitor'} requested a call with ${request.expertName || 'an expert'}.`,
+        actor: request.email || request.contactNo || '',
+        createdAt: request.createdAt,
+        viewId: 'scheduleCalls',
       })
     })
 
@@ -583,7 +611,7 @@ export default function AdminDashboard() {
     return activities
       .filter((activity) => getActivityTime(activity.createdAt) > 0)
       .sort((a, b) => getActivityTime(b.createdAt) - getActivityTime(a.createdAt))
-  }, [briefs, communityApplications, contactMessages, usersData])
+  }, [briefs, communityApplications, contactMessages, expertCallRequests, usersData])
 
   const unreadNotificationCount = useMemo(() => (
     activityNotifications.filter((activity) => getActivityTime(activity.createdAt) > notificationSeenAt).length
@@ -1011,6 +1039,55 @@ export default function AdminDashboard() {
       window.open(getScheduledCallUrl(brief, scheduledDate, meetingPlatform), '_blank', 'width=960,height=720')
     } catch (scheduleError) {
       console.error('Admin schedule call failed:', scheduleError)
+      setDataError(getAdminError(scheduleError))
+    } finally {
+      setSchedulingBriefId('')
+    }
+  }
+
+  const handleScheduleExpertCall = async (request) => {
+    const draftKey = `expert-call-${request.id}`
+    const draftValue = scheduleDrafts[draftKey] || formatDateTimeInput(request.preferredCallAt)
+    const meetingPlatform = schedulePlatformDrafts[draftKey] || request.meetingPlatform || 'google-meet'
+
+    if (!draftValue) {
+      setDataError('Please select a call date and time before scheduling.')
+      return
+    }
+
+    const scheduledDate = new Date(draftValue)
+    if (Number.isNaN(scheduledDate.getTime())) {
+      setDataError('Please select a valid call date and time.')
+      return
+    }
+
+    setSchedulingBriefId(draftKey)
+    setDataError('')
+    setDataMessage('')
+
+    try {
+      await updateDoc(doc(db, 'expertCallRequests', request.id), {
+        status: 'scheduled',
+        scheduledCallAt: scheduledDate,
+        meetingPlatform,
+        meetingPlatformLabel: getMeetingPlatformLabel(meetingPlatform),
+        scheduledByAdminId: adminProfile?.id || adminProfile?.uid || '',
+        scheduledByAdminEmail: adminProfile?.email || '',
+        scheduledAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+
+      const callContext = {
+        clientName: request.name,
+        company: request.email,
+        capability: `1:1 call with ${request.expertName || 'Magnafic expert'}`,
+        description: `Contact: ${request.contactNo || 'Not provided'}\nExpert: ${request.expertName || 'Not provided'}`,
+      }
+
+      window.open(getScheduledCallUrl(callContext, scheduledDate, meetingPlatform), '_blank', 'width=960,height=720')
+      setDataMessage(`Call with ${request.expertName || 'the expert'} scheduled for ${formatDateTime(scheduledDate)}.`)
+    } catch (scheduleError) {
+      console.error('Admin expert call scheduling failed:', scheduleError)
       setDataError(getAdminError(scheduleError))
     } finally {
       setSchedulingBriefId('')
@@ -2179,16 +2256,81 @@ export default function AdminDashboard() {
                 <div className="mb-6 flex items-center justify-between gap-4">
                   <div>
                     <h2 className="text-2xl font-bold text-gray-950">Schedule Calls</h2>
-                    <p className="mt-1 text-sm text-gray-500">{scheduleRequests.length} consultant scheduling requests.</p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {scheduleRequests.length + sortedExpertCallRequests.length} active scheduling requests.
+                    </p>
                   </div>
                   {dataLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
                 </div>
 
-                {scheduleRequests.length === 0 ? (
+                {sortedExpertCallRequests.length > 0 && (
+                  <div className="mb-8">
+                    <div className="mb-4">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-primary-600">Website requests</p>
+                      <h3 className="mt-1 text-xl font-black text-gray-950">Expert 1:1 Calls</h3>
+                    </div>
+                    <div className="grid gap-4 xl:grid-cols-2">
+                      {sortedExpertCallRequests.map((request) => {
+                        const draftKey = `expert-call-${request.id}`
+                        const scheduledValue = scheduleDrafts[draftKey] ?? formatDateTimeInput(request.scheduledCallAt || request.preferredCallAt)
+                        const platformValue = schedulePlatformDrafts[draftKey] || request.meetingPlatform || 'google-meet'
+                        const isScheduling = schedulingBriefId === draftKey
+
+                        return (
+                          <article key={request.id} className="rounded-2xl border border-primary-100 bg-primary-50/40 p-5">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="min-w-0">
+                                <p className="text-xs font-black uppercase tracking-[0.16em] text-primary-600">{request.status || 'requested'}</p>
+                                <h4 className="mt-1 break-words text-lg font-black text-gray-950">{request.name || 'Call requester'}</h4>
+                                <p className="mt-1 break-words text-sm font-bold text-primary-700">With {request.expertName || 'Magnafic expert'}</p>
+                                <p className="mt-3 break-words text-sm text-gray-600">{request.email || 'No email'} | {request.contactNo || 'No contact'}</p>
+                                <p className="mt-2 text-sm font-semibold text-gray-700">Preferred: {formatDateTime(request.preferredCallAt)}</p>
+                                {request.scheduledCallAt && (
+                                  <p className="mt-1 text-sm font-bold text-emerald-700">
+                                    Scheduled: {formatDateTime(request.scheduledCallAt)} | {request.meetingPlatformLabel || getMeetingPlatformLabel(request.meetingPlatform)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
+                              <input
+                                type="datetime-local"
+                                value={scheduledValue}
+                                onChange={(event) => updateScheduleDraft(draftKey, event.target.value)}
+                                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                              />
+                              <select
+                                value={platformValue}
+                                onChange={(event) => updateSchedulePlatformDraft(draftKey, event.target.value)}
+                                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                              >
+                                {meetingPlatforms.map((platform) => (
+                                  <option key={platform.value} value={platform.value}>{platform.label}</option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => handleScheduleExpertCall(request)}
+                                disabled={isScheduling}
+                                className="inline-flex items-center justify-center rounded-xl bg-primary-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-primary-700 disabled:opacity-60"
+                              >
+                                {isScheduling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CalendarPlus className="mr-2 h-4 w-4" />}
+                                {request.status === 'scheduled' ? 'Reschedule' : 'Schedule'}
+                              </button>
+                            </div>
+                          </article>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {scheduleRequests.length === 0 && sortedExpertCallRequests.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
                     No schedule requests found.
                   </div>
-                ) : (
+                ) : scheduleRequests.length > 0 ? (
                   <div className="overflow-hidden rounded-2xl border border-gray-100">
                     <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm lg:text-base">
                       <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
@@ -2307,7 +2449,7 @@ export default function AdminDashboard() {
                       </tbody>
                     </table>
                   </div>
-                )}
+                ) : null}
               </section>
             )}
 

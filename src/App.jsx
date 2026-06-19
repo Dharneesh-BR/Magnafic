@@ -6,6 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import Home from './pages/Home'
 import Experts from './pages/Experts'
 import ExpertDetail from './pages/ExpertDetail'
+import ExpertEngagement from './pages/ExpertEngagement'
 import DigitalTransformation from './pages/DigitalTransformation'
 import Insights from './pages/Insights'
 import BlogDetail from './pages/BlogDetail'
@@ -63,6 +64,7 @@ function AppContent() {
             <Route path="/" element={<Home />} />
             <Route path="/experts" element={<Experts />} />
             <Route path="/experts/:slug" element={<ExpertDetail />} />
+            <Route path="/experts/:slug/:section" element={<ExpertEngagement />} />
             <Route path="/digital-transformation" element={<DigitalTransformation />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/insights/:slug" element={<BlogDetail />} />

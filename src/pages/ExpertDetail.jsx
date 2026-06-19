@@ -245,9 +245,34 @@ function RoadmapSection({ experienceItems = [] }) {
       </p>
       <div className="relative space-y-4 overflow-hidden py-1">
         <svg className="absolute left-6 top-6 h-[calc(100%-3rem)] w-12 overflow-visible" viewBox="0 0 48 420" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="growth-road-gradient" x1="0" y1="0" x2="0" y2="420" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#00ffff" />
+              <stop offset="48%" stopColor="#3534cd" />
+              <stop offset="100%" stopColor="#00bfcf" />
+            </linearGradient>
+          </defs>
           <path d="M20 0 C 2 58, 44 96, 22 154 S 5 260, 27 322 S 20 390, 28 420" fill="none" stroke="#1f2937" strokeWidth="12" strokeLinecap="round" />
           <path d="M20 0 C 2 58, 44 96, 22 154 S 5 260, 27 322 S 20 390, 28 420" fill="none" stroke="#000047" strokeWidth="6" strokeLinecap="round" />
-          <path d="M23 8 C 8 62, 41 101, 24 156 S 10 260, 30 320 S 22 385, 30 412" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" />
+          <path
+            d="M20 0 C 2 58, 44 96, 22 154 S 5 260, 27 322 S 20 390, 28 420"
+            fill="none"
+            stroke="#00ffff"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            opacity="0.32"
+          />
+          <path
+            d="M20 0 C 2 58, 44 96, 22 154 S 5 260, 27 322 S 20 390, 28 420"
+            fill="none"
+            stroke="url(#growth-road-gradient)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeDasharray="20 7"
+            style={{ filter: 'drop-shadow(0 0 1.5px #00ffff)' }}
+          >
+            <animate attributeName="stroke-dashoffset" from="52" to="0" dur="2.4s" repeatCount="indefinite" />
+          </path>
         </svg>
         {experienceItems.map((item, index) => {
           const yearLabel = item.startDate ? new Date(item.startDate).getFullYear() : formatYearRange(item.startDate, item.endDate, item.currentlyWorkingHere)
@@ -735,11 +760,6 @@ export default function ExpertDetail() {
         }}
       />
       <div className="mx-auto max-w-6xl">
-        <Link to={capabilityPath} className="mb-4 inline-flex max-w-full items-center text-sm font-semibold text-primary-700 transition hover:text-primary-900">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          <span className="truncate">{backLabel}</span>
-        </Link>
-
         <section className="rounded-lg border border-cyan-100 bg-white shadow-[0_0_24px_rgba(0,255,255,0.18)]">
           <div className="relative h-36 overflow-hidden rounded-t-lg bg-[#000047] sm:h-40 lg:h-44">
             {expert.bannerImageUrl ? (
@@ -838,6 +858,27 @@ export default function ExpertDetail() {
             </div>
           </div>
         </section>
+
+        <nav className="mt-5 grid grid-cols-3 gap-1.5 sm:gap-2">
+          {[
+            { id: 'call', label: '1:1 Call', icon: CalendarDays },
+            { id: 'programs', label: 'Sessions', icon: GraduationCap },
+            { id: 'insights', label: 'Insights', icon: FileText },
+          ].map((item) => (
+            <Link
+              key={item.id}
+              to={`/experts/${expert.slug || expert._id}/${item.id}`}
+              className="group flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-[#000047] via-[#3534cd] to-[#00bfcf] px-1.5 text-center text-white shadow-lg shadow-primary-900/20 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-cyan-400/25 sm:h-14 sm:gap-3 sm:px-4 sm:text-left"
+            >
+              <span className="flex shrink-0 items-center justify-center text-white sm:h-10 sm:w-10 sm:rounded-md sm:bg-white/15 sm:ring-1 sm:ring-white/25 sm:transition sm:group-hover:bg-white sm:group-hover:text-primary-700">
+                <item.icon className="h-4 w-4 sm:h-5 sm:w-5" />
+              </span>
+              <span className="min-w-0 text-[11px] font-extrabold leading-tight text-white sm:text-sm">
+                {item.label}
+              </span>
+            </Link>
+          ))}
+        </nav>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <main className="space-y-4">
