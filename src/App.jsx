@@ -23,7 +23,6 @@ import DescribeProblem from './pages/DescribeProblem'
 import CapabilityDetail from './pages/CapabilityDetail'
 import ServiceDetail from './pages/ServiceDetail'
 import SEO from './components/SEO'
-import ClientDashboard from './pages/ClientDashboard'
 import ConsultantDashboard from './pages/ConsultantDashboard'
 import DashboardRedirect from './pages/DashboardRedirect'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -76,7 +75,6 @@ function AppContent() {
             <Route path="/signup" element={<ClientSignup />} />
             <Route path="/describe-your-problem" element={<DescribeProblem />} />
             <Route path="/dashboard" element={<DashboardRedirect />} />
-            <Route path="/dashboard/client" element={<ProtectedRoute role="client"><ClientDashboard /></ProtectedRoute>} />
             <Route path="/dashboard/consultant" element={<ProtectedRoute role="consultant"><ConsultantDashboard /></ProtectedRoute>} />
             <Route path="/dashboard/consultant/enquiry/:enquiryId" element={<ProtectedRoute role="consultant"><ConsultantDashboard /></ProtectedRoute>} />
             <Route path="/academy" element={<Academy />} />

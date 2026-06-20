@@ -1,4 +1,4 @@
-import { defineField, defineType } from 'sanity'
+import { defineArrayMember, defineField, defineType } from 'sanity'
 
 export const youtubeVideosSchema = defineType({
   name: 'youtubeVideos',
@@ -51,6 +51,20 @@ export const youtubeVideosSchema = defineType({
       title: 'Related Capability',
       type: 'reference',
       to: [{ type: 'capabilities' }],
+    }),
+    defineField({
+      name: 'experts',
+      title: 'Related Experts',
+      type: 'array',
+      description: 'Tag every expert associated with this video so it appears in their Insights section.',
+      of: [
+        defineArrayMember({
+          type: 'reference',
+          to: [{ type: 'mentor' }],
+          options: { disableNew: true },
+        }),
+      ],
+      validation: (Rule) => Rule.unique(),
     }),
     defineField({
       name: 'duration',

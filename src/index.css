@@ -21,6 +21,40 @@
 }
 
 @layer components {
+  .ai-shortcut-float {
+    animation: ai-shortcut-float 3.2s ease-in-out infinite;
+    transform-origin: center;
+  }
+
+  .ai-shortcut-float:hover,
+  .ai-shortcut-float:focus-visible {
+    animation-play-state: paused;
+  }
+
+  .copilot-prompt-glow {
+    position: relative;
+    isolation: isolate;
+    background: conic-gradient(
+      from var(--copilot-glow-angle),
+      #3534cd,
+      #00ffff,
+      #8b5cf6,
+      #3534cd
+    );
+    animation: copilot-prompt-glow 4s linear infinite;
+  }
+
+  .copilot-prompt-glow::before {
+    position: absolute;
+    inset: -5px;
+    z-index: -1;
+    border-radius: inherit;
+    background: inherit;
+    content: "";
+    filter: blur(15px);
+    opacity: 0.42;
+  }
+
   .premium-hero {
     --hero-border-angle: 0deg;
     background: #000047;
@@ -468,5 +502,38 @@
     .expert-orbit-globe {
       width: min(60rem, 90vw);
     }
+  }
+}
+
+@keyframes ai-shortcut-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@property --copilot-glow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes copilot-prompt-glow {
+  to {
+    --copilot-glow-angle: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-shortcut-float {
+    animation: none;
+  }
+
+  .copilot-prompt-glow {
+    animation: none;
   }
 }

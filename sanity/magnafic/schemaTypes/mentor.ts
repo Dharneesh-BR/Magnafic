@@ -487,6 +487,35 @@ export const mentorSchema = defineType({
         },
       ],
     }),
+    defineField({
+      name: 'aiEnabled',
+      title: 'AI Copilot Enabled',
+      type: 'boolean',
+      description: 'Allow this consultant to access the internal Magnafic AI Copilot.',
+      initialValue: false,
+    }),
+    defineField({
+      name: 'assignedAgent',
+      title: 'Assigned AI Agent',
+      type: 'reference',
+      to: [{type: 'aiAgent'}],
+      hidden: ({document}) => !document?.aiEnabled,
+    }),
+    defineField({
+      name: 'consultantTier',
+      title: 'Consultant Tier',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'Standard - 500 monthly credits', value: 'standard'},
+          {title: 'Senior - 2,000 monthly credits', value: 'senior'},
+          {title: 'Magna Master - 5,000 monthly credits', value: 'magna-master'},
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'standard',
+      hidden: ({document}) => !document?.aiEnabled,
+    }),
   ],
   orderings: [
     {

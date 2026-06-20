@@ -382,48 +382,73 @@ function drawImageCover(context, image, x, y, width, height) {
 }
 
 async function createExpertShareCard({ expert, expertImage, headline }) {
+  await document.fonts?.ready
+
   const canvas = document.createElement('canvas')
   canvas.width = 420
   canvas.height = 558
   const context = canvas.getContext('2d')
 
-  const cardX = 0
-  const cardY = 0
   const cardWidth = canvas.width
   const cardHeight = canvas.height
   const cardRadius = 34
+  const centerX = cardWidth / 2
+  const headerHeight = 150
+  const profileY = 120
+  const profileRadius = 75
+  const fontFamily = '"Quicksand", Arial, sans-serif'
 
-  roundedRect(context, cardX, cardY, cardWidth, cardHeight, cardRadius)
+  roundedRect(context, 0, 0, cardWidth, cardHeight, cardRadius)
   context.fillStyle = '#ffffff'
   context.fill()
 
   context.save()
-  roundedRect(context, cardX, cardY, cardWidth, cardHeight, cardRadius)
+  roundedRect(context, 0, 0, cardWidth, cardHeight, cardRadius)
   context.clip()
 
-  const headerGradient = context.createLinearGradient(cardX, cardY, cardX + cardWidth, cardY + 175)
+  const headerGradient = context.createLinearGradient(0, 0, cardWidth, headerHeight)
   headerGradient.addColorStop(0, '#000047')
   headerGradient.addColorStop(0.58, '#3534cd')
-  headerGradient.addColorStop(1, '#00bfcf')
+  headerGradient.addColorStop(1, '#00c6d7')
   context.fillStyle = headerGradient
-  context.fillRect(cardX, cardY, cardWidth, 180)
+  context.fillRect(0, 0, cardWidth, headerHeight)
+
+  const radialHighlight = context.createRadialGradient(105, 30, 0, 105, 30, 155)
+  radialHighlight.addColorStop(0, 'rgba(255,255,255,0.22)')
+  radialHighlight.addColorStop(0.3, 'rgba(255,255,255,0.08)')
+  radialHighlight.addColorStop(1, 'rgba(255,255,255,0)')
+  context.fillStyle = radialHighlight
+  context.fillRect(0, 0, cardWidth, headerHeight)
+
+  const diagonalHighlight = context.createLinearGradient(0, 0, cardWidth, headerHeight)
+  diagonalHighlight.addColorStop(0, 'rgba(0,255,255,0.18)')
+  diagonalHighlight.addColorStop(0.45, 'rgba(0,255,255,0)')
+  diagonalHighlight.addColorStop(1, 'rgba(255,255,255,0.16)')
+  context.fillStyle = diagonalHighlight
+  context.fillRect(0, 0, cardWidth, headerHeight)
 
   try {
     const logo = await loadShareImage('/favicon.png')
-    context.drawImage(logo, cardX + cardWidth - 68, cardY + 18, 46, 38)
+    context.drawImage(logo, cardWidth - 57, 16, 38, 38)
   } catch {
     context.fillStyle = '#ffffff'
-    context.font = '700 28px Arial'
-    context.fillText('M', cardX + cardWidth - 56, cardY + 46)
+    context.font = `700 25px ${fontFamily}`
+    context.fillText('M', cardWidth - 48, 44)
   }
 
-  const profileX = cardX + (cardWidth / 2)
-  const profileY = cardY + 160
-  const profileRadius = 78
+  context.save()
+  context.shadowColor = 'rgba(0, 0, 71, 0.24)'
+  context.shadowBlur = 22
+  context.shadowOffsetY = 10
+  context.beginPath()
+  context.arc(centerX, profileY, profileRadius + 7, 0, Math.PI * 2)
+  context.fillStyle = '#ffffff'
+  context.fill()
+  context.restore()
 
   context.save()
   context.beginPath()
-  context.arc(profileX, profileY, profileRadius, 0, Math.PI * 2)
+  context.arc(centerX, profileY, profileRadius, 0, Math.PI * 2)
   context.closePath()
   context.fillStyle = '#ffffff'
   context.fill()
@@ -434,79 +459,90 @@ async function createExpertShareCard({ expert, expertImage, headline }) {
   if (expertImage) {
     try {
       const profile = await loadShareImage(expertImage)
-      drawImageCover(context, profile, profileX - profileRadius, profileY - profileRadius, profileRadius * 2, profileRadius * 2)
+      drawImageCover(context, profile, centerX - profileRadius, profileY - profileRadius, profileRadius * 2, profileRadius * 2)
       profileDrawn = true
     } catch {
       context.fillStyle = '#e6f7ff'
-      context.fillRect(profileX - profileRadius, profileY - profileRadius, profileRadius * 2, profileRadius * 2)
+      context.fillRect(centerX - profileRadius, profileY - profileRadius, profileRadius * 2, profileRadius * 2)
     }
   } else {
     context.fillStyle = '#e6f7ff'
-    context.fillRect(profileX - profileRadius, profileY - profileRadius, profileRadius * 2, profileRadius * 2)
+    context.fillRect(centerX - profileRadius, profileY - profileRadius, profileRadius * 2, profileRadius * 2)
   }
 
   context.restore()
 
   if (!profileDrawn) {
-    context.font = '700 54px Arial'
+    context.font = `700 50px ${fontFamily}`
     context.fillStyle = '#3534cd'
     context.textAlign = 'center'
-    context.fillText(initials(expert.fullName), profileX, profileY + 18)
+    context.fillText(initials(expert.fullName), centerX, profileY + 18)
     context.textAlign = 'left'
   }
 
   context.strokeStyle = '#ffffff'
-  context.lineWidth = 7
+  context.lineWidth = 8
   context.beginPath()
-  context.arc(profileX, profileY, profileRadius + 2, 0, Math.PI * 2)
+  context.arc(centerX, profileY, profileRadius + 2, 0, Math.PI * 2)
   context.stroke()
 
   context.textAlign = 'center'
   context.fillStyle = '#030712'
-  context.font = '700 32px Arial'
-  const nameStartY = cardY + 276
-  const nameLineHeight = 35
-  const nameLineCount = wrapCanvasText(context, expert.fullName, profileX, nameStartY, cardWidth - 64, nameLineHeight, 2)
+  context.font = `700 30px ${fontFamily}`
+  const nameStartY = 240
+  const nameLineHeight = 33
+  const nameLineCount = wrapCanvasText(context, expert.fullName, centerX, nameStartY, cardWidth - 58, nameLineHeight, 2)
 
   context.fillStyle = '#202279'
-  context.font = '500 22px Arial'
-  const headlineStartY = nameStartY + (nameLineCount * nameLineHeight) + 4
-  const headlineLineHeight = 28
-  const headlineLineCount = wrapCanvasText(context, headline, profileX, headlineStartY, cardWidth - 64, headlineLineHeight, 3)
-  let contentY = headlineStartY + (headlineLineCount * headlineLineHeight) + 8
+  context.font = `600 19px ${fontFamily}`
+  const headlineStartY = nameStartY + (nameLineCount * nameLineHeight) + 7
+  const headlineLineHeight = 24
+  const headlineLineCount = wrapCanvasText(context, headline, centerX, headlineStartY, cardWidth - 64, headlineLineHeight, 3)
+  let contentY = headlineStartY + (headlineLineCount * headlineLineHeight) + 12
 
   context.fillStyle = '#202279'
-  context.font = '700 20px Arial'
+  context.font = `600 19px ${fontFamily}`
   if (expert.totalYearsOfExperience) {
-    context.fillText(`${expert.totalYearsOfExperience}+ years experience`, profileX, contentY)
-    contentY += 28
+    context.fillText(`${expert.totalYearsOfExperience}+ years experience`, centerX, contentY)
+    contentY += 27
   }
 
   const expertLocation = expert.location || expert.city
   if (expertLocation) {
-    context.fillText(expertLocation, profileX, contentY)
-    contentY += 34
+    context.fillText(expertLocation, centerX, contentY)
   }
 
-  const buttonWidth = 154
-  const buttonHeight = 42
-  const buttonX = profileX - (buttonWidth / 2)
-  const buttonY = Math.min(Math.max(contentY + 2, cardY + 466), cardY + cardHeight - 68)
+  const buttonWidth = 176
+  const buttonHeight = 48
+  const buttonX = centerX - (buttonWidth / 2)
+  const buttonY = cardHeight - 76
   const buttonGradient = context.createLinearGradient(buttonX, buttonY, buttonX + buttonWidth, buttonY)
   buttonGradient.addColorStop(0, '#3534cd')
-  buttonGradient.addColorStop(1, '#00bfcf')
-  roundedRect(context, buttonX, buttonY, buttonWidth, buttonHeight, 21)
+  buttonGradient.addColorStop(1, '#00c6d7')
+  roundedRect(context, buttonX, buttonY, buttonWidth, buttonHeight, 24)
   context.fillStyle = buttonGradient
   context.fill()
   context.fillStyle = '#ffffff'
-  context.font = '700 17px Arial'
-  context.fillText('View Profile', profileX, buttonY + 27)
+  context.font = `700 17px ${fontFamily}`
+  context.fillText('View Profile', centerX - 8, buttonY + 30)
 
-  const footerGradient = context.createLinearGradient(cardX, cardY + cardHeight - 10, cardX + cardWidth, cardY + cardHeight - 10)
+  context.strokeStyle = '#ffffff'
+  context.lineWidth = 2.5
+  context.lineCap = 'round'
+  context.lineJoin = 'round'
+  context.beginPath()
+  context.moveTo(centerX + 48, buttonY + 24)
+  context.lineTo(centerX + 59, buttonY + 24)
+  context.moveTo(centerX + 55, buttonY + 19)
+  context.lineTo(centerX + 60, buttonY + 24)
+  context.lineTo(centerX + 55, buttonY + 29)
+  context.stroke()
+
+  const footerGradient = context.createLinearGradient(0, cardHeight - 10, cardWidth, cardHeight - 10)
   footerGradient.addColorStop(0, '#3534cd')
-  footerGradient.addColorStop(1, '#00bfcf')
+  footerGradient.addColorStop(1, '#00c6d7')
   context.fillStyle = footerGradient
-  context.fillRect(cardX, cardY + cardHeight - 10, cardWidth, 10)
+  context.fillRect(0, cardHeight - 10, cardWidth, 10)
   context.restore()
 
   return new Promise((resolve, reject) => {
@@ -633,14 +669,41 @@ export default function ExpertDetail() {
             _id,
             title,
             "slug": slug.current,
+            excerpt,
+            type,
+            publishedAt,
+            _updatedAt,
+            readTime,
+            "contentKind": "written",
             "imageUrl": mainImage.asset->url,
             capability->{
               title,
               "slug": slug.current
             }
           }`
-          const insightsData = await mentorClient.fetch(insightsQuery, { expertId: data._id })
-          setRelatedInsights(insightsData || [])
+          const videosQuery = `*[_type == "youtubeVideos" && $expertId in experts[]._ref] | order(publishedAt desc, _updatedAt desc) {
+            _id,
+            title,
+            youtubeUrl,
+            "excerpt": description,
+            "type": "video",
+            publishedAt,
+            _updatedAt,
+            "readTime": duration,
+            "contentKind": "video",
+            "imageUrl": thumbnail.asset->url,
+            capability->{
+              title,
+              "slug": slug.current
+            }
+          }`
+          const [insightsData, videosData] = await Promise.all([
+            mentorClient.fetch(insightsQuery, { expertId: data._id }),
+            mentorClient.fetch(videosQuery, { expertId: data._id }),
+          ])
+          const allInsights = [...(insightsData || []), ...(videosData || [])]
+            .sort((a, b) => new Date(b.publishedAt || b._updatedAt || 0) - new Date(a.publishedAt || a._updatedAt || 0))
+          setRelatedInsights(allInsights)
         } else {
           setRelatedInsights([])
         }
@@ -1125,12 +1188,10 @@ export default function ExpertDetail() {
                   ))}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {relatedInsights.map((insight) => (
-                    <Link
-                      key={insight._id}
-                      to={`/insights/${insight.slug || insight._id}`}
-                      className="group overflow-hidden rounded-lg border border-gray-200 bg-white transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-900/10"
-                    >
+                  {relatedInsights.map((insight) => {
+                    const cardClassName = 'group overflow-hidden rounded-lg border border-gray-200 bg-white transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-900/10'
+                    const cardContent = (
+                      <>
                       <div className="flex aspect-[16/9] items-center justify-center bg-gradient-to-br from-primary-700 to-cyan-500 text-white">
                         {insight.imageUrl ? (
                           <img
@@ -1139,19 +1200,32 @@ export default function ExpertDetail() {
                             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                           />
                         ) : (
-                          <FileText className="h-10 w-10 text-white/80" />
+                          insight.contentKind === 'video'
+                            ? <PlayCircle className="h-10 w-10 text-white/80" />
+                            : <FileText className="h-10 w-10 text-white/80" />
                         )}
                       </div>
                       <div className="p-4">
-                        {insight.capability?.title && (
-                          <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-primary-600">{insight.capability.title}</p>
-                        )}
+                        <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-primary-600">
+                          {insight.capability?.title || (insight.contentKind === 'video' ? 'Video' : insight.type || 'Insight')}
+                        </p>
                         <h3 className="line-clamp-2 font-semibold leading-6 text-gray-950 transition group-hover:text-primary-600">
                           {insight.title}
                         </h3>
                       </div>
-                    </Link>
-                  ))}
+                      </>
+                    )
+
+                    return insight.contentKind === 'video' ? (
+                      <a key={insight._id} href={insight.youtubeUrl} target="_blank" rel="noreferrer" className={cardClassName}>
+                        {cardContent}
+                      </a>
+                    ) : (
+                      <Link key={insight._id} to={`/insights/${insight.slug || insight._id}`} className={cardClassName}>
+                        {cardContent}
+                      </Link>
+                    )
+                  })}
                 </div>
               </Section>
             )}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,6 +17,7 @@ import {
   Loader2,
   MapPin,
   Quote,
+  Share2,
   Sparkles,
   Users,
   UsersRound,
@@ -42,6 +43,247 @@ function formatTime(value) {
   return new Date(value).toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
+  })
+}
+
+function formatCurrencyAmount(value, currency) {
+  const amount = Number(value)
+  if (!Number.isFinite(amount)) return ''
+
+  try {
+    return new Intl.NumberFormat('en', {
+      style: 'currency',
+      currency: currency || 'INR',
+      maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    }).format(amount)
+  } catch {
+    return `${currency || ''} ${amount.toLocaleString('en')}`.trim()
+  }
+}
+
+function getDiscountedPrice(option) {
+  const price = Number(option?.price)
+  const discountValue = Number(option?.discountValue)
+
+  if (!Number.isFinite(price)) return null
+  if (!Number.isFinite(discountValue) || option.discountType === 'none') return price
+
+  if (option.discountType === 'percentage') {
+    return Math.max(price - (price * discountValue / 100), 0)
+  }
+
+  if (option.discountType === 'fixed') {
+    return Math.max(price - discountValue, 0)
+  }
+
+  return price
+}
+
+function ProgramPricing({ program, light = false }) {
+  const pricingOptions = (program.pricingOptions || []).filter((option) => (
+    option?.currency && Number.isFinite(Number(option.price))
+  ))
+
+  if (program.pricingType === 'free') {
+    return <p className={`font-black ${light ? 'text-white' : 'text-primary-700'}`}>Free</p>
+  }
+
+  if (program.pricingType === 'contact') {
+    return <p className={`font-black ${light ? 'text-white' : 'text-primary-700'}`}>Contact us for pricing</p>
+  }
+
+  if (program.pricingType === 'invite-only') {
+    return <p className={`font-black ${light ? 'text-white' : 'text-primary-700'}`}>Invite-only</p>
+  }
+
+  if (!pricingOptions.length) {
+    return program.price
+      ? <p className={`font-black ${light ? 'text-white' : 'text-primary-700'}`}>{program.price}</p>
+      : null
+  }
+
+  return (
+    <div className="flex flex-wrap gap-3">
+      {pricingOptions.map((option, index) => {
+        const discountedPrice = getDiscountedPrice(option)
+        const hasDiscount = discountedPrice !== Number(option.price)
+        const discountLabel = option.discountType === 'percentage'
+          ? `${option.discountValue}% off`
+          : option.discountType === 'fixed'
+            ? `${formatCurrencyAmount(option.discountValue, option.currency)} off`
+            : ''
+
+        return (
+          <div
+            key={`${option.currency}-${index}`}
+            className={`rounded-xl px-4 py-3 ${
+              light
+                ? 'border border-white/25 bg-white/10 text-white backdrop-blur-sm'
+                : 'border border-primary-100 bg-primary-50 text-gray-950'
+            }`}
+          >
+            {option.label && <p className={`mb-1 text-xs font-bold uppercase tracking-wide ${light ? 'text-cyan-100' : 'text-primary-600'}`}>{option.label}</p>}
+            <div className="flex flex-wrap items-baseline gap-2">
+              <span className="text-xl font-black">{formatCurrencyAmount(discountedPrice, option.currency)}</span>
+              <span className={`text-xs font-extrabold uppercase ${light ? 'text-cyan-100' : 'text-primary-600'}`}>{option.currency}</span>
+              {hasDiscount && (
+                <span className={`text-sm font-semibold line-through ${light ? 'text-white/60' : 'text-gray-400'}`}>
+                  {formatCurrencyAmount(option.price, option.currency)}
+                </span>
+              )}
+            </div>
+            {hasDiscount && <p className={`mt-1 text-xs font-bold ${light ? 'text-cyan-100' : 'text-emerald-700'}`}>{discountLabel}</p>}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function loadShareImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.crossOrigin = 'anonymous'
+    image.onload = () => resolve(image)
+    image.onerror = reject
+    image.src = src
+  })
+}
+
+function roundedCanvasRect(context, x, y, width, height, radius) {
+  context.beginPath()
+  context.roundRect(x, y, width, height, radius)
+  context.closePath()
+}
+
+function drawImageContain(context, image, x, y, width, height) {
+  const scale = Math.min(width / image.width, height / image.height)
+  const drawWidth = image.width * scale
+  const drawHeight = image.height * scale
+  context.drawImage(
+    image,
+    x + ((width - drawWidth) / 2),
+    y + ((height - drawHeight) / 2),
+    drawWidth,
+    drawHeight
+  )
+}
+
+function drawWrappedText(context, text, x, y, maxWidth, lineHeight, maxLines) {
+  const words = String(text || '').split(/\s+/).filter(Boolean)
+  const lines = []
+  let line = ''
+
+  words.forEach((word) => {
+    const candidate = line ? `${line} ${word}` : word
+    if (context.measureText(candidate).width > maxWidth && line) {
+      lines.push(line)
+      line = word
+    } else {
+      line = candidate
+    }
+  })
+  if (line) lines.push(line)
+
+  lines.slice(0, maxLines).forEach((lineText, index) => {
+    const shouldTruncate = index === maxLines - 1 && lines.length > maxLines
+    context.fillText(shouldTruncate ? `${lineText}...` : lineText, x, y + (index * lineHeight))
+  })
+}
+
+async function createProgramShareCard(program) {
+  await document.fonts?.ready
+
+  const canvas = document.createElement('canvas')
+  canvas.width = 420
+  canvas.height = 544
+  const context = canvas.getContext('2d')
+  const fontFamily = '"Quicksand", Arial, sans-serif'
+
+  roundedCanvasRect(context, 0, 0, canvas.width, canvas.height, 24)
+  context.save()
+  context.clip()
+
+  const background = context.createLinearGradient(0, 0, canvas.width, canvas.height)
+  background.addColorStop(0, '#000047')
+  background.addColorStop(0.58, '#3534cd')
+  background.addColorStop(1, '#00bfcf')
+  context.fillStyle = background
+  context.fillRect(0, 0, canvas.width, canvas.height)
+
+  if (program.heroImageUrl) {
+    try {
+      const heroImage = await loadShareImage(program.heroImageUrl)
+      drawImageContain(context, heroImage, 0, 0, canvas.width, canvas.height)
+    } catch (imageError) {
+      console.warn('Program share artwork could not be loaded:', imageError)
+    }
+  }
+
+  const overlay = context.createLinearGradient(0, 0, 0, canvas.height)
+  overlay.addColorStop(0, 'rgba(0,0,0,0.15)')
+  overlay.addColorStop(0.55, 'rgba(0,0,0,0)')
+  overlay.addColorStop(1, 'rgba(0,0,0,0.38)')
+  context.fillStyle = overlay
+  context.fillRect(0, 0, canvas.width, canvas.height)
+
+  try {
+    const logo = await loadShareImage('/favicon.png')
+    context.drawImage(logo, canvas.width - 68, 20, 48, 48)
+  } catch {
+    // The card remains usable if the local logo cannot be loaded.
+  }
+
+  const typeLabel = formatLabel(program.programType)
+  context.font = `800 15px ${fontFamily}`
+  const badgeWidth = Math.min(context.measureText(typeLabel.toUpperCase()).width + 52, 280)
+  roundedCanvasRect(context, 20, 20, badgeWidth, 54, 27)
+  context.fillStyle = 'rgba(3,7,18,0.68)'
+  context.fill()
+  context.strokeStyle = '#ffffff'
+  context.lineWidth = 1.5
+  context.stroke()
+  context.fillStyle = '#ffffff'
+  context.textAlign = 'center'
+  context.fillText(typeLabel.toUpperCase(), 20 + (badgeWidth / 2), 53)
+
+  const panelX = 20
+  const panelY = canvas.height - 190
+  const panelWidth = canvas.width - 40
+  const panelHeight = 166
+  roundedCanvasRect(context, panelX, panelY, panelWidth, panelHeight, 24)
+  context.fillStyle = 'rgba(243,244,246,0.78)'
+  context.fill()
+
+  context.textAlign = 'left'
+  context.fillStyle = '#030712'
+  context.font = `600 25px ${fontFamily}`
+  drawWrappedText(context, program.title, panelX + 24, panelY + 42, panelWidth - 48, 34, 3)
+
+  const metadata = [
+    program.duration,
+    program.startDate && formatDate(program.startDate),
+    program.startDate && formatTime(program.startDate),
+  ].filter(Boolean).join(' | ')
+
+  if (metadata) {
+    context.fillStyle = '#374151'
+    context.font = `800 14px ${fontFamily}`
+    context.fillText(metadata.toUpperCase(), panelX + 24, panelY + panelHeight - 25)
+  }
+
+  const footerGradient = context.createLinearGradient(0, canvas.height - 8, canvas.width, canvas.height - 8)
+  footerGradient.addColorStop(0, '#3534cd')
+  footerGradient.addColorStop(1, '#00ffff')
+  context.fillStyle = footerGradient
+  context.fillRect(0, canvas.height - 8, canvas.width, 8)
+  context.restore()
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob)
+      else reject(new Error('Unable to create the Program share card.'))
+    }, 'image/png')
   })
 }
 
@@ -111,24 +353,71 @@ function RichText({ blocks = [] }) {
   )
 }
 
-function ProgramMeta({ program }) {
+function ProgramMeta({ program, onShare, shareStatus }) {
   const metaItems = [
     program.programType && { icon: GraduationCap, label: formatLabel(program.programType) },
     program.deliveryMode && { icon: Laptop, label: formatLabel(program.deliveryMode) },
     program.startDate && { icon: CalendarDays, label: formatDate(program.startDate) },
     program.duration && { icon: Clock, label: program.duration },
+    onShare && { icon: Share2, label: shareStatus || 'Share', action: onShare },
     program.location && { icon: MapPin, label: program.location },
     program.seats ? { icon: Users, label: `${program.seats} seats` } : null,
   ].filter(Boolean)
 
   return (
     <div className="flex flex-wrap gap-2">
-      {metaItems.map((item) => (
+      {metaItems.map((item) => item.action ? (
+        <button
+          key="share-program"
+          type="button"
+          onClick={item.action}
+          className="inline-flex items-center rounded-full bg-white/12 px-3 py-1.5 text-sm font-bold text-white ring-1 ring-white/15 transition hover:bg-white hover:text-primary-700"
+          aria-label="Share session"
+          title="Share session"
+        >
+          <item.icon className="mr-1.5 h-4 w-4" />
+          {item.label}
+        </button>
+      ) : (
         <span key={`${item.label}-${item.icon.displayName || item.icon.name}`} className="inline-flex items-center rounded-full bg-white/12 px-3 py-1.5 text-sm font-bold text-white ring-1 ring-white/15">
           <item.icon className="mr-1.5 h-4 w-4" />
           {item.label}
         </span>
       ))}
+    </div>
+  )
+}
+
+function ProgramExperts({ mentors = [] }) {
+  if (!mentors.length) return null
+
+  return (
+    <div className="mt-7 grid max-w-3xl gap-3 sm:grid-cols-2">
+      {mentors.map((mentor) => {
+        const headline = mentor.headline || mentor.currentDesignation || mentor.designation || 'Expert Mentor'
+
+        return (
+          <Link
+            key={mentor._id}
+            to={`/experts/${mentor.slug || mentor._id}`}
+            className="group flex min-w-0 items-center gap-3 rounded-2xl border border-white/20 bg-white/10 p-3 text-left backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-white/15"
+          >
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15 text-sm font-black text-white ring-1 ring-white/25">
+              {mentor.imageUrl ? (
+                <img src={mentor.imageUrl} alt={mentor.fullName} className="h-full w-full object-cover object-center" />
+              ) : (
+                <span>{mentor.fullName?.split(' ').filter(Boolean).map((name) => name[0]).join('').slice(0, 2).toUpperCase()}</span>
+              )}
+            </div>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[10px] font-extrabold uppercase tracking-[0.14em] text-cyan-200">Expert</span>
+              <span className="mt-0.5 block truncate text-sm font-bold text-white">{mentor.fullName}</span>
+              <span className="mt-0.5 block line-clamp-2 text-xs font-medium leading-5 text-cyan-50/85">{headline}</span>
+            </span>
+            <ArrowRight className="h-4 w-4 shrink-0 text-cyan-200 transition group-hover:translate-x-0.5" />
+          </Link>
+        )
+      })}
     </div>
   )
 }
@@ -558,7 +847,11 @@ function ProgramSection({ section }) {
 function ProgramCard({ program }) {
   return (
     <article className="group h-[34rem] overflow-hidden rounded-[1.5rem] bg-white shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/12">
-      <Link to={`/programs/${program.slug || program._id}`} className="block h-full">
+      <Link
+        to={`/programs/${program.slug || program._id}`}
+        state={{ backTo: '/programs', backLabel: 'Back to Programs' }}
+        className="block h-full"
+      >
         <div className="relative h-full overflow-hidden bg-gradient-to-br from-[#000047] via-primary-700 to-cyan-500">
           {program.heroImageUrl ? (
             <img src={program.heroImageUrl} alt={program.heroImageAlt || program.title} className="absolute inset-0 h-full w-full object-contain transition duration-500 group-hover:scale-[1.02]" />
@@ -623,10 +916,12 @@ function ProgramGroup({ title, description, programs, emptyMessage, separated = 
 
 export default function Programs() {
   const { slug } = useParams()
+  const location = useLocation()
   const [programs, setPrograms] = useState([])
   const [program, setProgram] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [shareStatus, setShareStatus] = useState('')
 
   useEffect(() => {
     let isMounted = true
@@ -650,6 +945,15 @@ export default function Programs() {
           location,
           onlineLink,
           registrationUrl,
+          pricingType,
+          pricingOptions[]{
+            _key,
+            currency,
+            price,
+            discountType,
+            discountValue,
+            label
+          },
           price,
           seats,
           featured,
@@ -661,7 +965,8 @@ export default function Programs() {
             "slug": slug.current,
             "imageUrl": profileImage.asset->url,
             headline,
-            currentDesignation
+            currentDesignation,
+            designation
           },
           capabilities[]->{
             _id,
@@ -788,7 +1093,58 @@ export default function Programs() {
   }
 
   if (program) {
-    const mentorNames = program.mentors?.map(mentor => mentor.fullName).filter(Boolean).join(', ')
+    const backTo = location.state?.backTo || '/programs'
+    const backLabel = location.state?.backLabel || 'Back to Programs'
+    const hasPricing = Boolean(
+      program.price ||
+      program.pricingOptions?.length ||
+      ['free', 'contact', 'invite-only'].includes(program.pricingType)
+    )
+    const handleShareProgram = async () => {
+      const programUrl = new URL(`/programs/${program.slug || program._id}`, window.location.origin).href
+      const shareData = {
+        title: `${program.title} | Magnafic`,
+        text: program.shortDescription || `Explore ${program.title}, a Magnafic expert-led session.`,
+        url: programUrl,
+      }
+
+      try {
+        if (navigator.share) {
+          try {
+            const shareCard = await createProgramShareCard(program)
+            const shareFile = new File(
+              [shareCard],
+              `${program.slug || program._id || 'magnafic-program'}-share.png`,
+              { type: 'image/png' }
+            )
+            const fileShareData = { ...shareData, files: [shareFile] }
+
+            if (!navigator.canShare || navigator.canShare(fileShareData)) {
+              await navigator.share(fileShareData)
+              setShareStatus('Shared')
+              return
+            }
+          } catch (shareImageError) {
+            if (shareImageError?.name === 'AbortError') return
+            console.warn('Program share card could not be attached:', shareImageError)
+          }
+
+          await navigator.share(shareData)
+          setShareStatus('Shared')
+          return
+        }
+
+        await navigator.clipboard.writeText(programUrl)
+        setShareStatus('Link copied')
+      } catch (shareError) {
+        if (shareError?.name !== 'AbortError') {
+          console.error('Program share failed:', shareError)
+          setShareStatus('Could not share')
+        }
+      } finally {
+        window.setTimeout(() => setShareStatus(''), 2400)
+      }
+    }
 
     return (
       <div className="min-h-screen bg-[#f7f9ff]">
@@ -804,17 +1160,17 @@ export default function Programs() {
           )}
           <div className="absolute inset-0 bg-gradient-to-br from-[#000047] via-[#000047]/85 to-cyan-700/70"></div>
           <div className="relative mx-auto max-w-6xl">
-            <Link to="/programs" className="mb-8 inline-flex items-center text-sm font-bold text-cyan-100 transition hover:text-white">
+            <Link to={backTo} className="mb-8 inline-flex items-center text-sm font-bold text-cyan-100 transition hover:text-white">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Programs
+              {backLabel}
             </Link>
             <div className="max-w-4xl">
               <p className="mb-4 text-sm font-black uppercase tracking-[0.22em] text-cyan-200">{formatLabel(program.programType)}</p>
               <h1 className="text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">{program.title}</h1>
               {program.shortDescription && <p className="mt-6 max-w-3xl text-lg leading-8 text-cyan-50">{program.shortDescription}</p>}
-              {mentorNames && <p className="mt-5 text-base font-bold text-white">By {mentorNames}</p>}
+              <ProgramExperts mentors={program.mentors} />
               <div className="mt-6">
-                <ProgramMeta program={program} />
+                <ProgramMeta program={program} onShare={handleShareProgram} shareStatus={shareStatus} />
               </div>
               {(program.registrationUrl || program.onlineLink) && (
                 <a href={program.registrationUrl || program.onlineLink} className="mt-8 inline-flex items-center rounded-full bg-white px-6 py-3 font-bold text-primary-700 shadow-xl shadow-black/10 transition hover:bg-cyan-50">
@@ -831,7 +1187,6 @@ export default function Programs() {
             <section className="rounded-3xl bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100">
               <h2 className="text-xl font-bold text-gray-950">Program Snapshot</h2>
               <div className="mt-5 grid gap-3 text-sm font-semibold text-gray-700 sm:grid-cols-2 lg:grid-cols-3">
-                {program.price && <p><span className="text-gray-400">Price:</span> {program.price}</p>}
                 {program.duration && <p><span className="text-gray-400">Duration:</span> {program.duration}</p>}
                 {program.deliveryMode && <p><span className="text-gray-400">Mode:</span> {formatLabel(program.deliveryMode)}</p>}
                 {program.startDate && <p><span className="text-gray-400">Starts:</span> {formatDate(program.startDate)}</p>}
@@ -866,6 +1221,31 @@ export default function Programs() {
             </section>
           )}
         </main>
+
+        {hasPricing && (
+          <section className="px-4 pb-14 pt-8 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl bg-white shadow-xl shadow-primary-900/5 ring-1 ring-primary-100">
+              <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-primary-600">Program Price</p>
+                  <div className="mt-4">
+                    <ProgramPricing program={program} />
+                  </div>
+                </div>
+                {(program.registrationUrl || program.onlineLink) && (
+                  <a
+                    href={program.registrationUrl || program.onlineLink}
+                    className="inline-flex w-full items-center justify-center rounded-full bg-gradient-primary px-7 py-4 font-extrabold text-white shadow-xl shadow-primary-900/20 transition hover:-translate-y-0.5 hover:shadow-glow-combined lg:w-auto"
+                  >
+                    Register Now
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </a>
+                )}
+              </div>
+              <div className="h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400" />
+            </div>
+          </section>
+        )}
       </div>
     )
   }

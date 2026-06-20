@@ -1,4 +1,4 @@
-import { FileText, Lightbulb, Briefcase, Calendar, Clock, Share2, Facebook, Linkedin, Twitter, PlayCircle, Mail, Bell, ChevronLeft, ChevronRight } from 'lucide-react'
+import { FileText, Lightbulb, Briefcase, Calendar, Clock, Share2, Facebook, Linkedin, Twitter, PlayCircle, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { mentorClient } from '../lib/sanityClient'
@@ -323,8 +323,8 @@ export default function Insights() {
           <section className="mb-10 overflow-hidden rounded-3xl bg-primary-900 shadow-2xl shadow-primary-900/10">
             <div className="grid gap-6 p-6 text-white sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.75fr)] lg:items-center">
               <div>
-                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-300/20 text-cyan-100 ring-1 ring-cyan-200/30">
-                  <Bell className="h-6 w-6" />
+                <div className="mx-auto mb-4 h-14 w-14 overflow-hidden rounded-xl shadow-md ring-1 ring-white/20 sm:mx-0">
+                  <img src="/favicon.png" alt="Magnafic" className="h-full w-full object-cover" />
                 </div>
                 <h2 className="text-2xl font-bold sm:text-3xl">Get new insights in your inbox</h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-cyan-50/80 sm:text-base">

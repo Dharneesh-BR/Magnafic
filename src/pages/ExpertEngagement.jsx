@@ -4,15 +4,16 @@ import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
+  Award,
   CalendarDays,
   CheckCircle2,
-  Clock,
   FileText,
   GraduationCap,
   Loader2,
   Mail,
   MessageSquareQuote,
   Phone,
+  PlayCircle,
   UserRound,
 } from 'lucide-react'
 import MagnaLoader from '../components/MagnaLoader'
@@ -32,6 +33,14 @@ function formatDate(value) {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+  })
+}
+
+function formatTime(value) {
+  if (!value) return ''
+  return new Date(value).toLocaleTimeString('en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
   })
 }
 
@@ -79,31 +88,48 @@ export default function ExpertEngagement() {
 
         if (!expertData) throw new Error('Expert not found.')
 
-        const [programData, insightData] = await Promise.all([
+        const [programData, insightData, videoData] = await Promise.all([
           mentorClient.fetch(
             `*[_type == "programs" && status == "published" && $expertId in mentors[]._ref] | order(featured desc, startDate desc) {
               _id,
               title,
               "slug": slug.current,
               programType,
-              shortDescription,
               startDate,
               duration,
               deliveryMode,
-              "heroImageUrl": heroImage.asset->url
+              "heroImageUrl": heroImage.asset->url,
+              "heroImageAlt": heroImage.alt
             }`,
             { expertId: expertData._id }
           ),
           mentorClient.fetch(
-            `*[_type == "blog" && status == "published" && $expertId in experts[]._ref] | order(publishedAt desc, _updatedAt desc) {
+            `*[_type == "blog" && status != "archived" && $expertId in experts[]._ref] | order(publishedAt desc, _updatedAt desc) {
               _id,
               title,
               "slug": slug.current,
               excerpt,
               type,
               publishedAt,
+              _updatedAt,
               readTime,
+              "contentKind": "written",
               "imageUrl": mainImage.asset->url
+            }`,
+            { expertId: expertData._id }
+          ),
+          mentorClient.fetch(
+            `*[_type == "youtubeVideos" && $expertId in experts[]._ref] | order(publishedAt desc, _updatedAt desc) {
+              _id,
+              title,
+              youtubeUrl,
+              "excerpt": description,
+              "type": "video",
+              publishedAt,
+              _updatedAt,
+              "readTime": duration,
+              "contentKind": "video",
+              "imageUrl": thumbnail.asset->url
             }`,
             { expertId: expertData._id }
           ),
@@ -112,7 +138,8 @@ export default function ExpertEngagement() {
         if (!mounted) return
         setExpert(expertData)
         setPrograms(programData || [])
-        setInsights(insightData || [])
+        setInsights([...(insightData || []), ...(videoData || [])]
+          .sort((a, b) => new Date(b.publishedAt || b._updatedAt || 0) - new Date(a.publishedAt || a._updatedAt || 0)))
       } catch (loadError) {
         console.error('Expert engagement page failed:', loadError)
         if (mounted) setError(loadError.message || 'Unable to load this expert page.')
@@ -189,7 +216,7 @@ export default function ExpertEngagement() {
 
         <div className="py-10">
           {activeSection === 'call' && <ExpertCallRequest expert={expert} />}
-          {activeSection === 'programs' && <ExpertPrograms programs={programs} testimonials={expert.recommendations || []} />}
+          {activeSection === 'programs' && <ExpertPrograms expert={expert} programs={programs} testimonials={expert.recommendations || []} />}
           {activeSection === 'insights' && <ExpertInsights insights={insights} />}
 
           <div className="mt-10 flex justify-center">
@@ -333,26 +360,57 @@ function ExpertCallRequest({ expert }) {
   )
 }
 
-function ExpertPrograms({ programs, testimonials }) {
+function ExpertPrograms({ expert, programs, testimonials }) {
+  const expertPath = expert.slug || expert._id
+
   return (
     <div className="space-y-10">
       {programs.length ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {programs.map((program) => (
-            <Link key={program._id} to={`/programs/${program.slug || program._id}`} className="group overflow-hidden rounded-lg bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1">
-              <div className="aspect-[16/10] bg-[#000047]">
-                {program.heroImageUrl ? <img src={program.heroImageUrl} alt={program.title} className="h-full w-full object-cover" /> : <GraduationCap className="mx-auto h-full w-14 text-white/70" />}
-              </div>
-              <div className="p-5">
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-primary-600">{formatProgramType(program.programType)}</p>
-                <h2 className="mt-2 text-xl font-black text-gray-950">{program.title}</h2>
-                <p className="mt-3 line-clamp-3 leading-7 text-gray-600">{program.shortDescription}</p>
-                <div className="mt-4 flex flex-wrap gap-3 text-sm font-bold text-gray-500">
-                  {program.startDate && <span className="inline-flex items-center"><CalendarDays className="mr-1.5 h-4 w-4" />{formatDate(program.startDate)}</span>}
-                  {program.duration && <span className="inline-flex items-center"><Clock className="mr-1.5 h-4 w-4" />{program.duration}</span>}
+            <article key={program._id} className="group relative h-[34rem] overflow-hidden rounded-[1.5rem] bg-white shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/12">
+              <Link
+                to={`/programs/${program.slug || program._id}`}
+                state={{
+                  backTo: `/experts/${expertPath}/programs`,
+                  backLabel: `Back to ${expert.fullName}'s Sessions`,
+                }}
+                className="absolute inset-0 z-10"
+                aria-label={`View ${program.title}`}
+              />
+              <div className="relative h-full overflow-hidden bg-gradient-to-br from-[#000047] via-primary-700 to-cyan-500">
+                {program.heroImageUrl ? (
+                  <img
+                    src={program.heroImageUrl}
+                    alt={program.heroImageAlt || program.title}
+                    className="absolute inset-0 h-full w-full object-contain transition duration-500 group-hover:scale-[1.02]"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Award className="h-16 w-16 text-white/80" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/0 to-black/35" />
+                <div className="absolute right-5 top-5 h-12 w-12">
+                  <img src="/favicon.png" alt="" className="h-full w-full object-contain" />
+                </div>
+                <div className="absolute left-5 right-20 top-5">
+                  <span className="inline-flex max-w-full items-center justify-center rounded-[1.35rem] border border-white bg-gray-950/65 px-6 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-black/20 backdrop-blur-sm">
+                    <span className="truncate">{formatProgramType(program.programType)}</span>
+                  </span>
+                </div>
+                <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-gray-100/70 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-sm">
+                  <h2 className="text-xl font-semibold leading-snug text-gray-950">
+                    {program.title}
+                  </h2>
+                  {(program.duration || program.startDate) && (
+                    <p className="mt-4 truncate text-xs font-bold uppercase tracking-[0.12em] text-gray-700">
+                      {[program.duration, program.startDate && formatDate(program.startDate), program.startDate && formatTime(program.startDate)].filter(Boolean).join(' | ')}
+                    </p>
+                  )}
                 </div>
               </div>
-            </Link>
+            </article>
           ))}
         </div>
       ) : (
@@ -368,28 +426,28 @@ function ExpertTestimonials({ testimonials = [] }) {
   if (!items.length) return null
 
   return (
-    <section>
-      <div className="mb-6 text-center">
+    <section className="min-w-0 overflow-hidden">
+      <div className="mb-5 px-2 text-center sm:mb-6">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-primary-600">Testimonials</p>
-        <h2 className="mt-2 text-2xl font-black text-[#000047] sm:text-3xl">What people say about this expert</h2>
+        <h2 className="mt-2 break-words text-xl font-black leading-tight text-[#000047] sm:text-3xl">What people say about this expert</h2>
       </div>
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid min-w-0 gap-4 md:grid-cols-2 md:gap-5">
         {items.map((item, index) => (
-          <article key={`${item.name || 'testimonial'}-${index}`} className="rounded-lg bg-white p-5 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
-            <MessageSquareQuote className="h-7 w-7 text-primary-500" />
-            <p className="mt-4 text-sm leading-7 text-gray-700 sm:text-base">{item.testimonial}</p>
-            <div className="mt-5 flex items-center gap-3 border-t border-gray-100 pt-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-primary-700">
+          <article key={`${item.name || 'testimonial'}-${index}`} className="min-w-0 overflow-hidden rounded-lg bg-white p-4 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
+            <MessageSquareQuote className="h-6 w-6 text-primary-500 sm:h-7 sm:w-7" />
+            <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-gray-700 sm:mt-4 sm:text-base sm:leading-7">{item.testimonial}</p>
+            <div className="mt-4 flex min-w-0 items-start gap-3 border-t border-gray-100 pt-4 sm:mt-5 sm:items-center">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-primary-700 sm:h-11 sm:w-11">
                 {item.profileImageUrl ? (
                   <img src={item.profileImageUrl} alt={item.name || 'Testimonial author'} className="h-full w-full object-cover" />
                 ) : (
                   <UserRound className="h-5 w-5" />
                 )}
               </div>
-              <div className="min-w-0">
-                <h3 className="truncate font-extrabold text-gray-950">{item.name || 'Client'}</h3>
-                <p className="truncate text-sm text-gray-600">{[item.designation, item.company].filter(Boolean).join(' | ')}</p>
-                {item.relationship && <p className="mt-1 text-xs font-bold uppercase tracking-wide text-primary-600">{item.relationship}</p>}
+              <div className="min-w-0 flex-1">
+                <h3 className="break-words font-extrabold leading-5 text-gray-950">{item.name || 'Client'}</h3>
+                <p className="mt-0.5 break-words text-sm leading-5 text-gray-600">{[item.designation, item.company].filter(Boolean).join(' | ')}</p>
+                {item.relationship && <p className="mt-1 break-words text-[11px] font-bold uppercase leading-4 tracking-wide text-primary-600 sm:text-xs">{item.relationship}</p>}
               </div>
             </div>
           </article>
@@ -404,10 +462,18 @@ function ExpertInsights({ insights }) {
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {insights.map((insight) => (
-        <Link key={insight._id} to={`/insights/${insight.slug || insight._id}`} className="group overflow-hidden rounded-lg bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1">
+      {insights.map((insight) => {
+        const cardClassName = 'group overflow-hidden rounded-lg bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1'
+        const cardContent = (
+          <>
           <div className="aspect-[16/10] bg-gradient-to-br from-primary-700 to-cyan-500">
-            {insight.imageUrl ? <img src={insight.imageUrl} alt={insight.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <FileText className="mx-auto h-full w-14 text-white/70" />}
+            {insight.imageUrl ? (
+              <img src={insight.imageUrl} alt={insight.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+            ) : insight.contentKind === 'video' ? (
+              <PlayCircle className="mx-auto h-full w-14 text-white/70" />
+            ) : (
+              <FileText className="mx-auto h-full w-14 text-white/70" />
+            )}
           </div>
           <div className="p-5">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-primary-600">{formatProgramType(insight.type || 'insight')}</p>
@@ -415,8 +481,19 @@ function ExpertInsights({ insights }) {
             <p className="mt-3 line-clamp-3 leading-7 text-gray-600">{insight.excerpt}</p>
             <p className="mt-4 text-sm font-bold text-gray-500">{[formatDate(insight.publishedAt), insight.readTime].filter(Boolean).join(' | ')}</p>
           </div>
-        </Link>
-      ))}
+          </>
+        )
+
+        return insight.contentKind === 'video' ? (
+          <a key={insight._id} href={insight.youtubeUrl} target="_blank" rel="noreferrer" className={cardClassName}>
+            {cardContent}
+          </a>
+        ) : (
+          <Link key={insight._id} to={`/insights/${insight.slug || insight._id}`} className={cardClassName}>
+            {cardContent}
+          </Link>
+        )
+      })}
     </div>
   )
 }

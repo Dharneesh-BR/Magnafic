@@ -5,11 +5,18 @@ import {
   Bot,
   BrainCircuit,
   BriefcaseBusiness,
+  CalendarDays,
   ChevronDown,
+  Crown,
   Globe2,
+  Home,
+  Info,
+  LayoutDashboard,
   Lightbulb,
+  LogOut,
   Menu,
   Network,
+  Newspaper,
   ShoppingBag,
   ShoppingCart,
   Sparkles,
@@ -17,6 +24,7 @@ import {
   TrendingUp,
   User,
   UserCircle,
+  Users,
   X,
 } from 'lucide-react'
 import { clearAuthUser, getAuthUser } from '../lib/auth'
@@ -46,6 +54,7 @@ export default function Header() {
   const navigate = useNavigate()
   const location = useLocation()
   const showHomeLink = location.pathname !== '/'
+  const hasDashboardAccess = authUser?.role === 'consultant' || authUser?.role === 'admin' || authUser?.isAdmin === true
 
   useEffect(() => {
     const syncAuth = () => setAuthUserState(getAuthUser())
@@ -120,7 +129,7 @@ export default function Header() {
             <img src="/Magnafic.png" alt="Mind Magna Logo" className="h-6 w-auto brightness-125 sm:h-7" />
           </Link>
 
-          {authUser ? (
+          {hasDashboardAccess ? (
             <Link
               to="/dashboard"
               className="justify-self-end p-2 text-[#000047] transition hover:text-primary-700 md:hidden"
@@ -128,6 +137,16 @@ export default function Header() {
             >
               <UserCircle className="h-7 w-7" />
             </Link>
+          ) : authUser ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="justify-self-end p-2 text-[#000047] transition hover:text-primary-700 md:hidden"
+              aria-label="Logout"
+              title="Logout"
+            >
+              <LogOut className="h-7 w-7" />
+            </button>
           ) : (
             <Link
               to="/login"
@@ -197,9 +216,17 @@ export default function Header() {
 
             {authUser ? (
               <>
-                <Link to="/dashboard" className="text-gray-900 hover:text-primary transition-colors font-medium">Dashboard</Link>
-                <button onClick={handleLogout} className="bg-gradient-primary text-white px-6 py-2 rounded-2xl hover:shadow-glow-combined transition-all hover:scale-105 font-semibold">
-                  Logout
+                {hasDashboardAccess && (
+                  <Link to="/dashboard" className="text-gray-900 hover:text-primary transition-colors font-medium">Dashboard</Link>
+                )}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  aria-label="Logout"
+                  title="Logout"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-primary text-white shadow-md shadow-primary-900/15 transition-all hover:scale-105 hover:shadow-glow-combined"
+                >
+                  <LogOut className="h-6 w-6" />
                 </button>
               </>
             ) : (
@@ -219,14 +246,20 @@ export default function Header() {
         {isMenuOpen && (
           <div className="space-y-3 border-t border-gray-100 bg-white py-4 md:hidden">
             {showHomeLink && (
-              <Link onClick={() => setIsMenuOpen(false)} to="/" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Home</Link>
+              <Link onClick={() => setIsMenuOpen(false)} to="/" className="flex items-center gap-3 rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">
+                <Home className="h-5 w-5 shrink-0 text-primary-600" />
+                <span>Home</span>
+              </Link>
             )}
             <div className="capabilities-dropdown">
               <button
                 onClick={() => setIsCapabilitiesOpen(!isCapabilitiesOpen)}
                 className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium"
               >
-                <span>Expert Services</span>
+                <span className="flex items-center gap-3">
+                  <BriefcaseBusiness className="h-5 w-5 shrink-0 text-primary-600" />
+                  <span>Expert Services</span>
+                </span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isCapabilitiesOpen ? 'rotate-180' : ''}`} />
               </button>
 
@@ -254,29 +287,46 @@ export default function Header() {
                 </div>
               )}
             </div>
-            <Link onClick={() => setIsMenuOpen(false)} to="/programs" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Programs</Link>
-            <Link onClick={() => setIsMenuOpen(false)} to="/insights" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Insights</Link>
-            <Link onClick={() => setIsMenuOpen(false)} to="/about" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">About</Link>
+            <Link onClick={() => setIsMenuOpen(false)} to="/programs" className="flex items-center gap-3 rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">
+              <CalendarDays className="h-5 w-5 shrink-0 text-primary-600" />
+              <span>Programs</span>
+            </Link>
+            <Link onClick={() => setIsMenuOpen(false)} to="/insights" className="flex items-center gap-3 rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">
+              <Newspaper className="h-5 w-5 shrink-0 text-primary-600" />
+              <span>Insights</span>
+            </Link>
+            <Link onClick={() => setIsMenuOpen(false)} to="/about" className="flex items-center gap-3 rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">
+              <Info className="h-5 w-5 shrink-0 text-primary-600" />
+              <span>About</span>
+            </Link>
             <Link
               onClick={() => setIsMenuOpen(false)}
               to="/founder-community"
-              className="block rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-center font-extrabold text-primary-700 shadow-sm"
+              className="flex items-center justify-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-center font-extrabold text-primary-700 shadow-sm"
             >
-              Join Founder Community
+              <Users className="h-5 w-5 shrink-0" />
+              <span>Join Founder Community</span>
             </Link>
             <Link
               onClick={() => setIsMenuOpen(false)}
               to="/join-experts-hub"
-              className="block rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-center font-extrabold text-primary-700 shadow-sm"
+              className="flex items-center justify-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-center font-extrabold text-primary-700 shadow-sm"
             >
-              Join Top 1% Expert Club
+              <Crown className="h-5 w-5 shrink-0" />
+              <span>Join Top 1% Expert Club</span>
             </Link>
 
             {authUser ? (
               <>
-                <Link onClick={() => setIsMenuOpen(false)} to="/dashboard" className="block rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">Dashboard</Link>
-                <button onClick={handleLogout} className="block w-full rounded-2xl bg-gradient-primary px-6 py-3 text-center font-semibold text-white hover:shadow-glow-combined">
-                  Logout
+                {hasDashboardAccess && (
+                  <Link onClick={() => setIsMenuOpen(false)} to="/dashboard" className="flex items-center gap-3 rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">
+                    <LayoutDashboard className="h-5 w-5 shrink-0 text-primary-600" />
+                    <span>Dashboard</span>
+                  </Link>
+                )}
+                <button onClick={handleLogout} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-primary px-6 py-3 text-center font-semibold text-white hover:shadow-glow-combined">
+                  <LogOut className="h-5 w-5 shrink-0" />
+                  <span>Logout</span>
                 </button>
               </>
             ) : null}

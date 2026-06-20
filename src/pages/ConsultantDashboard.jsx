@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertCircle, ArrowLeft, BadgeCheck, BriefcaseBusiness, CalendarPlus, CheckCircle2, CircleDollarSign, ClipboardList, Eye, FileText, FolderCheck, Handshake, KeyRound, Loader2, LogOut, MapPin, PanelLeftClose, PanelLeftOpen, Timer, UserPlus, Users } from 'lucide-react'
+import { AlertCircle, ArrowLeft, BadgeCheck, Bot, BriefcaseBusiness, CalendarPlus, CheckCircle2, CircleDollarSign, ClipboardList, Eye, FileText, FolderCheck, Handshake, KeyRound, Loader2, LogOut, MapPin, PanelLeftClose, PanelLeftOpen, Timer, UserPlus, Users } from 'lucide-react'
 import { addDoc, collection, doc, limit, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import SEO from '../components/SEO'
 import ConsultantDocuments from '../components/ConsultantDocuments'
+import ConsultantCopilot from '../components/ConsultantCopilot'
 import { clearAuthUser, getAuthUser, setAuthUser, updateCurrentUserPassword } from '../lib/auth'
 import { subscribeConsultantOpportunities } from '../lib/dashboard'
 import { db } from '../lib/firebase'
@@ -184,6 +185,7 @@ export default function ConsultantDashboard() {
 
   const menuItems = [
     { id: 'opportunities', label: 'Dashboard', icon: BriefcaseBusiness },
+    { id: 'copilot', label: 'Magnafic Copilot', icon: Bot },
     { id: 'mou', label: 'Documents', icon: FileText },
   ]
 
@@ -479,6 +481,12 @@ export default function ConsultantDashboard() {
     navigate('/')
   }
 
+  const handleOpenCopilot = () => {
+    if (enquiryId) navigate('/dashboard/consultant')
+    setActiveView('copilot')
+    setIsMobileMenuOpen(false)
+  }
+
   const handleReferClient = () => {
     setShowReferralForm(true)
     setReferralMessage('')
@@ -621,6 +629,22 @@ export default function ConsultantDashboard() {
   return (
     <div className="min-h-screen bg-[#f7f9ff] px-4 py-10 sm:px-6 lg:px-8">
       <SEO title="Consultant Dashboard" description="Magnafic consultant dashboard." path="/dashboard/consultant" noIndex />
+      <button
+        type="button"
+        onClick={handleOpenCopilot}
+        aria-label="Open AI Copilot"
+        title="AI Copilot"
+        className={`ai-shortcut-float group fixed bottom-3 right-3 z-40 inline-flex h-28 w-28 items-center justify-center transition hover:scale-105 sm:bottom-5 sm:right-5 sm:h-32 sm:w-32 ${
+          activeView === 'copilot'
+            ? 'drop-shadow-[0_0_18px_rgba(0,255,255,0.6)]'
+            : 'drop-shadow-[0_12px_18px_rgba(0,0,71,0.25)]'
+        }`}
+      >
+        <span className="pointer-events-none absolute bottom-full right-2 mb-1 whitespace-nowrap rounded-lg bg-[#000047] px-3 py-2 text-xs font-bold text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100">
+          Ask anything to AI
+        </span>
+        <img src="/Floating Robot 2.png" alt="" className="h-full w-full object-contain" />
+      </button>
       <div className="mx-auto max-w-7xl">
         <section className="mb-8 rounded-lg border border-cyan-100 bg-white shadow-[0_0_24px_rgba(0,255,255,0.18)]">
           <div className="relative h-36 overflow-hidden rounded-t-lg bg-[#000047] sm:h-40 lg:h-44">
@@ -1136,6 +1160,10 @@ export default function ConsultantDashboard() {
 
             {activeView === 'mou' && (
               <ConsultantDocuments user={user} expert={expert} />
+            )}
+
+            {activeView === 'copilot' && (
+              <ConsultantCopilot onClose={() => setActiveView('opportunities')} />
             )}
           </div>
         </div>

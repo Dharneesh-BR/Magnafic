@@ -80,7 +80,7 @@ export default function HomeMentors() {
   useEffect(() => {
     const fetchMentors = async () => {
       try {
-        const query = `*[_type == "mentor"] | order(fullName asc) {
+        const expertFields = `
           _id,
           "slug": slug.current,
           fullName,
@@ -91,10 +91,19 @@ export default function HomeMentors() {
           location,
           city,
           totalYearsOfExperience
+        `
+        const query = `{
+          "selectedExperts": *[_id == "homePageSettings"][0].globeExperts[]->{
+            ${expertFields}
+          },
+          "fallbackExperts": *[_type == "mentor" && !(_id in path("drafts.**"))] | order(fullName asc)[0...8] {
+            ${expertFields}
+          }
         }`
 
         const data = await mentorClient.fetch(query)
-        setMentors((data || []).filter(Boolean))
+        const selectedExperts = (data?.selectedExperts || []).filter(Boolean)
+        setMentors(selectedExperts.length ? selectedExperts : (data?.fallbackExperts || []).filter(Boolean))
       } catch (error) {
         console.error('Error fetching home mentors:', error)
       } finally {

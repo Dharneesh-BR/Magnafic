@@ -182,10 +182,134 @@ export const programsSchema = defineType({
       description: 'External registration or payment link, if applicable.',
     }),
     defineField({
-      name: 'price',
-      title: 'Price',
+      name: 'pricingType',
+      title: 'Pricing Type',
       type: 'string',
-      description: 'Display price, for example Free, INR 4,999, Invite-only, or Contact us.',
+      options: {
+        list: [
+          { title: 'Paid', value: 'paid' },
+          { title: 'Free', value: 'free' },
+          { title: 'Contact Us', value: 'contact' },
+          { title: 'Invite-only', value: 'invite-only' },
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'paid',
+      description: 'Choose how the program price should be presented.',
+    }),
+    defineField({
+      name: 'pricingOptions',
+      title: 'Prices & Discounts',
+      type: 'array',
+      hidden: ({ parent }) => parent?.pricingType !== 'paid',
+      description: 'Add one or more currency options. Each currency can have its own price and discount.',
+      validation: (Rule) => Rule.unique(),
+      of: [
+        defineArrayMember({
+          type: 'object',
+          name: 'programPrice',
+          title: 'Currency Price',
+          fields: [
+            defineField({
+              name: 'currency',
+              title: 'Currency',
+              type: 'string',
+              options: {
+                list: [
+                  { title: 'Indian Rupee (INR)', value: 'INR' },
+                  { title: 'US Dollar (USD)', value: 'USD' },
+                  { title: 'Euro (EUR)', value: 'EUR' },
+                  { title: 'British Pound (GBP)', value: 'GBP' },
+                  { title: 'UAE Dirham (AED)', value: 'AED' },
+                  { title: 'Singapore Dollar (SGD)', value: 'SGD' },
+                  { title: 'Australian Dollar (AUD)', value: 'AUD' },
+                  { title: 'Canadian Dollar (CAD)', value: 'CAD' },
+                ],
+              },
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'price',
+              title: 'Regular Price',
+              type: 'number',
+              validation: (Rule) => Rule.required().min(0).precision(2),
+              description: 'Enter the regular price before discount.',
+            }),
+            defineField({
+              name: 'discountType',
+              title: 'Discount Type',
+              type: 'string',
+              options: {
+                list: [
+                  { title: 'No Discount', value: 'none' },
+                  { title: 'Percentage Discount', value: 'percentage' },
+                  { title: 'Fixed Amount Discount', value: 'fixed' },
+                ],
+                layout: 'radio',
+              },
+              initialValue: 'none',
+            }),
+            defineField({
+              name: 'discountValue',
+              title: 'Discount Value',
+              type: 'number',
+              hidden: ({ parent }) => !parent?.discountType || parent?.discountType === 'none',
+              description: 'Enter the percentage or fixed discount amount based on the selected discount type.',
+              validation: (Rule) => Rule.custom((value, context) => {
+                const parent = context.parent as {
+                  discountType?: string
+                  price?: number
+                }
+
+                if (!parent?.discountType || parent.discountType === 'none') return true
+                if (value === undefined || value === null) return 'Discount value is required.'
+                if (value < 0) return 'Discount cannot be negative.'
+                if (parent.discountType === 'percentage' && value > 100) {
+                  return 'Percentage discount cannot exceed 100%.'
+                }
+                if (parent.discountType === 'fixed' && parent.price !== undefined && value > parent.price) {
+                  return 'Fixed discount cannot exceed the regular price.'
+                }
+                return true
+              }),
+            }),
+            defineField({
+              name: 'label',
+              title: 'Optional Price Label',
+              type: 'string',
+              description: 'Example: Early Bird, Founder Offer, or Limited-time Price.',
+            }),
+          ],
+          preview: {
+            select: {
+              currency: 'currency',
+              price: 'price',
+              discountType: 'discountType',
+              discountValue: 'discountValue',
+              label: 'label',
+            },
+            prepare({ currency, price, discountType, discountValue, label }) {
+              const regularPrice = `${currency || ''} ${price ?? 0}`.trim()
+              const discount = discountType === 'percentage'
+                ? `${discountValue || 0}% off`
+                : discountType === 'fixed'
+                  ? `${currency || ''} ${discountValue || 0} off`
+                  : 'No discount'
+
+              return {
+                title: label || regularPrice,
+                subtitle: `${regularPrice} | ${discount}`,
+              }
+            },
+          },
+        }),
+      ],
+    }),
+    defineField({
+      name: 'price',
+      title: 'Legacy Display Price',
+      type: 'string',
+      description: 'Existing display price used by older programs. Use Prices & Discounts for new entries.',
     }),
     defineField({
       name: 'seats',
