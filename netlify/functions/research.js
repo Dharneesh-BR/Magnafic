@@ -11,7 +11,7 @@ const headers = {
   'Content-Type': 'application/json',
 }
 
-const RESEARCH_COST = 25
+const DAILY_TOKEN_LIMIT = 10000
 
 const reply = (statusCode, body) => ({ statusCode, headers, body: JSON.stringify(body) })
 const asJson = (value) => JSON.stringify(value)
@@ -212,13 +212,14 @@ async function gemini(systemInstruction, prompt, {
   }
   if (!json) return text
 
-  console.info('Gemini token usage.', {
+  const usage = {
     model,
     promptTokens: payload?.usageMetadata?.promptTokenCount || 0,
     outputTokens: payload?.usageMetadata?.candidatesTokenCount || 0,
     thinkingTokens: payload?.usageMetadata?.thoughtsTokenCount || 0,
     totalTokens: payload?.usageMetadata?.totalTokenCount || 0,
-  })
+  }
+  console.info('Gemini token usage.', usage)
 
   const parsed = safeParse(text)
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -227,7 +228,7 @@ async function gemini(systemInstruction, prompt, {
     error.code = `GEMINI_INVALID_JSON_${payload?.candidates?.[0]?.finishReason || 'UNKNOWN'}`
     throw error
   }
-  return parsed
+  return { data: parsed, usage }
 }
 
 const workflowRules = `
@@ -272,11 +273,25 @@ const finalReportSchema = {
       type: 'ARRAY',
       items: {
         type: 'OBJECT',
-        required: ['kind', 'title', 'description'],
+        required: ['kind', 'title', 'description', 'labels', 'values', 'columns', 'rows'],
         properties: {
           kind: { type: 'STRING', enum: ['chart', 'table', 'infographic'] },
+          chartType: { type: 'STRING', enum: ['bar', 'pie', 'none'] },
           title: { type: 'STRING' },
           description: { type: 'STRING' },
+          labels: stringArraySchema,
+          values: {
+            type: 'ARRAY',
+            items: { type: 'NUMBER' },
+          },
+          columns: stringArraySchema,
+          rows: {
+            type: 'ARRAY',
+            items: {
+              type: 'ARRAY',
+              items: { type: 'STRING' },
+            },
+          },
         },
       },
     },
@@ -292,7 +307,7 @@ function hasUsableReport(report) {
   )
 }
 
-async function runWorkflow({ question, businessContext, files, history }) {
+async function runWorkflow({ question, businessContext, files, history, tokenBudget }) {
   const workflowStartedAt = Date.now()
   const fileBudget = 12000
   let remainingFileBudget = fileBudget
@@ -315,7 +330,18 @@ async function runWorkflow({ question, businessContext, files, history }) {
     })),
   }
 
-  const report = await gemini(
+  const estimatedInputTokens = Math.ceil((workflowRules.length + asJson(context).length + 900) / 4)
+  if (Number(tokenBudget || 0) < estimatedInputTokens + 828) {
+    const error = new Error('Not enough tokens remain for a complete report today. Your allowance resets at 00:00 UTC.')
+    error.statusCode = 429
+    error.code = 'DAILY_TOKEN_LIMIT_REACHED'
+    throw error
+  }
+  const availableOutputTokens = Math.max(700, Math.min(
+    2800,
+    Number(tokenBudget || DAILY_TOKEN_LIMIT) - estimatedInputTokens - 128
+  ))
+  const generated = await gemini(
     `${workflowRules}
 You are Magnafic Copilot. Produce one practical executive research report.
 Directly analyze the business question using the supplied context.
@@ -323,17 +349,28 @@ Directly analyze the business question using the supplied context.
 Use 3-5 items per core array and no more than 25 words per item.
 Keep executiveSummary under 140 words and businessAnalysis under 220 words.
 Clearly separate assumptions from findings. Do not invent precise market figures,
-sources, surveys, or competitor facts. Recommend at most 2 useful visuals.`,
+sources, surveys, or competitor facts.
+
+Adapt the report to the question. Avoid repeating the same point across sections.
+Use visualSuggestions only when they improve the answer:
+- For numeric comparisons, return kind "chart", chartType "bar" or "pie", matching labels and numeric values.
+- Pie values must represent parts of one whole.
+- For categorical comparisons, return kind "table" with columns and equally sized rows.
+- Put [] in unused fields.
+- Use at most 3 visuals.
+- If numeric values are estimates, say so in the description and assumptions.
+- If no defensible data exists, return no chart rather than inventing numbers.`,
     `Create the executive report for:
 ${asJson(context)}
 
 Follow the response schema. Do not add citations or imply live research.`,
     {
-      maxOutputTokens: 2800,
+      maxOutputTokens: availableOutputTokens,
       responseSchema: finalReportSchema,
       thinkingBudget: 128,
     }
   )
+  const report = generated.data
   console.info('Research workflow stage completed.', {
     stage: 'executive-report',
     elapsedMs: Date.now() - workflowStartedAt,
@@ -370,6 +407,7 @@ Follow the response schema. Do not add citations or imply live research.`,
       ...report,
       visualSuggestions: report.visualSuggestions || [],
     },
+    usage: generated.usage,
   }
 }
 
@@ -389,17 +427,29 @@ function message(role, content, timestamp, report) {
 }
 
 async function bootstrap(client, user) {
-  const sessions = await client.fetch(
-    `*[_type == "chatSession" && user.uid == $uid] | order(updatedAt desc)[0...30] {
-      _id, sessionTitle, createdAt, updatedAt, "messageCount": count(messages)
-    }`,
-    { uid: user.uid }
-  )
+  const dayStart = new Date()
+  dayStart.setUTCHours(0, 0, 0, 0)
+  const [sessions, usageValues] = await Promise.all([
+    client.fetch(
+      `*[_type == "chatSession" && user.uid == $uid] | order(updatedAt desc)[0...30] {
+        _id, sessionTitle, createdAt, updatedAt, "messageCount": count(messages)
+      }`,
+      { uid: user.uid }
+    ),
+    client.fetch(
+      `*[_type == "usageTracking" && user.uid == $uid && createdAt >= $dayStart].creditsConsumed`,
+      { uid: user.uid, dayStart: dayStart.toISOString() }
+    ),
+  ])
+  const used = (usageValues || []).reduce((total, value) => total + (Number(value) || 0), 0)
   return {
     user,
     product: { name: 'Magnafic Copilot', description: 'Your AI Business Research Partner' },
-    credits: { remaining: null },
-    actionCosts: { research: RESEARCH_COST },
+    tokenUsage: {
+      limit: DAILY_TOKEN_LIMIT,
+      used,
+      remaining: Math.max(DAILY_TOKEN_LIMIT - used, 0),
+    },
     sessions: sessions || [],
   }
 }
@@ -443,6 +493,21 @@ async function research(client, user, body) {
     throw error
   }
 
+  const dayStart = new Date()
+  dayStart.setUTCHours(0, 0, 0, 0)
+  const usageValues = await client.fetch(
+    `*[_type == "usageTracking" && user.uid == $uid && createdAt >= $dayStart].creditsConsumed`,
+    { uid: user.uid, dayStart: dayStart.toISOString() }
+  )
+  const tokensUsedToday = (usageValues || []).reduce((total, value) => total + (Number(value) || 0), 0)
+  const tokensRemaining = Math.max(DAILY_TOKEN_LIMIT - tokensUsedToday, 0)
+  if (tokensRemaining < 1000) {
+    const error = new Error('Your daily 10,000-token limit has been reached. It resets at 00:00 UTC.')
+    error.statusCode = 429
+    error.code = 'DAILY_TOKEN_LIMIT_REACHED'
+    throw error
+  }
+
   const now = new Date().toISOString()
   const projectId = `researchProject.${randomUUID()}`
   const savedSessionId = existing?._id || `chatSession.${randomUUID()}`
@@ -466,6 +531,7 @@ async function research(client, user, body) {
       businessContext: body.businessContext,
       files: body.files,
       history,
+      tokenBudget: tokensRemaining,
     })
     const completedAt = new Date().toISOString()
     const userMessage = message('user', question, now)
@@ -487,7 +553,7 @@ async function research(client, user, body) {
         _type: 'usageTracking',
         user: userValue(user),
         action: 'research-report',
-        creditsConsumed: RESEARCH_COST,
+        creditsConsumed: result.usage.totalTokens,
         createdAt: completedAt,
       })
 
@@ -521,6 +587,12 @@ async function research(client, user, body) {
         report: result.final,
       },
       report: result.final,
+      tokenUsage: {
+        limit: DAILY_TOKEN_LIMIT,
+        used: Math.min(tokensUsedToday + result.usage.totalTokens, DAILY_TOKEN_LIMIT),
+        remaining: Math.max(DAILY_TOKEN_LIMIT - tokensUsedToday - result.usage.totalTokens, 0),
+        lastRequest: result.usage,
+      },
     }
   } catch (error) {
     await client.patch(projectId).set({ status: 'failed' }).commit().catch(() => {})

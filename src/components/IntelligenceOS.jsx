@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   AlertCircle, ArrowLeft, BarChart3, ChevronDown, Clock3, FileSearch, Lightbulb,
-  BookOpen, Loader2, Menu, MessageSquarePlus, Mic, MicOff, Newspaper,
+  BookOpen, Loader2, LogOut, Menu, MessageSquarePlus, Mic, MicOff, Newspaper,
   PanelLeftClose, PanelLeftOpen, Paperclip, Send, ShieldAlert, Sparkles,
   Table2, Target, X,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { callResearchWorkflow } from '../lib/aiCopilot'
+import { clearAuthUser } from '../lib/auth'
 import { mentorClient } from '../lib/sanityClient'
 
 const PROMPT_KEY = 'magnafic-copilot-prompt'
@@ -46,53 +47,132 @@ function ListCard({ title, items, icon: Icon, tone = 'cyan' }) {
   )
 }
 
-function Visuals({ visuals = [] }) {
-  if (!visuals.length) return null
-  const tables = visuals.filter((item) => item.kind === 'table')
-  const other = visuals.filter((item) => item.kind !== 'table')
+const CHART_COLORS = ['#22d3ee', '#818cf8', '#34d399', '#fbbf24', '#fb7185', '#c084fc']
+
+function BarChart({ visual }) {
+  const values = (visual.values || []).map(Number).filter(Number.isFinite)
+  const labels = (visual.labels || []).slice(0, values.length)
+  if (!values.length || labels.length !== values.length) return null
+  const maxValue = Math.max(...values, 1)
+
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-      <h3 className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-[0.12em] text-cyan-200">
-        <BarChart3 className="h-5 w-5" /> Visual recommendations
-      </h3>
-      {other.length > 0 && (
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {other.map((item, index) => (
-            <div key={`visual-${index}`} className="rounded-xl border border-cyan-300/15 bg-[#08085c] p-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-cyan-300">{item.type || item.kind}</p>
-              <p className="mt-1 font-bold text-white">{item.title}</p>
-              {item.description && <p className="mt-2 text-sm leading-6 text-white/60">{item.description}</p>}
-            </div>
-          ))}
-        </div>
-      )}
-      {tables.map((table, index) => (
-        <div key={`table-${index}`} className="mt-5 overflow-hidden rounded-xl border border-white/10">
-          <div className="flex items-center gap-2 bg-white/5 px-4 py-3 font-bold text-white">
-            <Table2 className="h-4 w-4 text-cyan-300" /> {table.title}
+    <div className="mt-5 space-y-3">
+      {values.map((value, index) => (
+        <div key={`${labels[index]}-${index}`} className="grid grid-cols-[minmax(7rem,0.8fr)_2fr_auto] items-center gap-3 text-sm">
+          <span className="truncate text-white/70" title={labels[index]}>{labels[index]}</span>
+          <div className="h-7 overflow-hidden rounded-md bg-white/5">
+            <div
+              className="flex h-full min-w-1 items-center rounded-md px-2 font-bold text-[#000047] transition-all"
+              style={{
+                width: `${Math.max((value / maxValue) * 100, 3)}%`,
+                backgroundColor: CHART_COLORS[index % CHART_COLORS.length],
+              }}
+            />
           </div>
-          {table.columns?.length && table.rows?.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[34rem] text-left text-sm">
-                <thead className="bg-cyan-300/10 text-cyan-100">
-                  <tr>{table.columns.map((column) => <th key={column} className="px-4 py-3">{column}</th>)}</tr>
-                </thead>
-                <tbody className="divide-y divide-white/10 text-white/75">
-                  {table.rows.map((row, rowIndex) => (
-                    <tr key={rowIndex}>
-                      {(Array.isArray(row) ? row : table.columns.map((column) => row?.[column])).map((cell, cellIndex) => (
-                        <td key={cellIndex} className="px-4 py-3">{String(cell ?? '')}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="px-4 py-3 text-sm text-white/55">{table.description || 'Recommended table for the final presentation.'}</p>
-          )}
+          <span className="font-extrabold text-white">{value.toLocaleString()}</span>
         </div>
       ))}
+    </div>
+  )
+}
+
+function PieChart({ visual }) {
+  const values = (visual.values || []).map(Number).filter((value) => Number.isFinite(value) && value >= 0)
+  const labels = (visual.labels || []).slice(0, values.length)
+  const total = values.reduce((sum, value) => sum + value, 0)
+  if (!total || labels.length !== values.length) return null
+
+  let offset = 0
+  const stops = values.map((value, index) => {
+    const start = (offset / total) * 100
+    offset += value
+    const end = (offset / total) * 100
+    return `${CHART_COLORS[index % CHART_COLORS.length]} ${start}% ${end}%`
+  })
+
+  return (
+    <div className="mt-5 grid items-center gap-5 sm:grid-cols-[11rem_1fr]">
+      <div
+        className="mx-auto aspect-square w-40 rounded-full border-4 border-white/10 shadow-[0_0_25px_rgba(34,211,238,0.12)]"
+        style={{ background: `conic-gradient(${stops.join(',')})` }}
+        role="img"
+        aria-label={visual.title}
+      />
+      <div className="space-y-2">
+        {values.map((value, index) => (
+          <div key={`${labels[index]}-${index}`} className="flex items-center justify-between gap-4 text-sm">
+            <span className="flex min-w-0 items-center gap-2 text-white/70">
+              <span className="h-3 w-3 shrink-0 rounded-sm" style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }} />
+              <span className="truncate">{labels[index]}</span>
+            </span>
+            <span className="font-extrabold text-white">{((value / total) * 100).toFixed(1)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DataTable({ visual }) {
+  const columns = visual.columns || []
+  const rows = (visual.rows || []).filter((row) => Array.isArray(row) && row.length === columns.length)
+  if (!columns.length || !rows.length) return null
+
+  return (
+    <div className="mt-5 overflow-x-auto rounded-xl border border-white/10">
+      <table className="w-full min-w-[34rem] text-left text-sm">
+        <thead className="bg-cyan-300/10 text-cyan-100">
+          <tr>{columns.map((column) => <th key={column} className="px-4 py-3 font-extrabold">{column}</th>)}</tr>
+        </thead>
+        <tbody className="divide-y divide-white/10 text-white/75">
+          {rows.map((row, rowIndex) => (
+            <tr key={rowIndex} className="transition hover:bg-white/5">
+              {row.map((cell, cellIndex) => <td key={cellIndex} className="px-4 py-3 align-top">{cell}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Visuals({ visuals = [] }) {
+  const usableVisuals = visuals.filter((visual) => {
+    if (visual.kind === 'table') return visual.columns?.length && visual.rows?.length
+    if (visual.kind === 'chart') return visual.labels?.length && visual.values?.length
+    return visual.kind === 'infographic' && visual.description
+  })
+  if (!usableVisuals.length) return null
+
+  return (
+    <section className="rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-cyan-400/10 to-violet-500/10 p-5 sm:p-6">
+      <h3 className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-[0.12em] text-cyan-200">
+        <BarChart3 className="h-5 w-5" /> Data and comparisons
+      </h3>
+      <div className="mt-5 space-y-5">
+        {usableVisuals.map((visual, index) => (
+          <div key={`${visual.title}-${index}`} className="rounded-2xl border border-white/10 bg-[#08085c]/80 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-cyan-300">
+                  {visual.kind === 'chart' ? `${visual.chartType || 'bar'} chart` : visual.kind}
+                </p>
+                <h4 className="mt-1 font-extrabold text-white">{visual.title}</h4>
+              </div>
+              {visual.kind === 'table' && <Table2 className="h-5 w-5 shrink-0 text-cyan-300" />}
+            </div>
+            {visual.description && <p className="mt-2 text-sm leading-6 text-white/55">{visual.description}</p>}
+            {visual.kind === 'chart' && visual.chartType === 'pie' && <PieChart visual={visual} />}
+            {visual.kind === 'chart' && visual.chartType !== 'pie' && <BarChart visual={visual} />}
+            {visual.kind === 'table' && <DataTable visual={visual} />}
+            {visual.kind === 'infographic' && (
+              <div className="mt-4 rounded-xl bg-violet-300/10 p-4 text-sm leading-6 text-violet-100">
+                {visual.description}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </section>
   )
 }
@@ -256,6 +336,17 @@ export default function IntelligenceOS({ onClose }) {
     navigate(path)
   }
 
+  const handleLogout = async () => {
+    setError('')
+    try {
+      await clearAuthUser()
+      navigate('/', { replace: true })
+    } catch (logoutError) {
+      console.error('Magnafic Copilot logout failed:', logoutError)
+      setError('Unable to log out right now. Please try again.')
+    }
+  }
+
   const openSession = async (sessionId) => {
     setLoadingSession(true)
     setError('')
@@ -307,6 +398,9 @@ export default function IntelligenceOS({ onClose }) {
       })
       setActiveSessionId(data.sessionId)
       setIncompleteQuestion('')
+      if (data.tokenUsage) {
+        setWorkspace((current) => ({ ...current, tokenUsage: data.tokenUsage }))
+      }
       setMessages((current) => (
         reuseCurrentSession
           ? [
@@ -337,7 +431,10 @@ export default function IntelligenceOS({ onClose }) {
     } catch (submitError) {
       setMessages((current) => current.filter((item) => item._key !== optimistic._key))
       setPrompt(question)
-      if (submitError.status === 429) {
+      if (submitError.code === 'DAILY_TOKEN_LIMIT_REACHED') {
+        setRetrySeconds(0)
+        setError(submitError.message)
+      } else if (submitError.status === 429) {
         setRetrySeconds(submitError.retryAfter || 30)
         setError('Gemini has reached its current request limit. Your question is preserved—retry when the countdown ends.')
       } else {
@@ -487,9 +584,34 @@ export default function IntelligenceOS({ onClose }) {
             </button>
           ))}
         </div>
-        <div className="rounded-xl border border-cyan-300/15 bg-cyan-300/5 p-3 text-xs text-white/55">
-          Phase 1 uses model knowledge and your context. Live sources arrive in Phase 2.
+        <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-3">
+          <div className="flex items-center justify-between text-xs font-bold text-white">
+            <span>Daily tokens</span>
+            <span>{(workspace.tokenUsage?.used || 0).toLocaleString()} / {(workspace.tokenUsage?.limit || 10000).toLocaleString()}</span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-400 transition-all"
+              style={{
+                width: `${Math.min(
+                  ((workspace.tokenUsage?.used || 0) / (workspace.tokenUsage?.limit || 10000)) * 100,
+                  100
+                )}%`,
+              }}
+            />
+          </div>
+          <p className="mt-2 text-[11px] text-white/50">
+            {(workspace.tokenUsage?.remaining ?? 10000).toLocaleString()} tokens remaining today
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/30 bg-cyan-300/5 px-4 py-3 text-sm font-bold text-white transition hover:bg-cyan-300/15"
+        >
+          <LogOut className="h-4 w-4" />
+          Logout
+        </button>
       </aside>
 
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
