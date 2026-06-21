@@ -270,10 +270,15 @@ export default function ConsultantCopilot({ onClose }) {
 
   if (loading) {
     return (
-      <section className="fixed inset-0 z-50 flex items-center justify-center bg-white">
+      <section className="fixed inset-0 z-50 flex items-center justify-center bg-[#000047]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,255,255,0.14),transparent_38%)]" />
         <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary-600" />
-          <p className="mt-3 text-sm font-semibold text-gray-600">Loading your AI Copilot...</p>
+          <img
+            src="/Copilot 2.png"
+            alt="Loading Magnafic AI Copilot"
+            className="ai-shortcut-float mx-auto h-32 w-32 object-contain drop-shadow-[0_0_20px_rgba(0,255,255,0.45)] sm:h-40 sm:w-40"
+          />
+          <p className="mt-4 text-sm font-semibold text-white/75">Loading your AI Copilot...</p>
         </div>
       </section>
     )
