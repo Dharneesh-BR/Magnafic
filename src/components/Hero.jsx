@@ -15,22 +15,18 @@ export default function Hero() {
 
           <h1 className="mx-auto max-w-2xl pb-4 pt-5 text-4xl font-extrabold leading-[1.08] tracking-normal text-white lg:mx-0 sm:pt-4 sm:text-5xl lg:text-[2.75rem]">
             Top 1% <br/>
-            <span className="text-cyan">Elite Consultants</span>  <br className="sm:hidden" />
+            <span className="text-cyan">Elite Consulting</span>  <br className="sm:hidden" />
             for Scaling <br className="sm:hidden" /> Consumer Products Business
           </h1>
 
-          <p className="mx-auto mt-4 max-w-2xl py-3 text-2xl font-bold leading-snug text-cyan lg:mx-0 sm:text-3xl">
-            Where <br className="sm:hidden" />Conscious Strategy <br/>meets AI-Powered <br className="sm:hidden" /><span className="text-cyan">10X Growth</span>.
-          </p>
-            <p className="py-3 text-2xl font-bold leading-7 text-slate-300 sm:text-lg">
-              Magnafic gives brands <br className="sm:hidden" />on-demand access to experienced <span className="text-cyan">Fractional CXOs</span> and <span className="text-cyan">Consultants</span> tailored to their exact stage of growth.
-            </p>
-
-            <p className="mx-auto mt-4 max-w-2xl py-3 text-2xl font-semibold leading-snug text-cyan lg:mx-0 sm:text-2xl">
+          <p className="mx-auto mt-2 max-w-2xl py-3 text-2xl font-bold leading-snug text-cyan lg:mx-0 sm:text-3xl">
             Welcome to New Era of Consulting 4.0
           </p>
-          
 
+          <p className="mx-auto mt-2 max-w-2xl py-3 text-2xl font-bold leading-snug text-cyan lg:mx-0 sm:text-3xl">
+            Where <br className="sm:hidden" />Conscious Strategy <br/>meets AI-Powered <br className="sm:hidden" /><span className="text-cyan">10X Growth</span>.
+          </p>
+                       
           <div className="mt-6 flex flex-col items-center gap-3 pb-8 sm:flex-row sm:justify-center sm:pb-0 lg:items-start lg:justify-start">
             <Link
               to="/contact"

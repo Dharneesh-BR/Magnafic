@@ -37,20 +37,47 @@ function formatSessionDate(value) {
   }).format(date)
 }
 
-function ChatMessage({ message }) {
+function UserAvatar({ imageUrl }) {
+  const [imageFailed, setImageFailed] = useState(false)
+
+  if (imageUrl && !imageFailed) {
+    return (
+      <span className="mt-1 hidden h-10 w-10 shrink-0 overflow-hidden rounded-full border border-cyan-300/30 bg-[#17175f] shadow-[0_0_16px_rgba(0,255,255,0.2)] sm:flex">
+        <img
+          src={imageUrl}
+          alt="User profile"
+          className="h-full w-full object-cover object-center"
+          onError={() => setImageFailed(true)}
+        />
+      </span>
+    )
+  }
+
+  return (
+    <span className="mt-1 hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-800 sm:flex">
+      <UserRound className="h-5 w-5" />
+    </span>
+  )
+}
+
+function ChatMessage({ message, userImageUrl }) {
   const isAssistant = message.role === 'assistant'
 
   return (
     <article className={`mx-auto flex w-full max-w-3xl gap-4 ${isAssistant ? '' : 'justify-end'}`}>
       {isAssistant && (
-        <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center">
-          <img src="/favicon.png" alt="Magnafic Copilot" className="h-8 w-8 object-contain" />
+        <span className="mt-1 flex h-14 w-14 shrink-0 items-center justify-center">
+          <img
+            src="/Copilot 5.png"
+            alt="Magnafic Copilot"
+            className="ai-shortcut-float h-14 w-14 object-contain drop-shadow-[0_0_12px_rgba(0,255,255,0.35)]"
+          />
         </span>
       )}
-      <div className={`min-w-0 max-w-[88%] text-gray-800 sm:max-w-[82%] ${
+      <div className={`min-w-0 max-w-[88%] sm:max-w-[82%] ${
         isAssistant
-          ? 'flex-1 pt-1 text-gray-200'
-          : 'rounded-[1.4rem] bg-[#24262b] px-5 py-3 text-gray-100'
+          ? 'flex-1 pt-1 text-[#e8f1ff]'
+          : 'rounded-[1.4rem] border border-cyan-300/15 bg-[#17175f] px-5 py-3 text-white'
       }`}>
         {isAssistant ? (
           <ReactMarkdown
@@ -59,11 +86,11 @@ function ChatMessage({ message }) {
               h1: ({ children }) => <h1 className="mb-3 mt-5 text-xl font-black text-white first:mt-0">{children}</h1>,
               h2: ({ children }) => <h2 className="mb-2 mt-5 text-lg font-black text-white first:mt-0">{children}</h2>,
               h3: ({ children }) => <h3 className="mb-2 mt-4 text-base font-bold text-white first:mt-0">{children}</h3>,
-              p: ({ children }) => <p className="my-3 break-words text-sm leading-6 first:mt-0 last:mb-0 sm:text-[0.95rem] sm:leading-7">{children}</p>,
+              p: ({ children }) => <p className="my-3 break-words text-sm leading-6 text-[#e8f1ff] first:mt-0 last:mb-0 sm:text-[0.95rem] sm:leading-7">{children}</p>,
               strong: ({ children }) => <strong className="font-extrabold text-white">{children}</strong>,
-              ul: ({ children }) => <ul className="my-3 list-disc space-y-1.5 pl-6 text-sm leading-6 sm:text-[0.95rem] sm:leading-7">{children}</ul>,
-              ol: ({ children }) => <ol className="my-3 list-decimal space-y-1.5 pl-6 text-sm leading-6 sm:text-[0.95rem] sm:leading-7">{children}</ol>,
-              li: ({ children }) => <li className="break-words pl-1">{children}</li>,
+              ul: ({ children }) => <ul className="my-3 list-disc space-y-1.5 pl-6 text-sm leading-6 text-[#e8f1ff] marker:text-cyan-300 sm:text-[0.95rem] sm:leading-7">{children}</ul>,
+              ol: ({ children }) => <ol className="my-3 list-decimal space-y-1.5 pl-6 text-sm leading-6 text-[#e8f1ff] marker:text-cyan-300 sm:text-[0.95rem] sm:leading-7">{children}</ol>,
+              li: ({ children }) => <li className="break-words pl-1 text-[#e8f1ff]">{children}</li>,
               blockquote: ({ children }) => <blockquote className="my-4 border-l-4 border-cyan-400 bg-white/5 px-4 py-2 text-gray-300">{children}</blockquote>,
               a: ({ children, href }) => (
                 <a href={href} target="_blank" rel="noreferrer" className="font-semibold text-cyan-300 underline decoration-cyan-500 underline-offset-2">
@@ -80,27 +107,23 @@ function ChatMessage({ message }) {
               pre: ({ children }) => <pre className="my-4 overflow-x-auto">{children}</pre>,
               table: ({ children }) => (
                 <div className="my-4 overflow-x-auto rounded-xl border border-white/10">
-                  <table className="w-full min-w-[32rem] border-collapse text-left text-sm">{children}</table>
+                  <table className="w-full min-w-[32rem] border-collapse text-left text-sm text-[#e8f1ff]">{children}</table>
                 </div>
               ),
               th: ({ children }) => <th className="border-b border-white/10 bg-white/5 px-3 py-2 font-bold text-white">{children}</th>,
-              td: ({ children }) => <td className="border-b border-white/5 px-3 py-2 align-top">{children}</td>,
+              td: ({ children }) => <td className="border-b border-white/5 px-3 py-2 align-top text-[#e8f1ff]">{children}</td>,
               hr: () => <hr className="my-5 border-white/10" />,
             }}
           >
             {message.content}
           </ReactMarkdown>
         ) : (
-          <p className="whitespace-pre-wrap break-words text-sm leading-6 sm:text-[0.95rem] sm:leading-7">
+          <p className="whitespace-pre-wrap break-words text-sm leading-6 text-white sm:text-[0.95rem] sm:leading-7">
             {message.content}
           </p>
         )}
       </div>
-      {!isAssistant && (
-        <span className="mt-1 hidden h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-800 sm:flex">
-          <UserRound className="h-4 w-4" />
-        </span>
-      )}
+      {!isAssistant && <UserAvatar imageUrl={userImageUrl} />}
     </article>
   )
 }
@@ -109,7 +132,11 @@ export default function ConsultantCopilot({ onClose }) {
   const [workspace, setWorkspace] = useState(null)
   const [messages, setMessages] = useState([])
   const [activeSessionId, setActiveSessionId] = useState('')
-  const [prompt, setPrompt] = useState('')
+  const [prompt, setPrompt] = useState(() => {
+    const pendingPrompt = sessionStorage.getItem('magnafic-copilot-prompt') || ''
+    sessionStorage.removeItem('magnafic-copilot-prompt')
+    return pendingPrompt
+  })
   const [loading, setLoading] = useState(true)
   const [loadingSession, setLoadingSession] = useState(false)
   const [sending, setSending] = useState(false)
@@ -390,10 +417,20 @@ export default function ConsultantCopilot({ onClose }) {
               </div>
             ) : messages.length ? (
               <div className="space-y-8 py-4">
-                {messages.map((message) => <ChatMessage key={message._key} message={message} />)}
+                {messages.map((message) => (
+                  <ChatMessage
+                    key={message._key}
+                    message={message}
+                    userImageUrl={workspace.consultant.imageUrl}
+                  />
+                ))}
                 {sending && (
                   <div className="mx-auto flex w-full max-w-3xl items-center gap-4">
-                    <img src="/favicon.png" alt="" className="h-8 w-8 object-contain" />
+                    <img
+                      src="/Copilot 5.png"
+                      alt=""
+                      className="ai-shortcut-float h-14 w-14 object-contain drop-shadow-[0_0_12px_rgba(0,255,255,0.35)]"
+                    />
                     <span className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Thinking...
@@ -405,14 +442,14 @@ export default function ConsultantCopilot({ onClose }) {
             ) : (
               <div className="mx-auto flex min-h-full max-w-4xl flex-col items-center justify-center pb-32 pt-8 text-center">
                 <img
-                  src="/Floating Robot 2.png"
+                  src="/Copilot 1.png"
                   alt="Magnafic AI Copilot"
                   className="ai-shortcut-float h-24 w-24 object-contain sm:h-32 sm:w-32"
                 />
                 <h2 className="mt-2 bg-gradient-to-r from-[#64d9ff] via-[#a78bfa] to-[#ff6f91] bg-clip-text text-2xl font-semibold text-transparent sm:text-4xl">
                   Hello, {workspace.consultant.name?.split(' ')[0] || 'Consultant'}
                 </h2>
-                <p className="mt-2 text-xl font-medium text-gray-200 sm:text-3xl">What should we focus on?</p>
+                <p className="mt-2 text-lg font-medium text-gray-200 sm:text-xl"> Magnafic Copilot <br/>Your AI Business Research Partner</p>
 
               </div>
             )}

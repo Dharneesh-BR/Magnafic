@@ -183,6 +183,12 @@ export default function ConsultantDashboard() {
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear())
   const navigate = useNavigate()
 
+  useEffect(() => {
+    if (sessionStorage.getItem('magnafic-copilot-prompt')) {
+      setActiveView('copilot')
+    }
+  }, [])
+
   const menuItems = [
     { id: 'opportunities', label: 'Dashboard', icon: BriefcaseBusiness },
     { id: 'copilot', label: 'Magnafic Copilot', icon: Bot },
@@ -643,7 +649,7 @@ export default function ConsultantDashboard() {
         <span className="pointer-events-none absolute bottom-full right-2 mb-1 whitespace-nowrap rounded-lg bg-[#000047] px-3 py-2 text-xs font-bold text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100">
           Ask anything to AI
         </span>
-        <img src="/Floating Robot 2.png" alt="" className="h-full w-full object-contain" />
+        <img src="/Copilot 1.png" alt="" className="h-full w-full object-contain" />
       </button>
       <div className="mx-auto max-w-7xl">
         <section className="mb-8 rounded-lg border border-cyan-100 bg-white shadow-[0_0_24px_rgba(0,255,255,0.18)]">

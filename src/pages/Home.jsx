@@ -21,9 +21,9 @@ export default function Home() {
       <CompanyLogos />
       <AboutMagna />
       <HomeCapabilities />
-      <HomeInsightsCarousel />
-      <DescribeProblemCTA />
       <ValueProp />
+      <DescribeProblemCTA />
+      <HomeInsightsCarousel />
     </div>
   )
 }

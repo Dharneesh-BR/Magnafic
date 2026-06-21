@@ -215,6 +215,7 @@ async function getCopilotContext(client, sanityExpertId) {
     `*[_type == "mentor" && _id == $consultantId][0] {
       _id,
       fullName,
+      "imageUrl": profileImage.asset->url,
       aiEnabled,
       consultantTier,
       assignedAgent->{
@@ -313,6 +314,7 @@ async function getBootstrapData(client, context) {
     consultant: {
       id: context.consultant._id,
       name: context.consultant.fullName,
+      imageUrl: context.consultant.imageUrl || '',
       tier: context.credits.tier,
     },
     agent: {

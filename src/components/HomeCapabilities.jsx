@@ -63,14 +63,17 @@ export default function HomeCapabilities() {
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary-200 to-transparent"></div>
 
       <div className="relative mx-auto max-w-7xl">
-        <div className="mb-10 flex flex-col gap-5 md:mb-12 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-3xl">
-            <h2 className="mb-2 text-center text-3xl font-extrabold leading-tight text-blue-900 sm:text-left sm:text-4xl">
+        <div className="mb-10 flex justify-center md:mb-12">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <img
+              src="/copilot 4.png"
+              alt="Magnafic AI Copilot"
+              className="h-36 w-36 object-contain drop-shadow-[0_0_20px_rgba(0,255,255,0.4)] sm:h-44 sm:w-44 lg:h-52 lg:w-52"
+            />
+            <h2 className="text-3xl font-extrabold leading-tight text-blue-900 sm:text-4xl">
               Explore Expert Capabilities
             </h2>
           </div>
-
-          
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">

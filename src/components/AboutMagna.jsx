@@ -1,5 +1,5 @@
-import { CheckCircle2, ChevronDown, Rocket, Target, Zap } from 'lucide-react'
-import { useState } from 'react'
+import { CheckCircle2, ChevronDown, Rocket, Target } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 
 const features = [
   {
@@ -15,21 +15,9 @@ const features = [
     ]
   },
   {
-    icon: Zap,
-    number: '02',
-    title: 'Built for modern business, not outdated consulting models',
-    description: "Today's businesses need adaptable systems, measurable execution, and real-world implementation, not generic frameworks and endless presentations. We work closely with leadership teams to design and execute scalable growth solutions aligned to business realities.",
-    details: [
-      'Adaptive Systems',
-      'Measurable Execution',
-      'Real-world Implementation',
-      'Scalable Solutions'
-    ]
-  },
-  {
     icon: Rocket,
-    number: '03',
-    title: 'Move faster with AI-powered, flexible, high-impact capabilities',
+    number: '02',
+    title: 'Accelerate growth through intelligent AI capabilities',
     description: 'Business transformation cannot wait for long consulting cycles. We provide AI-powered solutions and execution frameworks that accelerate decision-making and business outcomes.',
     details: [
       'AI-powered Solutions',
@@ -41,9 +29,30 @@ const features = [
 
 export default function AboutMagna() {
   const [hoveredIndex, setHoveredIndex] = useState(null)
+  const [copilotPosition, setCopilotPosition] = useState('before')
+  const sectionRef = useRef(null)
+
+  useEffect(() => {
+    const section = sectionRef.current
+    if (!section) return undefined
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setCopilotPosition('visible')
+        } else {
+          setCopilotPosition(entry.boundingClientRect.top < 0 ? 'after' : 'before')
+        }
+      },
+      { threshold: 0.18 }
+    )
+
+    observer.observe(section)
+    return () => observer.disconnect()
+  }, [])
 
   return (
-    <section className="relative overflow-hidden bg-[#000047] px-4 pb-16 pt-10 sm:px-6 sm:pb-20 lg:px-8">
+    <section ref={sectionRef} className="relative overflow-hidden bg-[#000047] px-4 pb-16 pt-10 sm:px-6 sm:pb-20 lg:px-8">
       <div className="pointer-events-none absolute inset-x-0 top-4 mx-auto h-36 w-36 rounded-full bg-cyan/15 blur-3xl sm:h-56 sm:w-56" />
       <div className="relative mx-auto max-w-7xl">
         <div className="rounded-lg border-0 p-5 shadow-lg shadow-primary-900/5 sm:p-7 md:border-0 md:bg-transparent md:p-0 md:grid md:gap-6 md:grid-cols-2 md:gap-12 md:items-start">
@@ -55,6 +64,22 @@ export default function AboutMagna() {
             <p className="hidden mx-auto max-w-xl text-base font-semibold leading-7 text-white/90 sm:block sm:text-lg md:mx-0">
               Magnafic helps consumer brands solve complex business challenges through a conscious growth framework powered by experienced industry leaders, AI-enabled systems, and execution-focused expertise.
             </p>
+            <div
+              className={`relative mx-auto mb-8 mt-8 w-fit transition-all duration-1000 ease-out motion-reduce:translate-x-0 motion-reduce:opacity-100 sm:mb-0 sm:mt-10 ${
+                copilotPosition === 'visible'
+                  ? 'translate-x-0 opacity-100'
+                  : copilotPosition === 'after'
+                    ? 'translate-x-[160%] opacity-0'
+                    : '-translate-x-[160%] opacity-0'
+              }`}
+            >
+              <div className="pointer-events-none absolute left-1/2 top-1/2 h-[75%] w-[115%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(0,255,255,0.5)_0%,rgba(108,70,255,0.3)_38%,transparent_72%)] blur-2xl" />
+              <img
+                src="/Copilot 3.png"
+                alt="Magnafic AI Copilot"
+                className="relative w-40 object-contain drop-shadow-[0_0_18px_rgba(0,255,255,0.45)] sm:w-48 lg:w-56"
+              />
+            </div>
           </div>
 
           <div className="space-y-3 sm:space-y-4">
