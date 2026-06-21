@@ -16,6 +16,7 @@ import Add from './pages/Add'
 import About from './pages/About'
 import Login from './pages/Login'
 import ClientSignup from './pages/ClientSignup'
+import ClientAccountSignup from './pages/ClientAccountSignup'
 import Academy from './pages/Academy'
 import Programs from './pages/Programs'
 import Contact from './pages/Contact'
@@ -24,6 +25,7 @@ import CapabilityDetail from './pages/CapabilityDetail'
 import ServiceDetail from './pages/ServiceDetail'
 import SEO from './components/SEO'
 import ConsultantDashboard from './pages/ConsultantDashboard'
+import ClientDashboard from './pages/ClientDashboard'
 import DashboardRedirect from './pages/DashboardRedirect'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminDashboard from './pages/AdminDashboard'
@@ -40,7 +42,7 @@ function ScrollToTop() {
 
 function AppContent() {
   const location = useLocation()
-  const isConsultantDashboard = location.pathname.startsWith('/dashboard/consultant')
+  const isDashboardPage = location.pathname.startsWith('/dashboard/')
   const isAddPage = location.pathname === '/add'
 
   if (location.pathname.startsWith('/admin')) {
@@ -56,7 +58,7 @@ function AppContent() {
   return (
     <div className="min-h-screen">
       <SEO />
-      {!isConsultantDashboard && !isAddPage && <Header />}
+      {!isDashboardPage && !isAddPage && <Header />}
       <main>
         <ErrorBoundary resetKey={location.pathname}>
           <Routes>
@@ -73,8 +75,10 @@ function AppContent() {
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<ClientSignup />} />
+            <Route path="/client-signup" element={<ClientAccountSignup />} />
             <Route path="/describe-your-problem" element={<DescribeProblem />} />
             <Route path="/dashboard" element={<DashboardRedirect />} />
+            <Route path="/dashboard/client" element={<ProtectedRoute role="client"><ClientDashboard /></ProtectedRoute>} />
             <Route path="/dashboard/consultant" element={<ProtectedRoute role="consultant"><ConsultantDashboard /></ProtectedRoute>} />
             <Route path="/dashboard/consultant/enquiry/:enquiryId" element={<ProtectedRoute role="consultant"><ConsultantDashboard /></ProtectedRoute>} />
             <Route path="/academy" element={<Academy />} />
@@ -86,7 +90,7 @@ function AppContent() {
           </Routes>
         </ErrorBoundary>
       </main>
-      {!isAddPage && <Footer />}
+      {!isDashboardPage && !isAddPage && <Footer />}
     </div>
   )
 }

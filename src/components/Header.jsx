@@ -54,7 +54,7 @@ export default function Header() {
   const navigate = useNavigate()
   const location = useLocation()
   const showHomeLink = location.pathname !== '/'
-  const hasDashboardAccess = authUser?.role === 'consultant' || authUser?.role === 'admin' || authUser?.isAdmin === true
+  const hasDashboardAccess = authUser?.role === 'client' || authUser?.role === 'consultant' || authUser?.role === 'admin' || authUser?.isAdmin === true
 
   useEffect(() => {
     const syncAuth = () => setAuthUserState(getAuthUser())

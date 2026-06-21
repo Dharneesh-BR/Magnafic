@@ -1,7 +1,7 @@
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from './firebase'
 
-const endpoint = '/.netlify/functions/ai-consultant-copilot'
+const endpoint = '/.netlify/functions/research'
 
 async function getCurrentFirebaseUser() {
   if (auth.currentUser) return auth.currentUser
@@ -35,3 +35,5 @@ export async function callAiCopilot(action, payload = {}) {
 
   return result
 }
+
+export const callResearchWorkflow = callAiCopilot

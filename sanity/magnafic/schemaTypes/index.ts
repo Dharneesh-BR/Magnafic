@@ -6,11 +6,11 @@ import { problemQuestionSchema } from './problemQuestion'
 import { mouDocumentSchema } from './mouDocument'
 import { blogSchema } from './blog'
 import { programsSchema } from './programs'
-import { aiAgentSchema } from './aiAgent'
 import { chatSessionSchema } from './chatSession'
-import { aiUsageSchema } from './aiUsage'
-import { promptTemplateSchema } from './promptTemplate'
 import { homePageSettingsSchema } from './homePageSettings'
+import { researchProjectSchema } from './researchProject'
+import { researchSessionSchema } from './researchSession'
+import { usageTrackingSchema } from './usageTracking'
 
 export const schemaTypes = [
   mentorSchema,
@@ -21,9 +21,9 @@ export const schemaTypes = [
   mouDocumentSchema,
   blogSchema,
   programsSchema,
-  aiAgentSchema,
+  researchProjectSchema,
+  researchSessionSchema,
   chatSessionSchema,
-  aiUsageSchema,
-  promptTemplateSchema,
+  usageTrackingSchema,
   homePageSettingsSchema,
 ]

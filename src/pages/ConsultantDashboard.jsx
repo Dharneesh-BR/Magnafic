@@ -4,7 +4,7 @@ import { addDoc, collection, doc, limit, onSnapshot, query, serverTimestamp, upd
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import SEO from '../components/SEO'
 import ConsultantDocuments from '../components/ConsultantDocuments'
-import ConsultantCopilot from '../components/ConsultantCopilot'
+import IntelligenceOS from '../components/IntelligenceOS'
 import { clearAuthUser, getAuthUser, setAuthUser, updateCurrentUserPassword } from '../lib/auth'
 import { subscribeConsultantOpportunities } from '../lib/dashboard'
 import { db } from '../lib/firebase'
@@ -1169,7 +1169,7 @@ export default function ConsultantDashboard() {
             )}
 
             {activeView === 'copilot' && (
-              <ConsultantCopilot onClose={() => setActiveView('opportunities')} />
+              <IntelligenceOS onClose={() => setActiveView('opportunities')} />
             )}
           </div>
         </div>

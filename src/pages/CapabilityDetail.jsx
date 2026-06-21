@@ -6,6 +6,7 @@ import SEO from '../components/SEO'
 import { absoluteUrl } from '../lib/seo'
 import MagnaLoader from '../components/MagnaLoader'
 import DescribeProblemCTA from '../components/DescribeProblemCTA'
+import CopilotPromptPanel from '../components/CopilotPromptPanel'
 
 function renderBlockText(block) {
   return block.children?.map(child => {
@@ -457,6 +458,13 @@ export default function CapabilityDetail() {
           </div>
         </section>
       )}
+
+      <section className="relative overflow-hidden bg-[#000047] px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,255,255,0.1),transparent_42%)]" />
+        <div className="relative mx-auto max-w-3xl">
+          <CopilotPromptPanel />
+        </div>
+      </section>
 
       {/* Use Cases Section */}
       {useCasesSection}

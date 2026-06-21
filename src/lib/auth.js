@@ -1,10 +1,12 @@
 import {
   createUserWithEmailAndPassword,
   EmailAuthProvider,
+  GoogleAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
   updatePassword,
   updateProfile,
@@ -49,6 +51,7 @@ function mapFirebaseUser(firebaseUser, profile = {}) {
     role: profile.role || 'client',
     status: profile.status || '',
     sanityExpertId: profile.sanityExpertId || '',
+    imageUrl: profile.imageUrl || profile.photoURL || firebaseUser.photoURL || '',
   }
 }
 
@@ -104,6 +107,38 @@ export async function loginUser({ email, password, fallbackRole = 'client' }) {
     ...(profile || {}),
   })
 
+  setAuthUser(appUser)
+  return appUser
+}
+
+export async function loginWithGoogle() {
+  const provider = new GoogleAuthProvider()
+  provider.setCustomParameters({ prompt: 'select_account' })
+
+  const credentials = await signInWithPopup(auth, provider)
+  let profile = null
+
+  try {
+    profile = await getUserProfile(credentials.user.uid, credentials.user.email)
+  } catch (profileError) {
+    console.warn('Google profile read failed:', profileError)
+  }
+
+  if (!profile) {
+    profile = {
+      name: credentials.user.displayName || nameFromEmail(credentials.user.email),
+      email: credentials.user.email || '',
+      photoURL: credentials.user.photoURL || '',
+      role: 'client',
+      authProvider: 'google',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }
+
+    await setDoc(doc(db, 'users', credentials.user.uid), profile)
+  }
+
+  const appUser = mapFirebaseUser(credentials.user, profile)
   setAuthUser(appUser)
   return appUser
 }

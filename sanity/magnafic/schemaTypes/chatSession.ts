@@ -2,22 +2,26 @@ import {defineArrayMember, defineField, defineType} from 'sanity'
 
 export const chatSessionSchema = defineType({
   name: 'chatSession',
-  title: 'AI Chat Session',
+  title: 'Intelligence OS Chat Session',
   type: 'document',
   fields: [
     defineField({
-      name: 'consultant',
-      title: 'Consultant',
-      type: 'reference',
-      to: [{type: 'mentor'}],
+      name: 'user',
+      title: 'User',
+      type: 'object',
+      fields: [
+        defineField({name: 'uid', title: 'Firebase UID', type: 'string'}),
+        defineField({name: 'name', title: 'Name', type: 'string'}),
+        defineField({name: 'email', title: 'Email', type: 'string'}),
+        defineField({name: 'role', title: 'Role', type: 'string'}),
+      ],
       validation: (Rule) => Rule.required(),
     }),
     defineField({
-      name: 'agent',
-      title: 'Agent',
+      name: 'project',
+      title: 'Latest Research Project',
       type: 'reference',
-      to: [{type: 'aiAgent'}],
-      validation: (Rule) => Rule.required(),
+      to: [{type: 'researchProject'}],
     }),
     defineField({
       name: 'sessionTitle',
@@ -52,6 +56,12 @@ export const chatSessionSchema = defineType({
               type: 'text',
               rows: 8,
               validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'report',
+              title: 'Structured Report JSON',
+              type: 'text',
+              rows: 12,
             }),
             defineField({
               name: 'timestamp',
@@ -90,11 +100,10 @@ export const chatSessionSchema = defineType({
   preview: {
     select: {
       title: 'sessionTitle',
-      consultant: 'consultant.fullName',
-      agent: 'agent.name',
+      user: 'user.email',
     },
-    prepare({title, consultant, agent}) {
-      return {title, subtitle: [consultant, agent].filter(Boolean).join(' | ')}
+    prepare({title, user}) {
+      return {title, subtitle: user || 'Unknown user'}
     },
   },
 })

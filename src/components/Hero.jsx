@@ -20,7 +20,7 @@ export default function Hero() {
           </h1>
 
           <p className="mx-auto mt-2 max-w-2xl py-3 text-2xl font-bold leading-snug text-cyan lg:mx-0 sm:text-3xl">
-            Welcome to New Era of Consulting 4.0
+            Welcome to New Era of Consulting 6.0
           </p>
 
           <p className="mx-auto mt-2 max-w-2xl py-3 text-2xl font-bold leading-snug text-cyan lg:mx-0 sm:text-3xl">

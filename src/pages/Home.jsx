@@ -19,9 +19,9 @@ export default function Home() {
       <ExpertiseSection />
       <HomeMentors />
       <CompanyLogos />
-      <AboutMagna />
-      <HomeCapabilities />
       <ValueProp />
+      <HomeCapabilities />
+      <AboutMagna />
       <DescribeProblemCTA />
       <HomeInsightsCarousel />
     </div>

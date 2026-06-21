@@ -7,6 +7,7 @@ export default function DashboardRedirect() {
   if (!user) return <Navigate to="/login" replace />
   if (user.role === 'consultant') return <Navigate to="/dashboard/consultant" replace />
   if (user.role === 'admin' || user.isAdmin === true) return <Navigate to="/admin" replace />
+  if (user.role === 'client') return <Navigate to="/dashboard/client" replace />
 
-  return <Navigate to="/" replace />
+  return <Navigate to="/dashboard/client" replace />
 }
