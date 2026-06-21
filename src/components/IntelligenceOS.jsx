@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import {
   AlertCircle, ArrowLeft, BarChart3, ChevronDown, Clock3, FileSearch, Lightbulb,
   BookOpen, Loader2, LogOut, Menu, MessageSquarePlus, Mic, MicOff, Newspaper,
@@ -177,7 +179,7 @@ function Visuals({ visuals = [] }) {
   )
 }
 
-function Report({ report, question, user }) {
+function Report({ report, question, user, workflowName }) {
   if (!report) return null
   return (
     <article className="mx-auto w-full max-w-5xl space-y-5 pb-8">
@@ -203,7 +205,7 @@ function Report({ report, question, user }) {
         <img src="/Copilot 5.png" alt="" className="h-11 w-11 object-contain" />
         <div>
           <p className="font-extrabold text-white">Magnafic Copilot</p>
-          <p className="text-xs text-cyan-100/50">Executive research report</p>
+          <p className="text-xs text-cyan-100/50">{workflowName || 'Executive research report'}</p>
         </div>
       </div>
       <section className="rounded-3xl border border-cyan-300/25 bg-gradient-to-br from-cyan-300/10 to-violet-400/10 p-6 shadow-[0_0_45px_rgba(0,255,255,0.08)] sm:p-8">
@@ -266,6 +268,41 @@ function normalizeReport(report) {
   }
 }
 
+function ChatConversation({ messages, user, sending }) {
+  return (
+    <div className="mx-auto w-full max-w-4xl space-y-7 pb-8">
+      {messages.map((message) => (
+        message.role === 'user' ? (
+          <div key={message._key} className="flex justify-end gap-3">
+            <div className="max-w-[85%] rounded-[1.4rem] rounded-tr-md border border-cyan-300/20 bg-[#17175f] px-5 py-3 text-sm leading-7 text-white sm:max-w-[75%]">
+              {message.content}
+            </div>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/10 text-sm font-extrabold text-cyan-100">
+              {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+            </span>
+          </div>
+        ) : (
+          <div key={message._key} className="flex items-start gap-3">
+            <img src="/Copilot 5.png" alt="" className="h-11 w-11 shrink-0 object-contain" />
+            <div className="max-w-[88%] rounded-[1.4rem] rounded-tl-md border border-white/10 bg-white/5 px-5 py-4 text-sm leading-7 text-white/85">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+            </div>
+          </div>
+        )
+      ))}
+      {sending && (
+        <div className="flex items-center gap-3">
+          <img src="/Copilot 5.png" alt="" className="h-11 w-11 object-contain" />
+          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm text-white/55">
+            <Loader2 className="h-4 w-4 animate-spin text-cyan-300" />
+            Magnafic Copilot is thinking…
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function IntelligenceOS({ onClose }) {
   const navigate = useNavigate()
   const [workspace, setWorkspace] = useState(null)
@@ -286,6 +323,7 @@ export default function IntelligenceOS({ onClose }) {
   const [retrySeconds, setRetrySeconds] = useState(0)
   const [servicesOpen, setServicesOpen] = useState(false)
   const [capabilities, setCapabilities] = useState([])
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState('')
   const recognitionRef = useRef(null)
   const textareaRef = useRef(null)
 
@@ -328,6 +366,7 @@ export default function IntelligenceOS({ onClose }) {
     setIncompleteQuestion('')
     setError('')
     setRetrySeconds(0)
+    setSelectedWorkflowId('')
     setSidebarOpen(false)
   }
 
@@ -354,6 +393,11 @@ export default function IntelligenceOS({ onClose }) {
       const data = await callResearchWorkflow('session', { sessionId })
       setActiveSessionId(data.session._id)
       setMessages(data.session.messages || [])
+      if (data.session.projectWorkflowId) {
+        setSelectedWorkflowId(data.session.projectWorkflowId)
+      } else {
+        setSelectedWorkflowId('')
+      }
       const storedReport = normalizeReport(
         [...(data.session.messages || [])].reverse().find((item) => item.report)?.report
       )
@@ -380,9 +424,10 @@ export default function IntelligenceOS({ onClose }) {
     event?.preventDefault()
     const question = String(questionOverride || prompt).trim()
     if (!question || sending) return
+    const shouldReuseSession = reuseCurrentSession || (!selectedWorkflowId && Boolean(activeSessionId))
     const optimistic = { _key: `pending-${Date.now()}`, role: 'user', content: question }
     setMessages((current) => (
-      reuseCurrentSession ? [...current, optimistic] : [optimistic]
+      shouldReuseSession ? [...current, optimistic] : [optimistic]
     ))
     setPrompt('')
     setSending(true)
@@ -391,10 +436,11 @@ export default function IntelligenceOS({ onClose }) {
     sessionStorage.removeItem(PROMPT_KEY)
     try {
       const data = await callResearchWorkflow('research', {
-        sessionId: reuseCurrentSession ? activeSessionId : '',
+        sessionId: shouldReuseSession ? activeSessionId : '',
         question,
         businessContext: businessContext.trim(),
         files,
+        workflowId: selectedWorkflowId,
       })
       setActiveSessionId(data.sessionId)
       setIncompleteQuestion('')
@@ -402,7 +448,7 @@ export default function IntelligenceOS({ onClose }) {
         setWorkspace((current) => ({ ...current, tokenUsage: data.tokenUsage }))
       }
       setMessages((current) => (
-        reuseCurrentSession
+        shouldReuseSession
           ? [
               ...current.filter((item) => item._key !== optimistic._key),
               data.userMessage,
@@ -416,7 +462,9 @@ export default function IntelligenceOS({ onClose }) {
         if (found) return current.map((item) => item._id === data.sessionId
           ? {
               ...item,
-              sessionTitle: question.length > 80 ? `${question.slice(0, 77)}...` : question,
+              sessionTitle: selectedWorkflowId
+                ? (question.length > 80 ? `${question.slice(0, 77)}...` : question)
+                : item.sessionTitle,
               updatedAt: now,
               messageCount: (item.messageCount || 0) + 2,
             }
@@ -511,6 +559,7 @@ export default function IntelligenceOS({ onClose }) {
   const recoverableQuestion = incompleteQuestion
     || messages.find((item) => item.role === 'user')?.content
     || prompt
+  const selectedWorkflow = workspace.workflows?.find((workflow) => workflow._id === selectedWorkflowId)
 
   return (
     <section className="fixed inset-0 z-50 flex overflow-hidden bg-[#000047] text-white">
@@ -633,7 +682,14 @@ export default function IntelligenceOS({ onClose }) {
           isFreshResearch ? 'pb-64' : 'pb-32'
         }`}>
           {loadingSession ? <Loader2 className="mx-auto mt-20 h-8 w-8 animate-spin text-cyan-300" /> : latestReport ? (
-            <Report report={latestReport} question={latestQuestion} user={workspace.user} />
+            <Report
+              report={latestReport}
+              question={latestQuestion}
+              user={workspace.user}
+              workflowName={selectedWorkflow?.workflowName}
+            />
+          ) : messages.length ? (
+            <ChatConversation messages={messages} user={workspace.user} sending={sending} />
           ) : (
             <div className="mx-auto flex min-h-full max-w-3xl flex-col items-center justify-center pb-32 text-center">
               <img src="/Copilot 1.png" alt="" className="ai-shortcut-float h-28 w-28 object-contain" />
@@ -682,6 +738,54 @@ export default function IntelligenceOS({ onClose }) {
                 )}
               </div>
             )}
+            <div className={`mb-3 ${isFreshResearch ? '' : 'mx-auto max-w-full'}`}>
+              <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-cyan-200/80">
+                Choose workflow
+              </p>
+              <div className="copilot-scrollbar flex gap-2 overflow-x-auto pb-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedWorkflowId('')
+                    setError('')
+                  }}
+                  className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition ${
+                    !selectedWorkflowId
+                      ? 'border-cyan-300 bg-cyan-300 text-[#000047] shadow-[0_0_18px_rgba(34,211,238,0.22)]'
+                      : 'border-white/15 bg-white/5 text-white/65 hover:border-cyan-300/35 hover:text-white'
+                  }`}
+                >
+                  General AI Chat
+                </button>
+                {workspace.workflows?.length ? workspace.workflows.map((workflow) => (
+                  <button
+                    key={workflow._id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedWorkflowId(workflow._id)
+                      setError('')
+                    }}
+                    className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition ${
+                      selectedWorkflowId === workflow._id
+                        ? 'border-cyan-300 bg-cyan-300 text-[#000047] shadow-[0_0_18px_rgba(34,211,238,0.22)]'
+                        : 'border-white/15 bg-white/5 text-white/65 hover:border-cyan-300/35 hover:text-white'
+                    }`}
+                    title={workflow.description}
+                  >
+                    {workflow.workflowName}
+                  </button>
+                )) : (
+                  <span className="rounded-full border border-amber-300/25 bg-amber-300/10 px-4 py-2 text-xs font-bold text-amber-200">
+                    No active workflows configured in Sanity
+                  </span>
+                )}
+              </div>
+              {selectedWorkflow?.description && isFreshResearch && (
+                <p className="mt-2 line-clamp-2 text-xs leading-5 text-white/45">
+                  {selectedWorkflow.description}
+                </p>
+              )}
+            </div>
             <div className={`copilot-prompt-glow p-[2px] transition-all duration-300 ${isFreshResearch ? 'rounded-[2rem]' : 'rounded-full'}`}>
               <div className={`bg-[#08085c] transition-all duration-300 ${isFreshResearch ? 'rounded-[calc(2rem-2px)] px-5 py-3' : 'flex items-center gap-2 rounded-full py-2 pl-5 pr-2'}`}>
                 <textarea ref={textareaRef} rows={isFreshResearch ? 2 : 1} value={prompt} onChange={(event) => setPrompt(event.target.value)}

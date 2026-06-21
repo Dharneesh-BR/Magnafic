@@ -11,6 +11,7 @@ import { homePageSettingsSchema } from './homePageSettings'
 import { researchProjectSchema } from './researchProject'
 import { researchSessionSchema } from './researchSession'
 import { usageTrackingSchema } from './usageTracking'
+import { workflowSchema } from './workflow'
 
 export const schemaTypes = [
   mentorSchema,
@@ -25,5 +26,6 @@ export const schemaTypes = [
   researchSessionSchema,
   chatSessionSchema,
   usageTrackingSchema,
+  workflowSchema,
   homePageSettingsSchema,
 ]

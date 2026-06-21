@@ -7,6 +7,7 @@
     "dev": "vite",
     "generate:sitemap": "node scripts/generate-sitemap.mjs",
     "fix:usecases": "node scripts/fix-usecases-list.mjs",
+    "seed:workflows": "node scripts/seed-workflows.mjs",
     "prebuild": "npm run generate:sitemap",
     "build": "vite build",
     "postbuild": "node scripts/generate-insight-pages.mjs",

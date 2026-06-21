@@ -18,6 +18,13 @@ export const researchProjectSchema = defineType({
       ],
       validation: (Rule) => Rule.required(),
     }),
+    defineField({
+      name: 'workflow',
+      title: 'Workflow',
+      type: 'reference',
+      to: [{type: 'workflow'}],
+      description: 'The Magnafic Copilot workflow used to generate this report.',
+    }),
     defineField({name: 'industry', title: 'Industry', type: 'string'}),
     defineField({name: 'question', title: 'Question', type: 'text', rows: 5, validation: (Rule) => Rule.required()}),
     defineField({

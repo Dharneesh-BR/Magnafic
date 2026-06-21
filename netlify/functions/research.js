@@ -210,8 +210,6 @@ async function gemini(systemInstruction, prompt, {
     error.statusCode = 502
     throw error
   }
-  if (!json) return text
-
   const usage = {
     model,
     promptTokens: payload?.usageMetadata?.promptTokenCount || 0,
@@ -220,6 +218,7 @@ async function gemini(systemInstruction, prompt, {
     totalTokens: payload?.usageMetadata?.totalTokenCount || 0,
   }
   console.info('Gemini token usage.', usage)
+  if (!json) return { text, usage }
 
   const parsed = safeParse(text)
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -307,12 +306,22 @@ function hasUsableReport(report) {
   )
 }
 
-async function runWorkflow({ question, businessContext, files, history, tokenBudget }) {
+async function runWorkflow({ question, businessContext, files, history, tokenBudget, workflow }) {
   const workflowStartedAt = Date.now()
   const fileBudget = 12000
   let remainingFileBudget = fileBudget
   const context = {
     question,
+    selectedWorkflow: {
+      name: workflow.workflowName,
+      description: workflow.description,
+      knowledgeAssets: (workflow.knowledgeAssets || []).map((asset) => ({
+        title: asset.title || asset.originalFilename || 'Knowledge asset',
+        description: asset.description || '',
+        filename: asset.originalFilename || '',
+        mimeType: asset.mimeType || '',
+      })),
+    },
     businessContext: String(businessContext || '').slice(0, 4000),
     uploadedFiles: (files || []).map((file) => ({
       name: file.name || 'Attachment',
@@ -330,7 +339,19 @@ async function runWorkflow({ question, businessContext, files, history, tokenBud
     })),
   }
 
-  const estimatedInputTokens = Math.ceil((workflowRules.length + asJson(context).length + 900) / 4)
+  const workflowPrompt = `
+Selected workflow: ${workflow.workflowName}
+
+Workflow purpose:
+${workflow.description}
+
+Workflow instructions:
+${workflow.workflowInstructions}
+
+Required output instructions:
+${workflow.outputInstructions}
+`.trim()
+  const estimatedInputTokens = Math.ceil((workflowRules.length + workflowPrompt.length + asJson(context).length + 900) / 4)
   if (Number(tokenBudget || 0) < estimatedInputTokens + 828) {
     const error = new Error('Not enough tokens remain for a complete report today. Your allowance resets at 00:00 UTC.')
     error.statusCode = 429
@@ -343,8 +364,10 @@ async function runWorkflow({ question, businessContext, files, history, tokenBud
   ))
   const generated = await gemini(
     `${workflowRules}
-You are Magnafic Copilot. Produce one practical executive research report.
-Directly analyze the business question using the supplied context.
+${workflowPrompt}
+
+Apply the selected workflow faithfully to the user's topic. The workflow instructions
+control the methodology and the output instructions control the deliverable.
 
 Use 3-5 items per core array and no more than 25 words per item.
 Keep executiveSummary under 140 words and businessAnalysis under 220 words.
@@ -411,6 +434,47 @@ Follow the response schema. Do not add citations or imply live research.`,
   }
 }
 
+async function runGeneralChat({ question, businessContext, files, history, tokenBudget }) {
+  const context = {
+    question,
+    businessContext: String(businessContext || '').slice(0, 3000),
+    uploadedFiles: (files || []).map((file) => ({
+      name: file.name || 'Attachment',
+      text: String(file.text || file.content || '').slice(0, 6000),
+    })),
+    previousChatHistory: (history || []).slice(-8).map((item) => ({
+      role: item.role,
+      content: String(item.content || '').slice(0, 2000),
+    })),
+  }
+  const estimatedInputTokens = Math.ceil((workflowRules.length + asJson(context).length + 500) / 4)
+  if (Number(tokenBudget || 0) < estimatedInputTokens + 400) {
+    const error = new Error('Not enough tokens remain for another answer today. Your allowance resets at 00:00 UTC.')
+    error.statusCode = 429
+    error.code = 'DAILY_TOKEN_LIMIT_REACHED'
+    throw error
+  }
+
+  const generated = await gemini(
+    `${workflowRules}
+Answer as a helpful business copilot in a natural conversation.
+Be direct, practical, and concise. Use short headings or bullets only when useful.
+Do not force the response into a research-report structure.`,
+    `Respond to the latest user message using this context:
+${asJson(context)}`,
+    {
+      json: false,
+      maxOutputTokens: Math.max(400, Math.min(1400, Number(tokenBudget) - estimatedInputTokens - 64)),
+      thinkingBudget: 64,
+    }
+  )
+
+  return {
+    content: generated.text,
+    usage: generated.usage,
+  }
+}
+
 function userValue(user) {
   return { _type: 'object', uid: user.uid, name: user.name, email: user.email, role: user.role }
 }
@@ -429,7 +493,7 @@ function message(role, content, timestamp, report) {
 async function bootstrap(client, user) {
   const dayStart = new Date()
   dayStart.setUTCHours(0, 0, 0, 0)
-  const [sessions, usageValues] = await Promise.all([
+  const [sessions, usageValues, workflows] = await Promise.all([
     client.fetch(
       `*[_type == "chatSession" && user.uid == $uid] | order(updatedAt desc)[0...30] {
         _id, sessionTitle, createdAt, updatedAt, "messageCount": count(messages)
@@ -439,6 +503,15 @@ async function bootstrap(client, user) {
     client.fetch(
       `*[_type == "usageTracking" && user.uid == $uid && createdAt >= $dayStart].creditsConsumed`,
       { uid: user.uid, dayStart: dayStart.toISOString() }
+    ),
+    client.fetch(
+      `*[_type == "workflow" && active == true] | order(priority desc, workflowName asc) {
+        _id,
+        workflowName,
+        "slug": slug.current,
+        description,
+        priority
+      }`
     ),
   ])
   const used = (usageValues || []).reduce((total, value) => total + (Number(value) || 0), 0)
@@ -450,6 +523,7 @@ async function bootstrap(client, user) {
       used,
       remaining: Math.max(DAILY_TOKEN_LIMIT - used, 0),
     },
+    workflows: workflows || [],
     sessions: sessions || [],
   }
 }
@@ -459,6 +533,7 @@ async function getSession(client, user, sessionId) {
     `*[_type == "chatSession" && _id == $sessionId && user.uid == $uid][0] {
       _id, sessionTitle, createdAt, updatedAt,
       "projectQuestion": project->question,
+      "projectWorkflowId": project->workflow._ref,
       messages[]{_key, role, content, report, timestamp}
     }`,
     { sessionId, uid: user.uid }
@@ -475,6 +550,7 @@ async function getSession(client, user, sessionId) {
 async function research(client, user, body) {
   const question = String(body.question || body.prompt || '').trim()
   const sessionId = String(body.sessionId || '').trim()
+  const workflowId = String(body.workflowId || '').trim()
   if (!question) {
     const error = new Error('Enter a business question to begin research.')
     error.statusCode = 400
@@ -482,6 +558,31 @@ async function research(client, user, body) {
   }
   if (question.length > 12000) {
     const error = new Error('Keep the question under 12,000 characters.')
+    error.statusCode = 400
+    throw error
+  }
+
+  const workflow = workflowId ? await client.fetch(
+    `*[_type == "workflow" && _id == $workflowId && active == true][0] {
+      _id,
+      workflowName,
+      "slug": slug.current,
+      description,
+      workflowInstructions,
+      outputInstructions,
+      priority,
+      knowledgeAssets[]{
+        title,
+        description,
+        "originalFilename": asset->originalFilename,
+        "mimeType": asset->mimeType,
+        "url": asset->url
+      }
+    }`,
+    { workflowId }
+  ) : null
+  if (workflowId && !workflow) {
+    const error = new Error('The selected workflow is unavailable or inactive.')
     error.statusCode = 400
     throw error
   }
@@ -517,6 +618,7 @@ async function research(client, user, body) {
     _type: 'researchProject',
     title,
     user: userValue(user),
+    ...(workflow ? { workflow: { _type: 'reference', _ref: workflow._id } } : {}),
     industry: String(body.industry || ''),
     question,
     status: 'processing',
@@ -526,44 +628,63 @@ async function research(client, user, body) {
 
   try {
     const history = (existing?.messages || []).map(({ role, content }) => ({ role, content }))
-    const result = await runWorkflow({
-      question,
-      businessContext: body.businessContext,
-      files: body.files,
-      history,
-      tokenBudget: tokensRemaining,
-    })
+    const result = workflow
+      ? await runWorkflow({
+          question,
+          businessContext: body.businessContext,
+          files: body.files,
+          history,
+          tokenBudget: tokensRemaining,
+          workflow,
+        })
+      : await runGeneralChat({
+          question,
+          businessContext: body.businessContext,
+          files: body.files,
+          history,
+          tokenBudget: tokensRemaining,
+        })
     const completedAt = new Date().toISOString()
     const userMessage = message('user', question, now)
-    const assistantMessage = message('assistant', result.final.executiveSummary, completedAt, result.final)
+    const assistantContent = workflow ? result.final.executiveSummary : result.content
+    const assistantMessage = message(
+      'assistant',
+      assistantContent,
+      completedAt,
+      workflow ? result.final : null
+    )
     const transaction = client.transaction()
-      .patch(projectId, (patch) => patch.set({ status: 'completed', industry: result.scout.industry || project.industry }))
+      .patch(projectId, (patch) => patch.set({
+        status: 'completed',
+        industry: workflow ? (result.scout.industry || project.industry) : project.industry,
+      }))
       .create({
         _id: `researchSession.${randomUUID()}`,
         _type: 'researchSession',
         project: { _type: 'reference', _ref: projectId },
-        scoutOutput: asJson(result.scout),
-        researchOutput: asJson(result.research),
-        synthesizedOutput: asJson(result.synthesis),
-        finalOutput: asJson(result.final),
+        scoutOutput: asJson(workflow ? result.scout : {}),
+        researchOutput: asJson(workflow ? result.research : {}),
+        synthesizedOutput: asJson(workflow ? result.synthesis : {}),
+        finalOutput: asJson(workflow ? result.final : {answer: result.content}),
         createdAt: completedAt,
       })
       .create({
         _id: `usageTracking.${randomUUID()}`,
         _type: 'usageTracking',
         user: userValue(user),
-        action: 'research-report',
+        action: workflow ? 'research-report' : 'general-chat',
         creditsConsumed: result.usage.totalTokens,
         createdAt: completedAt,
       })
 
     if (existing) {
+      const sessionUpdate = {
+        project: { _type: 'reference', _ref: projectId },
+        updatedAt: completedAt,
+        ...(workflow ? { sessionTitle: title } : {}),
+      }
       transaction.patch(savedSessionId, (patch) => patch
-        .set({
-          project: { _type: 'reference', _ref: projectId },
-          sessionTitle: title,
-          updatedAt: completedAt,
-        })
+        .set(sessionUpdate)
         .append('messages', [userMessage, assistantMessage]))
     } else {
       transaction.create({
@@ -584,9 +705,14 @@ async function research(client, user, body) {
       userMessage,
       assistantMessage: {
         ...assistantMessage,
-        report: result.final,
+        ...(workflow ? { report: result.final } : {}),
       },
-      report: result.final,
+      ...(workflow ? { report: result.final } : {}),
+      workflow: {
+        id: workflow?._id || '',
+        name: workflow?.workflowName || '',
+        slug: workflow?.slug || '',
+      },
       tokenUsage: {
         limit: DAILY_TOKEN_LIMIT,
         used: Math.min(tokensUsedToday + result.usage.totalTokens, DAILY_TOKEN_LIMIT),
