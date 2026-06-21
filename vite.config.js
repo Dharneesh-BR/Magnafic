@@ -4,12 +4,16 @@ import { resolve } from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-function netlifyFunctionsDevPlugin() {
+function netlifyFunctionsDevPlugin(mode) {
   return {
     name: 'netlify-functions-dev',
     apply: 'serve',
     configureServer(server) {
       server.middlewares.use('/.netlify/functions', async (request, response) => {
+        // Netlify Functions read server-side secrets from process.env. Reload
+        // local env values per request so an updated Gemini key does not remain
+        // stuck behind a long-running Vite process.
+        Object.assign(process.env, loadEnv(mode, process.cwd(), ''))
         const requestUrl = new URL(request.url || '/', 'http://localhost')
         const functionName = requestUrl.pathname.replace(/^\/+/, '').split('/')[0]
 
@@ -66,6 +70,12 @@ export default defineConfig(({ mode }) => {
   Object.assign(process.env, loadEnv(mode, process.cwd(), ''))
 
   return {
-    plugins: [react(), netlifyFunctionsDevPlugin()],
+    plugins: [react(), netlifyFunctionsDevPlugin(mode)],
+    server: {
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+      },
+    },
   }
 })

@@ -5,7 +5,7 @@ export default function ClientDashboard() {
   return (
     <>
       <SEO
-        title="Magnafic Intelligence OS"
+        title="Magnafic Copilot"
         description="Market intelligence and research workspace."
         path="/dashboard/client"
         noIndex

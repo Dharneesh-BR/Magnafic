@@ -14,8 +14,8 @@ const headers = {
 const RESEARCH_COST = 25
 
 const reply = (statusCode, body) => ({ statusCode, headers, body: JSON.stringify(body) })
-const asJson = (value) => JSON.stringify(value, null, 2)
-const safeParse = (value, fallback = {}) => {
+const asJson = (value) => JSON.stringify(value)
+const safeParse = (value, fallback = null) => {
   if (typeof value !== 'string') return value || fallback
   const cleaned = value.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
   try {
@@ -99,7 +99,7 @@ async function authenticateWithRest(token) {
   const authPayload = await authResponse.json().catch(() => ({}))
   const firebaseUser = authPayload.users?.[0]
   if (!authResponse.ok || !firebaseUser?.localId) {
-    const error = new Error('Please log in again to use Magnafic Intelligence OS.')
+    const error = new Error('Please log in again to use Magnafic Copilot.')
     error.statusCode = 401
     throw error
   }
@@ -119,7 +119,7 @@ async function authenticateWithRest(token) {
 async function authenticate(event) {
   const token = bearer(event)
   if (!token) {
-    const error = new Error('Please log in again to use Magnafic Intelligence OS.')
+    const error = new Error('Please log in again to use Magnafic Copilot.')
     error.statusCode = 401
     throw error
   }
@@ -158,7 +158,12 @@ async function authenticate(event) {
   }
 }
 
-async function gemini(systemInstruction, prompt, { json = true, maxOutputTokens = 4096 } = {}) {
+async function gemini(systemInstruction, prompt, {
+  json = true,
+  maxOutputTokens = 4096,
+  responseSchema,
+  thinkingBudget = 512,
+} = {}) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error('GEMINI_API_KEY is not configured.')
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
@@ -173,14 +178,30 @@ async function gemini(systemInstruction, prompt, { json = true, maxOutputTokens 
         temperature: 0.25,
         topP: 0.9,
         maxOutputTokens,
-        ...(json ? { responseMimeType: 'application/json' } : {}),
+        ...(json ? {
+          responseMimeType: 'application/json',
+          ...(responseSchema ? { responseSchema } : {}),
+        } : {}),
+        thinkingConfig: { thinkingBudget },
       },
     }),
   })
   const payload = await response.json().catch(() => ({}))
   if (!response.ok) {
-    const error = new Error(payload?.error?.message || 'Gemini could not complete the research workflow.')
+    const providerMessage = payload?.error?.message || 'Gemini could not complete the research workflow.'
+    const retryDetail = payload?.error?.details?.find?.((detail) => (
+      detail?.['@type'] === 'type.googleapis.com/google.rpc.RetryInfo'
+    ))
+    const retryText = retryDetail?.retryDelay || providerMessage.match(/retry in ([\d.]+)s/i)?.[1]
+    const retryAfter = Math.max(1, Math.ceil(Number.parseFloat(retryText) || 0))
+    const error = new Error(
+      response.status === 429
+        ? 'Gemini is temporarily at its request limit. Please wait and try again.'
+        : providerMessage
+    )
     error.statusCode = response.status === 429 ? 429 : 502
+    error.code = payload?.error?.status || `GEMINI_${response.status}`
+    error.retryAfter = retryAfter || 30
     throw error
   }
   const text = payload?.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim()
@@ -189,96 +210,165 @@ async function gemini(systemInstruction, prompt, { json = true, maxOutputTokens 
     error.statusCode = 502
     throw error
   }
-  return json ? safeParse(text) : text
+  if (!json) return text
+
+  console.info('Gemini token usage.', {
+    model,
+    promptTokens: payload?.usageMetadata?.promptTokenCount || 0,
+    outputTokens: payload?.usageMetadata?.candidatesTokenCount || 0,
+    thinkingTokens: payload?.usageMetadata?.thoughtsTokenCount || 0,
+    totalTokens: payload?.usageMetadata?.totalTokenCount || 0,
+  })
+
+  const parsed = safeParse(text)
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    const error = new Error('Gemini returned an invalid structured response.')
+    error.statusCode = 502
+    error.code = `GEMINI_INVALID_JSON_${payload?.candidates?.[0]?.finishReason || 'UNKNOWN'}`
+    throw error
+  }
+  return parsed
 }
 
 const workflowRules = `
-You are a stage inside Magnafic Intelligence OS, a market-intelligence and research workflow.
+You are Magnafic Copilot, a market-intelligence and business research assistant.
 Be concise, commercially sharp, and executive-ready. Never claim live web research, source verification,
 private knowledge, or precise current market data. Phase 1 has no web search. Treat uncited market
 statements and numeric estimates as hypotheses, clearly label assumptions, and avoid fabricated citations.
 Return only the requested output format.
 `.trim()
 
+const stringArraySchema = {
+  type: 'ARRAY',
+  items: { type: 'STRING' },
+}
+
+const finalReportSchema = {
+  type: 'OBJECT',
+  required: [
+    'executiveSummary',
+    'businessAnalysis',
+    'keyFindings',
+    'marketInsights',
+    'opportunities',
+    'risks',
+    'recommendations',
+    'nextSteps',
+    'assumptions',
+    'lowConfidenceStatements',
+  ],
+  properties: {
+    executiveSummary: { type: 'STRING' },
+    businessAnalysis: { type: 'STRING' },
+    keyFindings: stringArraySchema,
+    marketInsights: stringArraySchema,
+    opportunities: stringArraySchema,
+    risks: stringArraySchema,
+    recommendations: stringArraySchema,
+    nextSteps: stringArraySchema,
+    assumptions: stringArraySchema,
+    lowConfidenceStatements: stringArraySchema,
+    visualSuggestions: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        required: ['kind', 'title', 'description'],
+        properties: {
+          kind: { type: 'STRING', enum: ['chart', 'table', 'infographic'] },
+          title: { type: 'STRING' },
+          description: { type: 'STRING' },
+        },
+      },
+    },
+  },
+}
+
+function hasUsableReport(report) {
+  return Boolean(
+    report?.executiveSummary?.trim() &&
+    report?.businessAnalysis?.trim() &&
+    Array.isArray(report?.keyFindings) &&
+    report.keyFindings.length
+  )
+}
+
 async function runWorkflow({ question, businessContext, files, history }) {
+  const workflowStartedAt = Date.now()
+  const fileBudget = 12000
+  let remainingFileBudget = fileBudget
   const context = {
     question,
-    businessContext: businessContext || '',
+    businessContext: String(businessContext || '').slice(0, 4000),
     uploadedFiles: (files || []).map((file) => ({
       name: file.name || 'Attachment',
       type: file.type || '',
-      text: String(file.text || file.content || '').slice(0, 30000),
+      text: (() => {
+        const text = String(file.text || file.content || '')
+        const excerpt = text.slice(0, Math.max(0, remainingFileBudget))
+        remainingFileBudget -= excerpt.length
+        return excerpt
+      })(),
+    })).filter((file) => file.text),
+    previousChatHistory: (history || []).slice(-4).map((item) => ({
+      role: item.role,
+      content: String(item.content || '').slice(0, 2000),
     })),
-    previousChatHistory: (history || []).slice(-10),
   }
 
-  const scout = await gemini(
-    `${workflowRules}\nYou are the Topic Scout.`,
-    `Convert this request into research objectives.\nInput:\n${asJson(context)}\n\nReturn JSON exactly shaped as:
-{"businessProblem":"","industry":"","researchAreas":[],"keyQuestions":[],"successCriteria":[]}`
-  )
+  const report = await gemini(
+    `${workflowRules}
+You are Magnafic Copilot. Produce one practical executive research report.
+Directly analyze the business question using the supplied context.
 
-  const research = await gemini(
-    `${workflowRules}\nYou are the Research Stage. Build a rigorous hypothesis-led evidence map from the supplied context only.`,
-    `Research these objectives without pretending to have live sources.\nScout:\n${asJson(scout)}\nContext:\n${asJson(context)}
-\nReturn JSON exactly shaped as:
-{"marketInsights":[],"industryTrends":[],"opportunities":[],"risks":[],"assumptions":[]}
-Each array item should be a concise string. Put all uncertain or unverified claims in assumptions.`
-  )
+Use 3-5 items per core array and no more than 25 words per item.
+Keep executiveSummary under 140 words and businessAnalysis under 220 words.
+Clearly separate assumptions from findings. Do not invent precise market figures,
+sources, surveys, or competitor facts. Recommend at most 2 useful visuals.`,
+    `Create the executive report for:
+${asJson(context)}
 
-  const synthesis = await gemini(
-    `${workflowRules}\nYou are the Research Synthesizer.`,
-    `Synthesize the materials into decision-grade findings.\nScout:\n${asJson(scout)}\nResearch:\n${asJson(research)}\nUser context:\n${asJson(context)}
-\nReturn JSON exactly shaped as:
-{"keyFindings":[],"opportunities":[],"risks":[],"recommendations":[]}`
+Follow the response schema. Do not add citations or imply live research.`,
+    {
+      maxOutputTokens: 2800,
+      responseSchema: finalReportSchema,
+      thinkingBudget: 128,
+    }
   )
+  console.info('Research workflow stage completed.', {
+    stage: 'executive-report',
+    elapsedMs: Date.now() - workflowStartedAt,
+  })
 
-  const copy = await gemini(
-    `${workflowRules}\nYou are the executive Copywriter.`,
-    `Create a polished consultant-style report in Markdown with these headings: Executive Summary, Business Analysis, Recommendations, Next Steps.
-\nInputs:\n${asJson({ scout, research, synthesis, context })}`,
-    { json: false, maxOutputTokens: 5000 }
-  )
-
-  const compliance = await gemini(
-    `${workflowRules}\nYou are the Compliance Validator. Remove unsupported claims, lower the certainty of unverified statements, and preserve professional tone.`,
-    `Validate the draft and return structured JSON. Do not invent evidence.\nDraft:\n${copy}\nResearch:\n${asJson(research)}
-\nReturn JSON exactly shaped as:
-{"executiveSummary":"","businessAnalysis":"","recommendations":[],"nextSteps":[],"assumptions":[],"lowConfidenceStatements":[]}`
-  )
-
-  const storyboard = await gemini(
-    `${workflowRules}\nYou are the Storyboard Generator. Recommend visuals only when the supplied data can support them.`,
-    `Create visual instructions for this report.\n${asJson({ scout, research, synthesis, compliance })}
-\nReturn JSON exactly shaped as:
-{"charts":[{"type":"","title":"","description":"","data":[]}],"tables":[{"title":"","columns":[],"rows":[]}],"infographics":[{"title":"","description":""}]}`
-  )
-
-  const visualSuggestions = [
-    ...(storyboard.charts || []).map((item) => ({ ...item, kind: 'chart' })),
-    ...(storyboard.tables || []).map((item) => ({ ...item, kind: 'table' })),
-    ...(storyboard.infographics || []).map((item) => ({ ...item, kind: 'infographic' })),
-  ]
+  if (!hasUsableReport(report)) {
+    const error = new Error('Gemini did not produce a complete research report.')
+    error.statusCode = 502
+    error.code = 'GEMINI_INCOMPLETE_REPORT'
+    throw error
+  }
 
   return {
-    scout,
-    research,
-    synthesis,
-    copy,
-    compliance,
-    storyboard,
+    scout: {
+      businessProblem: question,
+      industry: '',
+      researchAreas: [],
+      keyQuestions: [],
+      successCriteria: [],
+    },
+    research: {
+      marketInsights: report.marketInsights || [],
+      opportunities: report.opportunities || [],
+      risks: report.risks || [],
+      assumptions: report.assumptions || [],
+    },
+    synthesis: {
+      keyFindings: report.keyFindings || [],
+      opportunities: report.opportunities || [],
+      risks: report.risks || [],
+      recommendations: report.recommendations || [],
+    },
     final: {
-      executiveSummary: compliance.executiveSummary || '',
-      keyFindings: synthesis.keyFindings || [],
-      marketInsights: research.marketInsights || [],
-      opportunities: synthesis.opportunities || research.opportunities || [],
-      risks: synthesis.risks || research.risks || [],
-      recommendations: compliance.recommendations?.length ? compliance.recommendations : (synthesis.recommendations || []),
-      visualSuggestions,
-      assumptions: [...new Set([...(research.assumptions || []), ...(compliance.assumptions || [])])],
-      businessAnalysis: compliance.businessAnalysis || '',
-      nextSteps: compliance.nextSteps || [],
-      lowConfidenceStatements: compliance.lowConfidenceStatements || [],
+      ...report,
+      visualSuggestions: report.visualSuggestions || [],
     },
   }
 }
@@ -307,7 +397,7 @@ async function bootstrap(client, user) {
   )
   return {
     user,
-    product: { name: 'Magnafic Intelligence OS', description: 'Your AI Business Research Partner' },
+    product: { name: 'Magnafic Copilot', description: 'Your AI Business Research Partner' },
     credits: { remaining: null },
     actionCosts: { research: RESEARCH_COST },
     sessions: sessions || [],
@@ -318,6 +408,7 @@ async function getSession(client, user, sessionId) {
   const session = await client.fetch(
     `*[_type == "chatSession" && _id == $sessionId && user.uid == $uid][0] {
       _id, sessionTitle, createdAt, updatedAt,
+      "projectQuestion": project->question,
       messages[]{_key, role, content, report, timestamp}
     }`,
     { sessionId, uid: user.uid }
@@ -402,7 +493,11 @@ async function research(client, user, body) {
 
     if (existing) {
       transaction.patch(savedSessionId, (patch) => patch
-        .set({ project: { _type: 'reference', _ref: projectId }, updatedAt: completedAt })
+        .set({
+          project: { _type: 'reference', _ref: projectId },
+          sessionTitle: title,
+          updatedAt: completedAt,
+        })
         .append('messages', [userMessage, assistantMessage]))
     } else {
       transaction.create({
@@ -417,7 +512,16 @@ async function research(client, user, body) {
       })
     }
     await transaction.commit()
-    return { sessionId: savedSessionId, projectId, userMessage, assistantMessage, report: result.final }
+    return {
+      sessionId: savedSessionId,
+      projectId,
+      userMessage,
+      assistantMessage: {
+        ...assistantMessage,
+        report: result.final,
+      },
+      report: result.final,
+    }
   } catch (error) {
     await client.patch(projectId).set({ status: 'failed' }).commit().catch(() => {})
     throw error
@@ -439,12 +543,22 @@ export async function handler(event) {
       return session ? reply(200, { session }) : reply(404, { error: 'This research session was not found.' })
     }
     if (action === 'research' || action === 'chat') return reply(200, await research(client, user, body))
-    return reply(400, { error: 'Unsupported Intelligence OS action.' })
+    return reply(400, { error: 'Unsupported Magnafic Copilot action.' })
   } catch (error) {
     const statusCode = error.statusCode || (error.code?.startsWith?.('auth/') ? 401 : 500)
     console.error('Research workflow failed.', { statusCode, message: error.message, code: error.code || '' })
+    const safeServerMessages = [
+      'GEMINI_API_KEY is not configured.',
+      'SANITY_API_TOKEN is not configured.',
+      'FIREBASE_SERVICE_ACCOUNT_KEY is not configured.',
+    ]
+    const publicMessage = safeServerMessages.includes(error.message) || String(error.code || '').startsWith('GEMINI_')
+      ? error.message
+      : 'The research workflow is temporarily unavailable. Please try again.'
     return reply(statusCode, {
-      error: statusCode >= 500 ? 'The research workflow is temporarily unavailable. Please try again.' : error.message,
+      error: statusCode >= 500 ? publicMessage : error.message,
+      code: error.code || 'RESEARCH_WORKFLOW_FAILED',
+      ...(error.retryAfter ? { retryAfter: error.retryAfter } : {}),
     })
   }
 }

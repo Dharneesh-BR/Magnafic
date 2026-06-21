@@ -2,7 +2,7 @@ import {defineArrayMember, defineField, defineType} from 'sanity'
 
 export const chatSessionSchema = defineType({
   name: 'chatSession',
-  title: 'Intelligence OS Chat Session',
+  title: 'Magnafic Copilot Chat Session',
   type: 'document',
   fields: [
     defineField({

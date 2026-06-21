@@ -30,7 +30,11 @@ export async function callAiCopilot(action, payload = {}) {
   const result = await response.json().catch(() => ({}))
 
   if (!response.ok) {
-    throw new Error(result.error || 'The AI Copilot request could not be completed.')
+    const error = new Error(result.error || 'The Magnafic Copilot request could not be completed.')
+    error.status = response.status
+    error.code = result.code || ''
+    error.retryAfter = Number(result.retryAfter) || 0
+    throw error
   }
 
   return result
