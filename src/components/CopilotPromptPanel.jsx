@@ -49,8 +49,8 @@ export default function CopilotPromptPanel({ className = '' }) {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(0,255,255,0.13),transparent_44%)]" />
 
         <div className="relative text-center">
-          <h2 className="mb-4 text-2xl font-semibold text-white sm:text-3xl">
-            Start Your Journey Now
+          <h2 className="mb-4 text-2xl font-extrabold text-white sm:text-3xl">
+            Start Scaling Today.
           </h2>
           <img
             src="/Copilot 1.png"
@@ -82,10 +82,7 @@ export default function CopilotPromptPanel({ className = '' }) {
                 className="max-h-32 min-h-16 w-full resize-none border-0 bg-transparent px-1 py-1 text-sm leading-6 text-white outline-none placeholder:text-white/50 sm:text-base"
               />
               <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-1.5 text-[11px] text-white/55">
-                  <Clock3 className="h-3.5 w-3.5" />
-                  1 credit per message
-                </span>
+                
                 <button
                   type="submit"
                   disabled={!prompt.trim()}
