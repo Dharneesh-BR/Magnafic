@@ -257,41 +257,26 @@ const stringArraySchema = {
   items: { type: 'STRING' },
 }
 
-const finalReportSchema = {
+const dynamicReportSchema = {
   type: 'OBJECT',
-  required: [
-    'executiveSummary',
-    'businessAnalysis',
-    'keyFindings',
-    'marketInsights',
-    'opportunities',
-    'risks',
-    'recommendations',
-    'nextSteps',
-    'assumptions',
-    'lowConfidenceStatements',
-  ],
+  required: ['title', 'sections'],
   properties: {
-    executiveSummary: { type: 'STRING' },
-    businessAnalysis: { type: 'STRING' },
-    keyFindings: stringArraySchema,
-    marketInsights: stringArraySchema,
-    opportunities: stringArraySchema,
-    risks: stringArraySchema,
-    recommendations: stringArraySchema,
-    nextSteps: stringArraySchema,
-    assumptions: stringArraySchema,
-    lowConfidenceStatements: stringArraySchema,
-    visualSuggestions: {
+    title: { type: 'STRING' },
+    sections: {
       type: 'ARRAY',
       items: {
         type: 'OBJECT',
-        required: ['kind', 'title', 'description', 'labels', 'values', 'columns', 'rows'],
+        required: [
+          'title', 'contentType', 'text', 'items', 'description',
+          'chartType', 'labels', 'values', 'columns', 'rows',
+        ],
         properties: {
-          kind: { type: 'STRING', enum: ['chart', 'table', 'infographic'] },
-          chartType: { type: 'STRING', enum: ['bar', 'pie', 'none'] },
           title: { type: 'STRING' },
+          contentType: { type: 'STRING', enum: ['text', 'list', 'table', 'chart'] },
+          text: { type: 'STRING' },
+          items: stringArraySchema,
           description: { type: 'STRING' },
+          chartType: { type: 'STRING', enum: ['bar', 'pie', 'none'] },
           labels: stringArraySchema,
           values: {
             type: 'ARRAY',
@@ -313,11 +298,22 @@ const finalReportSchema = {
 
 function hasUsableReport(report) {
   return Boolean(
-    report?.executiveSummary?.trim() &&
-    report?.businessAnalysis?.trim() &&
-    Array.isArray(report?.keyFindings) &&
-    report.keyFindings.length
+    report?.title?.trim() &&
+    Array.isArray(report?.sections) &&
+    report.sections.some((section) => (
+      section?.text?.trim() ||
+      section?.items?.length ||
+      section?.rows?.length ||
+      section?.values?.length
+    ))
   )
+}
+
+function reportPreview(report) {
+  const firstContent = (report?.sections || []).find((section) => (
+    section?.text?.trim() || section?.items?.length
+  ))
+  return firstContent?.text?.trim() || firstContent?.items?.[0] || report?.title || 'Workflow completed'
 }
 
 async function runWorkflow({ question, businessContext, files, history, tokenBudget, workflow }) {
@@ -381,29 +377,28 @@ ${workflow.outputInstructions}
 ${workflowPrompt}
 
 Apply the selected workflow faithfully to the user's topic. The workflow instructions
-control the methodology and the output instructions control the deliverable.
+control the methodology and the Output Instructions from Sanity exclusively control
+the deliverable's section names, order, and content.
 
-Use 3-5 items per core array and no more than 25 words per item.
-Keep executiveSummary under 140 words and businessAnalysis under 220 words.
-Clearly separate assumptions from findings. Do not invent precise market figures,
-sources, surveys, or competitor facts.
+Do not automatically add Executive Summary, Key Findings, Market Insights,
+Opportunities, Risks, Business Analysis, Recommendations, Next Steps, Assumptions,
+or any other standard report section unless the Sanity Output Instructions request it.
 
-Adapt the report to the question. Avoid repeating the same point across sections.
-Use visualSuggestions only when they improve the answer:
-- For numeric comparisons, return kind "chart", chartType "bar" or "pie", matching labels and numeric values.
-- Pie values must represent parts of one whole.
-- For categorical comparisons, return kind "table" with columns and equally sized rows.
-- Put [] in unused fields.
-- Use at most 3 visuals.
-- If numeric values are estimates, say so in the description and assumptions.
-- If no defensible data exists, return no chart rather than inventing numbers.`,
+Return the requested deliverable as an ordered sections array:
+- Use contentType "text" for narrative sections and put the content in text.
+- Use contentType "list" only when the requested section is naturally a list.
+- Use contentType "table" when the instructions request a table; populate columns and rows.
+- Use contentType "chart" only when defensible numeric data is available; populate chartType, labels, and values.
+- Keep unused fields empty using "" or [].
+- Preserve the exact section intent and sequence requested in Sanity.
+- Do not invent precise figures, sources, surveys, or competitor facts.`,
     `Create the executive report for:
 ${asJson(context)}
 
 Follow the response schema. Do not add citations or imply live research.`,
     {
       maxOutputTokens: availableOutputTokens,
-      responseSchema: finalReportSchema,
+      responseSchema: dynamicReportSchema,
       thinkingBudget: 128,
     }
   )
@@ -428,22 +423,9 @@ Follow the response schema. Do not add citations or imply live research.`,
       keyQuestions: [],
       successCriteria: [],
     },
-    research: {
-      marketInsights: report.marketInsights || [],
-      opportunities: report.opportunities || [],
-      risks: report.risks || [],
-      assumptions: report.assumptions || [],
-    },
-    synthesis: {
-      keyFindings: report.keyFindings || [],
-      opportunities: report.opportunities || [],
-      risks: report.risks || [],
-      recommendations: report.recommendations || [],
-    },
-    final: {
-      ...report,
-      visualSuggestions: report.visualSuggestions || [],
-    },
+    research: { sections: report.sections || [] },
+    synthesis: { title: report.title, sections: report.sections || [] },
+    final: report,
     usage: generated.usage,
   }
 }
@@ -667,7 +649,7 @@ async function research(client, user, body) {
         })
     const completedAt = new Date().toISOString()
     const userMessage = message('user', question, now)
-    const assistantContent = workflow ? result.final.executiveSummary : result.content
+    const assistantContent = workflow ? reportPreview(result.final) : result.content
     const assistantMessage = message(
       'assistant',
       assistantContent,

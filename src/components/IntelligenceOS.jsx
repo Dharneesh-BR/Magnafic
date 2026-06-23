@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
-  AlertCircle, ArrowLeft, BarChart3, ChevronDown, FileSearch, Lightbulb,
+  AlertCircle, ArrowLeft, BarChart3, ChevronDown, Lightbulb,
   BookOpen, Loader2, LogOut, Menu, MessageSquarePlus, Mic, MicOff, Newspaper,
-  PanelLeftClose, PanelLeftOpen, Send, ShieldAlert, Sparkles,
-  Table2, Target, X,
+  PanelLeftClose, PanelLeftOpen, Send, Sparkles,
+  Table2, X,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { callResearchWorkflow } from '../lib/aiCopilot'
@@ -179,8 +179,63 @@ function Visuals({ visuals = [] }) {
   )
 }
 
+function sectionTone(title = '') {
+  const value = title.toLowerCase()
+  if (/(risk|threat|challenge|weakness|con)/.test(value)) return 'red'
+  if (/(opportun|benefit|strength|advantage|pro)/.test(value)) return 'green'
+  if (/(recommend|strategy|action|roadmap)/.test(value)) return 'blue'
+  if (/(next|implementation|timeline)/.test(value)) return 'teal'
+  if (/(assumption|limitation|caution)/.test(value)) return 'amber'
+  if (/(insight|analysis|market|research)/.test(value)) return 'violet'
+  return 'cyan'
+}
+
+function legacyToDynamicReport(report) {
+  if (!report || report.sections?.length) return report
+  const sections = []
+  const addText = (title, text) => text?.trim() && sections.push({ title, contentType: 'text', text })
+  const addList = (title, items) => items?.length && sections.push({ title, contentType: 'list', items })
+  addText('Executive summary', report.executiveSummary)
+  addList('Key findings', report.keyFindings)
+  addList('Market insights', report.marketInsights)
+  addList('Opportunities', report.opportunities)
+  addList('Risks', report.risks)
+  addText('Business analysis', report.businessAnalysis)
+  addList('Recommendations', report.recommendations)
+  ;(report.visualSuggestions || []).forEach((visual) => sections.push({
+    ...visual,
+    contentType: visual.kind === 'table' ? 'table' : 'chart',
+  }))
+  addList('Next steps', report.nextSteps)
+  addList('Assumptions and limitations', [
+    ...(report.assumptions || []),
+    ...(report.lowConfidenceStatements || []),
+  ])
+  return { title: report.title || 'Research report', sections }
+}
+
+function DynamicSection({ section }) {
+  if (!section?.title) return null
+  if (section.contentType === 'chart') return <Visuals visuals={[{ ...section, kind: 'chart' }]} />
+  if (section.contentType === 'table') return <Visuals visuals={[{ ...section, kind: 'table' }]} />
+  if (section.contentType === 'list') {
+    return <ListCard title={section.title} items={section.items} icon={Sparkles} tone={sectionTone(section.title)} />
+  }
+  if (!section.text?.trim()) return null
+  return (
+    <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/[0.03] p-5 sm:p-6">
+      <h3 className="text-sm font-extrabold uppercase tracking-[0.12em] text-cyan-200">{section.title}</h3>
+      {section.description && <p className="mt-2 text-sm text-white/50">{section.description}</p>}
+      <div className="mt-4 text-sm leading-7 text-white/80 sm:text-base">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.text}</ReactMarkdown>
+      </div>
+    </section>
+  )
+}
+
 function Report({ report, question, user, workflowName }) {
-  if (!report) return null
+  const dynamicReport = legacyToDynamicReport(report)
+  if (!dynamicReport) return null
   return (
     <article className="mx-auto w-full max-w-5xl space-y-5 pb-8">
       {question && (
@@ -205,57 +260,32 @@ function Report({ report, question, user, workflowName }) {
         <img src="/Copilot 5.png" alt="" className="h-11 w-11 object-contain" />
         <div>
           <p className="font-extrabold text-white">Magnafic Copilot</p>
-          <p className="text-xs text-cyan-100/50">{workflowName || 'Executive research report'}</p>
+          <p className="text-xs text-cyan-100/50">{workflowName || 'Copilot response'}</p>
         </div>
       </div>
-      <section className="rounded-3xl border border-cyan-300/25 bg-gradient-to-br from-cyan-300/10 to-violet-400/10 p-6 shadow-[0_0_45px_rgba(0,255,255,0.08)] sm:p-8">
-        <p className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.18em] text-cyan-300">
-          <Sparkles className="h-4 w-4" /> Executive summary
-        </p>
-        <p className="mt-4 text-base leading-8 text-white/90 sm:text-lg">{report.executiveSummary}</p>
-      </section>
-
-      <div className="grid gap-5 lg:grid-cols-2">
-        <ListCard title="Key findings" items={report.keyFindings} icon={FileSearch} />
-        <ListCard title="Market insights" items={report.marketInsights} icon={BarChart3} tone="violet" />
-        <ListCard title="Opportunities / Pros" items={report.opportunities} icon={Lightbulb} tone="green" />
-        <ListCard title="Risks / Cons" items={report.risks} icon={ShieldAlert} tone="red" />
-      </div>
-
-      {report.businessAnalysis && (
-        <details className="group rounded-2xl border border-white/10 bg-white/5 p-5" open>
-          <summary className="flex cursor-pointer list-none items-center justify-between font-extrabold text-white">
-            Business analysis <ChevronDown className="h-5 w-5 transition group-open:rotate-180" />
-          </summary>
-          <p className="mt-4 whitespace-pre-line text-sm leading-7 text-white/70">{report.businessAnalysis}</p>
-        </details>
+      {dynamicReport.title && (
+        <h2 className="rounded-3xl border border-cyan-300/20 bg-gradient-to-br from-cyan-300/10 to-violet-400/10 px-6 py-5 text-xl font-extrabold text-white shadow-[0_0_45px_rgba(0,255,255,0.06)] sm:text-2xl">
+          {dynamicReport.title}
+        </h2>
       )}
+      {(dynamicReport.sections || []).map((section, index) => (
+        <DynamicSection key={`${section.title}-${index}`} section={section} />
+      ))}
 
-      <ListCard title="Recommendations" items={report.recommendations} icon={Target} tone="blue" />
-      <Visuals visuals={report.visualSuggestions} />
-      <ListCard title="Next steps" items={report.nextSteps} icon={Sparkles} tone="teal" />
-
-      {(report.assumptions?.length || report.lowConfidenceStatements?.length) && (
-        <details className="group rounded-2xl border border-amber-300/20 bg-amber-300/5 p-5">
-          <summary className="flex cursor-pointer list-none items-center justify-between font-extrabold text-amber-200">
-            Assumptions and limitations <ChevronDown className="h-5 w-5 transition group-open:rotate-180" />
-          </summary>
-          <ul className="mt-4 space-y-2 text-sm leading-6 text-white/65">
-            {[...(report.assumptions || []), ...(report.lowConfidenceStatements || [])].map((item, index) => (
-              <li key={index}>• {item}</li>
-            ))}
-          </ul>
-        </details>
-      )}
     </article>
   )
 }
 
 function isUsableReport(report) {
+  const dynamicReport = legacyToDynamicReport(report)
   return Boolean(
-    report?.executiveSummary?.trim() ||
-    report?.keyFindings?.length ||
-    report?.marketInsights?.length
+    dynamicReport?.title?.trim() &&
+    dynamicReport?.sections?.some((section) => (
+      section?.text?.trim() ||
+      section?.items?.length ||
+      section?.rows?.length ||
+      section?.values?.length
+    ))
   )
 }
 
@@ -697,8 +727,8 @@ export default function IntelligenceOS({ onClose }) {
               {sending && (
                 <div className="mt-8 rounded-2xl border border-cyan-300/20 bg-cyan-300/5 px-6 py-5">
                   <Loader2 className="mx-auto h-6 w-6 animate-spin text-cyan-300" />
-                  <p className="mt-3 font-bold">Building your intelligence report…</p>
-                  <p className="mt-1 text-sm text-white/50">Analyzing the question and preparing concise executive recommendations.</p>
+                  <p className="mt-3 font-bold">Building your workflow response…</p>
+                  <p className="mt-1 text-sm text-white/50">Following the selected workflow and its Sanity output instructions.</p>
                 </div>
               )}
             </div>
