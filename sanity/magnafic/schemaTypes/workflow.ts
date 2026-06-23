@@ -35,6 +35,15 @@ export const workflowSchema = defineType({
       validation: (Rule) => Rule.required().min(20).max(1000),
     }),
     defineField({
+      name: 'exampleInput',
+      title: 'Example Input',
+      type: 'text',
+      rows: 3,
+      description:
+        'Example user question shown in the Copilot search box when this workflow is selected. Use it to guide users on how to ask a strong question.',
+      validation: (Rule) => Rule.max(500),
+    }),
+    defineField({
       name: 'workflowInstructions',
       title: 'Workflow Instructions',
       type: 'text',
