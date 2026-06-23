@@ -1,10 +1,10 @@
-import { CheckCircle2, MinusCircle } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 import CopilotPromptPanel from './CopilotPromptPanel'
 
 const growthRules = [
-'Reduce operating costs by up to 50%',
-'Make critical business decisions up to 70% faster',
-'Reduce consulting costs: up to 80% (vs traditional BIG consulting models)'
+'Reduce operating costs by 50%',
+'Make critical business decisions 70% faster',
+'Reduce consulting costs by 80% (vs traditional BIG consulting models)'
 ]
 
 export default function ValueProp() {
@@ -19,24 +19,17 @@ export default function ValueProp() {
             
             <div className="relative">
             <h2 className="mb-8 text-center text-2xl font-extrabold leading-tight text-white sm:text-left sm:text-3xl">
-              The next generation of consulting is here - 
-              <span className="text-cyan-300"> Top 1% Experts + Agentic AI.</span>
+              The Next-Gen <br/>Consulting is here - 
+              <span className=" block text-cyan-300"> Top 1% Experts + Agentic AI.</span>
             </h2>
 
-            <ul className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              {growthRules.map((rule, index) => (
+            <ul className="mx-auto grid max-w-xl gap-4 text-left sm:mx-0 sm:grid-cols-1 lg:gap-5">
+              {growthRules.map((rule) => (
                 <li
                   key={rule}
-                  className={`flex items-start justify-start gap-2 py-1 text-sm font-extrabold sm:text-xl ${index < 2 ? 'text-red-100' : 'text-white'}`}
+                  className="flex items-start gap-3 px-1 py-1 text-base font-extrabold leading-6 text-white sm:px-0 sm:text-xl sm:leading-7"
                 >
-                  {index < 2 ?
-                  (
-                    <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-cyan-300" />
-                  )
-                  :
-                  (
-                    <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-cyan-300" />
-                  )}
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-cyan-300 sm:h-5 sm:w-5" />
                   <span>{rule}</span>
                 </li>
               ))}
