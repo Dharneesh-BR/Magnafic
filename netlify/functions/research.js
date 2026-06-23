@@ -12,9 +12,18 @@ const headers = {
 }
 
 const DAILY_TOKEN_LIMIT = 10000
+const ADMIN_TEST_TOKEN_LIMIT = Number(process.env.ADMIN_TEST_TOKEN_LIMIT || 1000000)
 
 const reply = (statusCode, body) => ({ statusCode, headers, body: JSON.stringify(body) })
 const asJson = (value) => JSON.stringify(value)
+const adminTesterEmails = () => String(process.env.ADMIN_TEST_EMAILS || process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean)
+const hasAdminTokenAccess = (user) => (
+  ['admin', 'superadmin', 'owner'].includes(String(user?.role || '').toLowerCase()) ||
+  adminTesterEmails().includes(String(user?.email || '').toLowerCase())
+)
 const safeParse = (value, fallback = null) => {
   if (typeof value !== 'string') return value || fallback
   const cleaned = value.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
@@ -165,7 +174,12 @@ async function gemini(systemInstruction, prompt, {
   thinkingBudget = 512,
 } = {}) {
   const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('GEMINI_API_KEY is not configured.')
+  if (!apiKey) {
+    const error = new Error('AI provider API key is not configured.')
+    error.statusCode = 502
+    error.code = 'AI_PROVIDER_NOT_CONFIGURED'
+    throw error
+  }
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`
   const response = await fetch(endpoint, {
@@ -188,7 +202,7 @@ async function gemini(systemInstruction, prompt, {
   })
   const payload = await response.json().catch(() => ({}))
   if (!response.ok) {
-    const providerMessage = payload?.error?.message || 'Gemini could not complete the research workflow.'
+    const providerMessage = payload?.error?.message || 'The AI provider could not complete the research workflow.'
     const retryDetail = payload?.error?.details?.find?.((detail) => (
       detail?.['@type'] === 'type.googleapis.com/google.rpc.RetryInfo'
     ))
@@ -196,17 +210,17 @@ async function gemini(systemInstruction, prompt, {
     const retryAfter = Math.max(1, Math.ceil(Number.parseFloat(retryText) || 0))
     const error = new Error(
       response.status === 429
-        ? 'Gemini is temporarily at its request limit. Please wait and try again.'
-        : providerMessage
+        ? 'Magnafic Copilot is temporarily at its request limit. Please wait and try again.'
+        : 'Magnafic Copilot could not complete this request right now. Please try again.'
     )
     error.statusCode = response.status === 429 ? 429 : 502
-    error.code = payload?.error?.status || `GEMINI_${response.status}`
+    error.code = payload?.error?.status || `AI_PROVIDER_${response.status}`
     error.retryAfter = retryAfter || 30
     throw error
   }
   const text = payload?.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim()
   if (!text) {
-    const error = new Error('Gemini returned an empty workflow result.')
+    const error = new Error('Magnafic Copilot returned an empty result. Please try again.')
     error.statusCode = 502
     throw error
   }
@@ -217,14 +231,14 @@ async function gemini(systemInstruction, prompt, {
     thinkingTokens: payload?.usageMetadata?.thoughtsTokenCount || 0,
     totalTokens: payload?.usageMetadata?.totalTokenCount || 0,
   }
-  console.info('Gemini token usage.', usage)
+  console.info('AI provider token usage.', usage)
   if (!json) return { text, usage }
 
   const parsed = safeParse(text)
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    const error = new Error('Gemini returned an invalid structured response.')
+    const error = new Error('Magnafic Copilot returned an incomplete structured response. Please try again.')
     error.statusCode = 502
-    error.code = `GEMINI_INVALID_JSON_${payload?.candidates?.[0]?.finishReason || 'UNKNOWN'}`
+    error.code = `AI_PROVIDER_INVALID_JSON_${payload?.candidates?.[0]?.finishReason || 'UNKNOWN'}`
     throw error
   }
   return { data: parsed, usage }
@@ -400,9 +414,9 @@ Follow the response schema. Do not add citations or imply live research.`,
   })
 
   if (!hasUsableReport(report)) {
-    const error = new Error('Gemini did not produce a complete research report.')
+    const error = new Error('Magnafic Copilot did not produce a complete research report. Please try again.')
     error.statusCode = 502
-    error.code = 'GEMINI_INCOMPLETE_REPORT'
+    error.code = 'AI_PROVIDER_INCOMPLETE_REPORT'
     throw error
   }
 
@@ -510,18 +524,22 @@ async function bootstrap(client, user) {
         workflowName,
         "slug": slug.current,
         description,
+        exampleInput,
         priority
       }`
     ),
   ])
   const used = (usageValues || []).reduce((total, value) => total + (Number(value) || 0), 0)
+  const adminTokenAccess = hasAdminTokenAccess(user)
+  const limit = adminTokenAccess ? ADMIN_TEST_TOKEN_LIMIT : DAILY_TOKEN_LIMIT
   return {
     user,
     product: { name: 'Magnafic Copilot', description: 'Your AI Business Research Partner' },
     tokenUsage: {
-      limit: DAILY_TOKEN_LIMIT,
+      limit,
       used,
-      remaining: Math.max(DAILY_TOKEN_LIMIT - used, 0),
+      remaining: Math.max(limit - used, 0),
+      adminTestingAccess: adminTokenAccess,
     },
     workflows: workflows || [],
     sessions: sessions || [],
@@ -568,6 +586,7 @@ async function research(client, user, body) {
       workflowName,
       "slug": slug.current,
       description,
+      exampleInput,
       workflowInstructions,
       outputInstructions,
       priority,
@@ -601,8 +620,10 @@ async function research(client, user, body) {
     { uid: user.uid, dayStart: dayStart.toISOString() }
   )
   const tokensUsedToday = (usageValues || []).reduce((total, value) => total + (Number(value) || 0), 0)
-  const tokensRemaining = Math.max(DAILY_TOKEN_LIMIT - tokensUsedToday, 0)
-  if (tokensRemaining < 1000) {
+  const adminTokenAccess = hasAdminTokenAccess(user)
+  const tokenLimit = adminTokenAccess ? ADMIN_TEST_TOKEN_LIMIT : DAILY_TOKEN_LIMIT
+  const tokensRemaining = Math.max(tokenLimit - tokensUsedToday, 0)
+  if (!adminTokenAccess && tokensRemaining < 1000) {
     const error = new Error('Your daily 10,000-token limit has been reached. It resets at 00:00 UTC.')
     error.statusCode = 429
     error.code = 'DAILY_TOKEN_LIMIT_REACHED'
@@ -714,9 +735,10 @@ async function research(client, user, body) {
         slug: workflow?.slug || '',
       },
       tokenUsage: {
-        limit: DAILY_TOKEN_LIMIT,
-        used: Math.min(tokensUsedToday + result.usage.totalTokens, DAILY_TOKEN_LIMIT),
-        remaining: Math.max(DAILY_TOKEN_LIMIT - tokensUsedToday - result.usage.totalTokens, 0),
+        limit: tokenLimit,
+        used: Math.min(tokensUsedToday + result.usage.totalTokens, tokenLimit),
+        remaining: Math.max(tokenLimit - tokensUsedToday - result.usage.totalTokens, 0),
+        adminTestingAccess: adminTokenAccess,
         lastRequest: result.usage,
       },
     }
@@ -745,13 +767,8 @@ export async function handler(event) {
   } catch (error) {
     const statusCode = error.statusCode || (error.code?.startsWith?.('auth/') ? 401 : 500)
     console.error('Research workflow failed.', { statusCode, message: error.message, code: error.code || '' })
-    const safeServerMessages = [
-      'GEMINI_API_KEY is not configured.',
-      'SANITY_API_TOKEN is not configured.',
-      'FIREBASE_SERVICE_ACCOUNT_KEY is not configured.',
-    ]
-    const publicMessage = safeServerMessages.includes(error.message) || String(error.code || '').startsWith('GEMINI_')
-      ? error.message
+    const publicMessage = statusCode === 429
+      ? 'Magnafic Copilot is temporarily at its request limit. Please try again shortly.'
       : 'The research workflow is temporarily unavailable. Please try again.'
     return reply(statusCode, {
       error: statusCode >= 500 ? publicMessage : error.message,

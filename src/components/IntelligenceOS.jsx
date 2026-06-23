@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
-  AlertCircle, ArrowLeft, BarChart3, ChevronDown, Clock3, FileSearch, Lightbulb,
+  AlertCircle, ArrowLeft, BarChart3, ChevronDown, FileSearch, Lightbulb,
   BookOpen, Loader2, LogOut, Menu, MessageSquarePlus, Mic, MicOff, Newspaper,
-  PanelLeftClose, PanelLeftOpen, Paperclip, Send, ShieldAlert, Sparkles,
+  PanelLeftClose, PanelLeftOpen, Send, ShieldAlert, Sparkles,
   Table2, Target, X,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -484,7 +484,7 @@ export default function IntelligenceOS({ onClose }) {
         setError(submitError.message)
       } else if (submitError.status === 429) {
         setRetrySeconds(submitError.retryAfter || 30)
-        setError('Gemini has reached its current request limit. Your question is preserved—retry when the countdown ends.')
+        setError('Magnafic Copilot has reached its current request limit. Your question is preserved—retry when the countdown ends.')
       } else {
         setError(submitError.message)
       }
@@ -510,26 +510,6 @@ export default function IntelligenceOS({ onClose }) {
     recognition.onend = () => { setIsListening(false); recognitionRef.current = null }
     recognitionRef.current = recognition
     recognition.start()
-  }
-
-  const attachFiles = async (event) => {
-    const selected = Array.from(event.target.files || []).slice(0, 5)
-    let remainingCharacters = 12000
-    const readable = []
-
-    for (const file of selected) {
-      if (remainingCharacters <= 0) break
-      const excerpt = await file.slice(0, remainingCharacters).text()
-      readable.push({
-        name: file.name,
-        type: file.type,
-        text: excerpt,
-      })
-      remainingCharacters -= excerpt.length
-    }
-
-    setFiles(readable)
-    event.target.value = ''
   }
 
   if (loading) return (
@@ -560,6 +540,10 @@ export default function IntelligenceOS({ onClose }) {
     || messages.find((item) => item.role === 'user')?.content
     || prompt
   const selectedWorkflow = workspace.workflows?.find((workflow) => workflow._id === selectedWorkflowId)
+  const tokenUsage = workspace.tokenUsage || {}
+  const tokenLimit = tokenUsage.limit || 10000
+  const tokenUsed = tokenUsage.used || 0
+  const tokenPercent = Math.min((tokenUsed / tokenLimit) * 100, 100)
 
   return (
     <section className="fixed inset-0 z-50 flex overflow-hidden bg-[#000047] text-white">
@@ -635,22 +619,19 @@ export default function IntelligenceOS({ onClose }) {
         </div>
         <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-3">
           <div className="flex items-center justify-between text-xs font-bold text-white">
-            <span>Daily tokens</span>
-            <span>{(workspace.tokenUsage?.used || 0).toLocaleString()} / {(workspace.tokenUsage?.limit || 10000).toLocaleString()}</span>
+            <span>{tokenUsage.adminTestingAccess ? 'Admin testing tokens' : 'Daily tokens'}</span>
+            <span>{tokenUsed.toLocaleString()} / {tokenLimit.toLocaleString()}</span>
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
             <div
               className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-400 transition-all"
-              style={{
-                width: `${Math.min(
-                  ((workspace.tokenUsage?.used || 0) / (workspace.tokenUsage?.limit || 10000)) * 100,
-                  100
-                )}%`,
-              }}
+              style={{ width: `${tokenPercent}%` }}
             />
           </div>
           <p className="mt-2 text-[11px] text-white/50">
-            {(workspace.tokenUsage?.remaining ?? 10000).toLocaleString()} tokens remaining today
+            {tokenUsage.adminTestingAccess
+              ? 'Expanded backend testing access enabled'
+              : `${(tokenUsage.remaining ?? 10000).toLocaleString()} tokens remaining today`}
           </p>
         </div>
         <button
@@ -696,7 +677,7 @@ export default function IntelligenceOS({ onClose }) {
               <h2 className="mt-2 bg-gradient-to-r from-cyan-300 via-violet-300 to-pink-300 bg-clip-text text-3xl font-semibold text-transparent">
                 Hello, {workspace.user.name?.split(' ')[0] || 'there'}
               </h2>
-              <p className="mt-3 text-lg text-white/75">What strategic decision should we research?</p>
+              <p className="mt-3 text-lg text-white/75">What should we research?</p>
               {hasIncompleteStoredReport && (
                 <div className="mt-6 max-w-xl rounded-2xl border border-amber-300/25 bg-amber-300/10 px-5 py-4 text-left">
                   <p className="font-bold text-amber-200">This report needs to be regenerated</p>
@@ -738,21 +719,35 @@ export default function IntelligenceOS({ onClose }) {
                 )}
               </div>
             )}
-            <div className={`mb-3 ${isFreshResearch ? '' : 'mx-auto max-w-full'}`}>
-              <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-cyan-200/80">
-                Choose workflow
-              </p>
-              <div className="copilot-scrollbar flex gap-2 overflow-x-auto pb-1">
+            <div className="mb-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-cyan-200/80">
+                  Choose Insight Area
+                </p>
+                {selectedWorkflowId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedWorkflowId('')
+                      setError('')
+                    }}
+                    className="text-[11px] font-bold text-white/45 transition hover:text-cyan-200"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:grid-cols-6">
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedWorkflowId('')
                     setError('')
                   }}
-                  className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition ${
+                  className={`min-h-11 rounded-lg border px-2 py-2 text-center text-[10px] font-extrabold leading-3.5 transition sm:text-[11px] ${
                     !selectedWorkflowId
                       ? 'border-cyan-300 bg-cyan-300 text-[#000047] shadow-[0_0_18px_rgba(34,211,238,0.22)]'
-                      : 'border-white/15 bg-white/5 text-white/65 hover:border-cyan-300/35 hover:text-white'
+                      : 'border-white/15 bg-white/5 text-white/70 hover:border-cyan-300/35 hover:bg-cyan-300/10 hover:text-white'
                   }`}
                 >
                   General AI Chat
@@ -765,10 +760,10 @@ export default function IntelligenceOS({ onClose }) {
                       setSelectedWorkflowId(workflow._id)
                       setError('')
                     }}
-                    className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition ${
+                    className={`min-h-11 rounded-lg border px-2 py-2 text-center text-[10px] font-extrabold leading-3.5 transition sm:text-[11px] ${
                       selectedWorkflowId === workflow._id
                         ? 'border-cyan-300 bg-cyan-300 text-[#000047] shadow-[0_0_18px_rgba(34,211,238,0.22)]'
-                        : 'border-white/15 bg-white/5 text-white/65 hover:border-cyan-300/35 hover:text-white'
+                        : 'border-white/15 bg-white/5 text-white/70 hover:border-cyan-300/35 hover:bg-cyan-300/10 hover:text-white'
                     }`}
                     title={workflow.description}
                   >
@@ -780,44 +775,30 @@ export default function IntelligenceOS({ onClose }) {
                   </span>
                 )}
               </div>
-              {selectedWorkflow?.description && isFreshResearch && (
-                <p className="mt-2 line-clamp-2 text-xs leading-5 text-white/45">
+              {selectedWorkflow?.description && (
+                <p className="mt-3 rounded-xl border border-cyan-300/15 bg-cyan-300/5 px-4 py-3 text-xs leading-5 text-cyan-50/70">
                   {selectedWorkflow.description}
                 </p>
               )}
             </div>
-            <div className={`copilot-prompt-glow p-[2px] transition-all duration-300 ${isFreshResearch ? 'rounded-[2rem]' : 'rounded-full'}`}>
-              <div className={`bg-[#08085c] transition-all duration-300 ${isFreshResearch ? 'rounded-[calc(2rem-2px)] px-5 py-3' : 'flex items-center gap-2 rounded-full py-2 pl-5 pr-2'}`}>
-                <textarea ref={textareaRef} rows={isFreshResearch ? 2 : 1} value={prompt} onChange={(event) => setPrompt(event.target.value)}
+            <div className="copilot-prompt-glow rounded-full p-[2px] transition-all duration-300">
+              <div className="flex items-center gap-2 rounded-full bg-[#08085c] py-2 pl-5 pr-2 transition-all duration-300">
+                <textarea ref={textareaRef} rows={1} value={prompt} onChange={(event) => setPrompt(event.target.value)}
                   onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); submit() } }}
-                  placeholder={isFreshResearch ? 'Ask a strategic business or market question' : 'Ask another research question'} disabled={sending}
-                  className={`w-full resize-none bg-transparent outline-none placeholder:text-white/40 ${isFreshResearch ? 'min-h-12 py-2' : 'h-10 min-h-10 overflow-hidden py-2 text-sm'}`} />
-                {isFreshResearch && <details className="mb-2 text-xs text-white/45">
-                  <summary className="cursor-pointer">Add business context (optional)</summary>
-                  <textarea value={businessContext} onChange={(event) => setBusinessContext(event.target.value)} rows={2}
-                    placeholder="Company, market, constraints, goals, known data…" className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white outline-none" />
-                </details>}
-                <div className={`flex items-center ${isFreshResearch ? 'justify-between' : 'shrink-0'}`}>
-                  {isFreshResearch && <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1 text-[11px] text-white/45"><Clock3 className="h-3.5 w-3.5" /> Structured research report</span>
-                    <label className="flex cursor-pointer items-center gap-1 text-[11px] text-cyan-200 hover:text-white">
-                      <Paperclip className="h-3.5 w-3.5" />
-                      {files.length ? `${files.length} attached` : 'Attach context'}
-                      <input type="file" multiple accept=".txt,.md,.csv,.json,text/*" onChange={attachFiles} className="sr-only" />
-                    </label>
-                  </div>}
+                  placeholder={selectedWorkflow?.exampleInput || (selectedWorkflow ? `Ask using ${selectedWorkflow.workflowName}` : 'Ask Magnafic Copilot')} disabled={sending}
+                  className="h-10 min-h-10 w-full resize-none overflow-hidden bg-transparent py-2 text-sm outline-none placeholder:text-white/40" />
+                <div className="flex shrink-0 items-center">
                   <div className="flex gap-2">
-                    <button type="button" onClick={voice} disabled={sending} className={`flex items-center justify-center rounded-full border ${isFreshResearch ? 'h-10 w-10' : 'h-9 w-9'} ${isListening ? 'border-red-300 bg-red-400/20 text-red-200' : 'border-cyan-300/30 bg-cyan-300/10 text-cyan-200'}`}>
+                    <button type="button" onClick={voice} disabled={sending} className={`flex h-9 w-9 items-center justify-center rounded-full border ${isListening ? 'border-red-300 bg-red-400/20 text-red-200' : 'border-cyan-300/30 bg-cyan-300/10 text-cyan-200'}`}>
                       {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                     </button>
-                    <button type="submit" disabled={!prompt.trim() || sending || retrySeconds > 0} className={`flex items-center justify-center rounded-full bg-cyan-400 text-[#000047] disabled:bg-white/15 disabled:text-white/30 ${isFreshResearch ? 'h-10 w-10' : 'h-9 w-9'}`}>
+                    <button type="submit" disabled={!prompt.trim() || sending || retrySeconds > 0} className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-400 text-[#000047] disabled:bg-white/15 disabled:text-white/30">
                       {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                     </button>
                   </div>
                 </div>
               </div>
             </div>
-            {isFreshResearch && <p className="mt-2 text-center text-[11px] text-white/30">Review assumptions before using recommendations for material decisions.</p>}
           </form>
         </div>
       </div>

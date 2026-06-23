@@ -13,7 +13,7 @@ export default function Footer() {
               </Link>
             </div>
             <p className="text-gray-300">
-              Top 1% Elite Consulting for Consumer Brands
+              Top 1% Business Consulting.
             </p>
           </div>
 

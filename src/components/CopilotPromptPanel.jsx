@@ -61,7 +61,7 @@ export default function CopilotPromptPanel({ className = '' }) {
             Hello, there
           </h3>
           <p className="mt-2 text-lg font-semibold text-white">Magnafic Copilot</p>
-          <p className="mt-1 text-sm font-medium text-white/75 sm:text-base">Your AI Business Research Partner</p>
+          <p className="mt-1 text-sm font-medium text-white/75 sm:text-base">Your Business Research AI Agent</p>
         </div>
 
         <form onSubmit={handleSubmit} className="relative mt-7">
