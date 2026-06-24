@@ -1,12 +1,10 @@
 import {
   createUserWithEmailAndPassword,
   EmailAuthProvider,
-  GoogleAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signInWithPopup,
   signOut,
   updatePassword,
   updateProfile,
@@ -16,6 +14,27 @@ import { auth, db } from './firebase'
 
 const AUTH_KEY = 'magnafic-auth-user'
 
+const personalEmailDomains = new Set([
+  'gmail.com',
+  'googlemail.com',
+  'yahoo.com',
+  'ymail.com',
+  'outlook.com',
+  'hotmail.com',
+  'live.com',
+  'msn.com',
+  'icloud.com',
+  'me.com',
+  'mac.com',
+  'aol.com',
+  'proton.me',
+  'protonmail.com',
+  'zoho.com',
+  'mail.com',
+  'gmx.com',
+  'rediffmail.com',
+])
+
 function nameFromEmail(email = '') {
   const localPart = email.split('@')[0] || ''
 
@@ -24,6 +43,14 @@ function nameFromEmail(email = '') {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
+}
+
+export function isProfessionalEmail(email = '') {
+  const normalizedEmail = email.trim().toLowerCase()
+  const parts = normalizedEmail.split('@')
+  const domain = parts.length === 2 ? parts[1] : ''
+
+  return Boolean(parts[0] && domain && domain.includes('.')) && !personalEmailDomains.has(domain)
 }
 
 export function getAuthUser() {
@@ -107,38 +134,6 @@ export async function loginUser({ email, password, fallbackRole = 'client' }) {
     ...(profile || {}),
   })
 
-  setAuthUser(appUser)
-  return appUser
-}
-
-export async function loginWithGoogle() {
-  const provider = new GoogleAuthProvider()
-  provider.setCustomParameters({ prompt: 'select_account' })
-
-  const credentials = await signInWithPopup(auth, provider)
-  let profile = null
-
-  try {
-    profile = await getUserProfile(credentials.user.uid, credentials.user.email)
-  } catch (profileError) {
-    console.warn('Google profile read failed:', profileError)
-  }
-
-  if (!profile) {
-    profile = {
-      name: credentials.user.displayName || nameFromEmail(credentials.user.email),
-      email: credentials.user.email || '',
-      photoURL: credentials.user.photoURL || '',
-      role: 'client',
-      authProvider: 'google',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    }
-
-    await setDoc(doc(db, 'users', credentials.user.uid), profile)
-  }
-
-  const appUser = mapFirebaseUser(credentials.user, profile)
   setAuthUser(appUser)
   return appUser
 }

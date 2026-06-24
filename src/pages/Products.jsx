@@ -94,14 +94,11 @@ function ProductAccordion({section, index}) {
       >
         {hasSectionImage && (
           <div className={`relative ${imageOnLeft ? 'lg:order-1' : 'lg:order-2'}`}>
-            <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-primary-100 to-cyan-100 opacity-70 blur-xl" />
-            <div className="relative overflow-hidden rounded-[2rem] border border-white bg-white p-3 shadow-2xl shadow-primary-900/10">
-              <img
-                src={section.sectionImageUrl}
-                alt={section.sectionImageAlt || section.sectionTitle}
-                className="aspect-[4/3] w-full rounded-[1.45rem] bg-white object-contain p-2"
-              />
-            </div>
+            <img
+              src={section.sectionImageUrl}
+              alt={section.sectionImageAlt || section.sectionTitle}
+              className="aspect-[4/3] w-full object-contain drop-shadow-xl"
+            />
           </div>
         )}
 
@@ -177,7 +174,7 @@ function ProductSection({section, index}) {
                 key={item._key || `${item.title}-${itemIndex}`}
                 className="rounded-3xl border border-cyan-100/25 bg-gradient-to-br from-[#383ad7] via-[#258edc] to-[#0bbfcf] p-7 shadow-2xl shadow-black/20"
               >
-                <div className="mx-auto flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white/90 p-2 shadow-lg ring-1 ring-white/40">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center">
                   {item.imageUrl ? (
                     <img
                       src={item.imageUrl}
@@ -262,7 +259,7 @@ function ProductSection({section, index}) {
             )}
           </div>
           {cta.imageUrl && (
-            <img src={cta.imageUrl} alt={cta.imageAlt || cta.headline || section.sectionTitle} className="relative max-h-64 w-full rounded-2xl bg-white/10 object-contain p-2 lg:w-80" />
+            <img src={cta.imageUrl} alt={cta.imageAlt || cta.headline || section.sectionTitle} className="relative max-h-64 w-full object-contain drop-shadow-xl lg:w-80" />
           )}
         </div>
       </section>
@@ -274,14 +271,11 @@ function ProductSection({section, index}) {
       <div className={`mx-auto grid max-w-7xl items-center gap-10 px-4 py-16 sm:px-6 lg:px-8 lg:py-24 ${hasImage ? 'lg:grid-cols-2' : ''}`}>
         {hasImage && (
           <div className={`relative ${imageOnLeft ? 'lg:order-1' : 'lg:order-2'}`}>
-            <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-primary-100 to-cyan-100 opacity-70 blur-xl" />
-            <div className="relative overflow-hidden rounded-[2rem] border border-white bg-white p-3 shadow-2xl shadow-primary-900/10">
-              <img
-                src={section.sectionImageUrl}
-                alt={section.sectionImageAlt || section.sectionTitle}
-                className="aspect-[4/3] h-full w-full rounded-[1.45rem] bg-white object-contain p-2"
-              />
-            </div>
+            <img
+              src={section.sectionImageUrl}
+              alt={section.sectionImageAlt || section.sectionTitle}
+              className="aspect-[4/3] h-full w-full object-contain drop-shadow-xl"
+            />
           </div>
         )}
 
@@ -324,7 +318,7 @@ function ProductCard({product}) {
           <img
             src={product.bannerImageUrl}
             alt={product.bannerImageAlt || product.title}
-            className="h-full w-full bg-white object-contain p-3 transition duration-500 group-hover:scale-105"
+            className="h-full w-full object-contain transition duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full items-center justify-center">
@@ -441,7 +435,6 @@ export default function Products() {
             </div>
             {product.bannerImageUrl && (
               <div className="relative">
-                <div className="absolute -inset-5 rounded-[2.5rem] bg-cyan-400/20 blur-2xl" />
                 <img
                   src={product.bannerImageUrl}
                   alt={product.bannerImageAlt || product.title}
