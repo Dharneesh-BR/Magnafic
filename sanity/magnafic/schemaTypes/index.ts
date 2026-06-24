@@ -6,6 +6,7 @@ import { problemQuestionSchema } from './problemQuestion'
 import { mouDocumentSchema } from './mouDocument'
 import { blogSchema } from './blog'
 import { programsSchema } from './programs'
+import { productsSchema } from './products'
 import { chatSessionSchema } from './chatSession'
 import { homePageSettingsSchema } from './homePageSettings'
 import { researchProjectSchema } from './researchProject'
@@ -22,6 +23,7 @@ export const schemaTypes = [
   mouDocumentSchema,
   blogSchema,
   programsSchema,
+  productsSchema,
   researchProjectSchema,
   researchSessionSchema,
   chatSessionSchema,

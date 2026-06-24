@@ -49,8 +49,10 @@ const capabilityIcons = {
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isCapabilitiesOpen, setIsCapabilitiesOpen] = useState(false)
+  const [isProductsOpen, setIsProductsOpen] = useState(false)
   const [authUser, setAuthUserState] = useState(() => getAuthUser())
   const [capabilities, setCapabilities] = useState([])
+  const [products, setProducts] = useState([])
   const navigate = useNavigate()
   const location = useLocation()
   const showHomeLink = location.pathname !== '/'
@@ -69,23 +71,30 @@ export default function Header() {
   }, [])
 
   useEffect(() => {
-    const fetchCapabilities = async () => {
+    const fetchNavigationItems = async () => {
       try {
-        const query = `*[_type == "capabilities"] | order(coalesce(displayOrder, 9999) asc, title asc) {
-          _id,
-          "slug": slug.current,
-          title,
-          subtitle,
-          icon
-        }`
-        const data = await mentorClient.fetch(query)
-        setCapabilities(data || [])
+        const [capabilityData, productData] = await Promise.all([
+          mentorClient.fetch(`*[_type == "capabilities"] | order(coalesce(displayOrder, 9999) asc, title asc) {
+            _id,
+            "slug": slug.current,
+            title,
+            subtitle,
+            icon
+          }`),
+          mentorClient.fetch(`*[_type == "products" && status == "published"] | order(coalesce(displayOrder, 9999) asc, title asc) {
+            _id,
+            "slug": slug.current,
+            title
+          }`),
+        ])
+        setCapabilities(capabilityData || [])
+        setProducts(productData || [])
       } catch (error) {
-        console.error('Error fetching capabilities:', error)
+        console.error('Error fetching navigation items:', error)
       }
     }
 
-    fetchCapabilities()
+    fetchNavigationItems()
   }, [])
 
   const handleLogout = async () => {
@@ -100,17 +109,26 @@ export default function Header() {
     setIsMenuOpen(false)
   }
 
+  const handleProductSelect = (slug) => {
+    navigate(`/products/${slug}`)
+    setIsProductsOpen(false)
+    setIsMenuOpen(false)
+  }
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isCapabilitiesOpen && !event.target.closest('.capabilities-dropdown')) {
         setIsCapabilitiesOpen(false)
       }
+      if (isProductsOpen && !event.target.closest('.products-dropdown')) {
+        setIsProductsOpen(false)
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isCapabilitiesOpen])
+  }, [isCapabilitiesOpen, isProductsOpen])
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white z-50 border-b border-gray-200 shadow-sm">
@@ -163,7 +181,10 @@ export default function Header() {
             )}
             <div className="relative capabilities-dropdown">
               <button
-                onClick={() => setIsCapabilitiesOpen(!isCapabilitiesOpen)}
+                onClick={() => {
+                  setIsCapabilitiesOpen(!isCapabilitiesOpen)
+                  setIsProductsOpen(false)
+                }}
                 className="flex items-center space-x-1 text-gray-900 hover:text-primary transition-colors font-medium"
               >
                 <span>Expert Services</span>
@@ -193,6 +214,49 @@ export default function Header() {
                     })}
                     {capabilities.length === 0 && (
                       <div className="px-4 py-3 text-gray-500">No Expert services available</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="relative products-dropdown">
+              <button
+                onClick={() => {
+                  setIsProductsOpen(!isProductsOpen)
+                  setIsCapabilitiesOpen(false)
+                }}
+                className="flex items-center space-x-1 text-gray-900 hover:text-primary transition-colors font-medium"
+              >
+                <span>Products</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isProductsOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isProductsOpen && (
+                <div className="absolute left-0 z-50 mt-2 min-w-64 overflow-hidden rounded-2xl bg-white shadow-xl shadow-gray-200/50 ring-1 ring-gray-100">
+                  <div className="grid max-h-96 overflow-y-auto py-2">
+                    <button
+                      onClick={() => {
+                        navigate('/products')
+                        setIsProductsOpen(false)
+                      }}
+                      className="border-b border-gray-100 px-4 py-3 text-left font-bold text-primary-700 transition hover:bg-primary-50"
+                    >
+                      View All Products
+                    </button>
+                    {products.map((product) => (
+                      <button
+                        key={product._id}
+                        onClick={() => handleProductSelect(product.slug || product._id)}
+                        className="group border-b border-gray-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-primary-50"
+                      >
+                        <span className="flex items-center gap-3 whitespace-nowrap font-medium text-gray-950 group-hover:text-primary-700">
+                          <ShoppingBag className="h-5 w-5 shrink-0 text-primary-600" />
+                          {product.title}
+                        </span>
+                      </button>
+                    ))}
+                    {products.length === 0 && (
+                      <div className="px-4 py-3 text-gray-500">No products available</div>
                     )}
                   </div>
                 </div>
@@ -253,7 +317,10 @@ export default function Header() {
             )}
             <div className="capabilities-dropdown">
               <button
-                onClick={() => setIsCapabilitiesOpen(!isCapabilitiesOpen)}
+                onClick={() => {
+                  setIsCapabilitiesOpen(!isCapabilitiesOpen)
+                  setIsProductsOpen(false)
+                }}
                 className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium"
               >
                 <span className="flex items-center gap-3">
@@ -283,6 +350,48 @@ export default function Header() {
                   })}
                   {capabilities.length === 0 && (
                     <div className="px-3 py-2 text-sm text-gray-500">No Expert services available</div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="products-dropdown">
+              <button
+                onClick={() => {
+                  setIsProductsOpen(!isProductsOpen)
+                  setIsCapabilitiesOpen(false)
+                }}
+                className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium"
+              >
+                <span className="flex items-center gap-3">
+                  <ShoppingBag className="h-5 w-5 shrink-0 text-primary-600" />
+                  <span>Products</span>
+                </span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isProductsOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isProductsOpen && (
+                <div className="ml-4 mt-2 space-y-1">
+                  <Link
+                    to="/products"
+                    onClick={() => {
+                      setIsProductsOpen(false)
+                      setIsMenuOpen(false)
+                    }}
+                    className="block border-b border-gray-100 px-3 py-2 text-sm font-bold text-primary-700 hover:bg-primary-50"
+                  >
+                    View All Products
+                  </Link>
+                  {products.map((product) => (
+                    <button
+                      key={product._id}
+                      onClick={() => handleProductSelect(product.slug || product._id)}
+                      className="block w-full border-b border-gray-100 px-3 py-2 text-left text-sm font-medium text-gray-700 transition last:border-b-0 hover:bg-primary-50 hover:text-primary"
+                    >
+                      {product.title}
+                    </button>
+                  ))}
+                  {products.length === 0 && (
+                    <div className="px-3 py-2 text-sm text-gray-500">No products available</div>
                   )}
                 </div>
               )}

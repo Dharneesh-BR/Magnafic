@@ -17,6 +17,7 @@ const staticRoutes = [
   { path: '/about', priority: '0.7', changefreq: 'monthly' },
   { path: '/academy', priority: '0.7', changefreq: 'monthly' },
   { path: '/programs', priority: '0.7', changefreq: 'monthly' },
+  { path: '/products', priority: '0.8', changefreq: 'monthly' },
   { path: '/join-experts-hub', priority: '0.6', changefreq: 'monthly' },
   { path: '/founder-community', priority: '0.6', changefreq: 'monthly' },
   { path: '/add', priority: '0.6', changefreq: 'monthly' },
@@ -52,7 +53,7 @@ function toUrl(route) {
 
 async function fetchDynamicRoutes() {
   try {
-    const [blogs, experts, programs] = await Promise.all([
+    const [blogs, experts, programs, products] = await Promise.all([
       mentorClient.fetch(`*[_type == "blog" && status != "archived" && defined(slug.current)]{
         "slug": slug.current,
         "updatedAt": coalesce(_updatedAt, publishedAt)
@@ -64,6 +65,10 @@ async function fetchDynamicRoutes() {
       mentorClient.fetch(`*[_type == "programs" && status == "published" && defined(slug.current)]{
         "slug": slug.current,
         "updatedAt": coalesce(_updatedAt, startDate)
+      }`),
+      mentorClient.fetch(`*[_type == "products" && status == "published" && defined(slug.current)]{
+        "slug": slug.current,
+        "updatedAt": _updatedAt
       }`),
     ])
 
@@ -84,6 +89,12 @@ async function fetchDynamicRoutes() {
         path: `/programs/${item.slug}`,
         lastmod: item.updatedAt?.slice(0, 10) || today,
         priority: '0.7',
+        changefreq: 'weekly',
+      })),
+      ...products.map(item => ({
+        path: `/products/${item.slug}`,
+        lastmod: item.updatedAt?.slice(0, 10) || today,
+        priority: '0.8',
         changefreq: 'weekly',
       })),
     ]

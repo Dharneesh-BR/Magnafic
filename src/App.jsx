@@ -19,6 +19,7 @@ import ClientSignup from './pages/ClientSignup'
 import ClientAccountSignup from './pages/ClientAccountSignup'
 import Academy from './pages/Academy'
 import Programs from './pages/Programs'
+import Products from './pages/Products'
 import Contact from './pages/Contact'
 import DescribeProblem from './pages/DescribeProblem'
 import CapabilityDetail from './pages/CapabilityDetail'
@@ -84,6 +85,8 @@ function AppContent() {
             <Route path="/academy" element={<Academy />} />
             <Route path="/programs" element={<Programs />} />
             <Route path="/programs/:slug" element={<Programs />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/products/:slug" element={<Products />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/capabilities/:id" element={<CapabilityDetail />} />
             <Route path="/services/:id" element={<ServiceDetail />} />
