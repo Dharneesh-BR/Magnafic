@@ -21,6 +21,26 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null;
     }
 
+    // Public insight subscriptions. Only a normalized active email subscription
+    // can be created or refreshed; subscriber data remains private.
+    match /insightSubscribers/{document} {
+      allow create, update: if
+        request.resource.data.keys().hasOnly([
+          'email',
+          'status',
+          'source',
+          'subscribedAt',
+          'updatedAt'
+        ]) &&
+        request.resource.data.email is string &&
+        request.resource.data.email.size() >= 5 &&
+        request.resource.data.email.size() <= 320 &&
+        request.resource.data.email.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$') &&
+        request.resource.data.status == 'active' &&
+        request.resource.data.source in ['insights-page', 'insight-detail'];
+      allow read, delete: if request.auth != null;
+    }
+
     // All other collections require authentication.
     match /{document=**} {
       allow read, write: if request.auth != null;

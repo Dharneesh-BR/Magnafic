@@ -1,6 +1,11 @@
 import { cert, getApps, initializeApp } from 'firebase-admin/app'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 
+const DEFAULT_SENDER_EMAIL = 'no-reply@magnafic.com'
+const AUTHENTICATED_DOMAIN = 'magnafic.com'
+const MAX_SEND_ATTEMPTS = 3
+const SENDING_LOCK_MINUTES = 15
+
 function jsonResponse(statusCode, body) {
   return {
     statusCode,
@@ -41,11 +46,11 @@ function getDb() {
 }
 
 function getInsightPayload(body = {}) {
-  const payload = body.result || body.document || body
+  const payload = body.result || body.document || body.after || body
   const slug = payload.slug?.current || payload.slug || ''
 
   return {
-    id: payload._id,
+    id: String(payload._id || '').replace(/^drafts\./, ''),
     title: payload.title,
     excerpt: payload.excerpt || '',
     status: payload.status,
@@ -68,7 +73,18 @@ function getSiteUrl() {
 }
 
 function getFromEmail() {
-  return process.env.SENDGRID_FROM_EMAIL || process.env.INSIGHTS_FROM_EMAIL
+  const configuredEmail = String(
+    process.env.INSIGHTS_FROM_EMAIL ||
+    process.env.SENDGRID_FROM_EMAIL ||
+    process.env.SENDGRID_VERIFIED_SENDER ||
+    process.env.FROM_EMAIL ||
+    DEFAULT_SENDER_EMAIL
+  ).trim().toLowerCase()
+
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredEmail) &&
+    configuredEmail.endsWith(`@${AUTHENTICATED_DOMAIN}`)
+    ? configuredEmail
+    : DEFAULT_SENDER_EMAIL
 }
 
 function buildSendgridPayload({ insight, subscriber }) {
@@ -119,9 +135,14 @@ async function sendEmail(payload) {
     body: JSON.stringify(payload),
   })
 
+  const responseText = await response.text()
+  const messageId = response.headers.get('x-message-id') || ''
+
   if (!response.ok) {
-    throw new Error(await response.text())
+    throw new Error(`SendGrid ${response.status}: ${responseText || response.statusText}`)
   }
+
+  return messageId
 }
 
 export async function handler(event) {
@@ -136,8 +157,17 @@ export async function handler(event) {
     return jsonResponse(401, { error: 'Unauthorized' })
   }
 
-  if (!process.env.SENDGRID_API_KEY || !getFromEmail()) {
-    return jsonResponse(500, { error: 'Email sender is not configured.' })
+  const missingConfiguration = [
+    !process.env.SENDGRID_API_KEY && 'SENDGRID_API_KEY',
+    !process.env.FIREBASE_SERVICE_ACCOUNT_KEY && 'FIREBASE_SERVICE_ACCOUNT_KEY',
+  ].filter(Boolean)
+
+  if (missingConfiguration.length) {
+    console.error('Insight subscriber notifications are not configured:', missingConfiguration)
+    return jsonResponse(500, {
+      error: 'Subscriber notifications are not configured.',
+      missing: missingConfiguration,
+    })
   }
 
   let body = {}
@@ -154,57 +184,103 @@ export async function handler(event) {
     return jsonResponse(200, { skipped: true, reason: 'Not a published insight payload' })
   }
 
-  const db = getDb()
-  const notificationRef = db.collection('insightNotifications').doc(insight.id)
-  const shouldSend = await db.runTransaction(async (transaction) => {
-    const notificationSnapshot = await transaction.get(notificationRef)
+  let notificationRef = null
 
-    if (notificationSnapshot.exists) return false
+  try {
+    const db = getDb()
+    notificationRef = db.collection('insightNotifications').doc(insight.id)
+    const claim = await db.runTransaction(async (transaction) => {
+      const notificationSnapshot = await transaction.get(notificationRef)
+      const existing = notificationSnapshot.exists ? notificationSnapshot.data() : {}
+      const attempts = Number(existing.attempts || 0)
+      const updatedAt = existing.updatedAt?.toDate?.()
+      const lockExpired = !updatedAt ||
+        Date.now() - updatedAt.getTime() > SENDING_LOCK_MINUTES * 60 * 1000
 
-    transaction.set(notificationRef, {
-      insightId: insight.id,
-      title: insight.title,
-      slug: insight.slug,
-      status: 'sending',
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      if (existing.status === 'sent') return { shouldSend: false, reason: 'Already notified' }
+      if (existing.status === 'sending' && !lockExpired) {
+        return { shouldSend: false, reason: 'Notification already in progress' }
+      }
+      if (attempts >= MAX_SEND_ATTEMPTS) {
+        return { shouldSend: false, reason: 'Maximum delivery attempts reached' }
+      }
+
+      transaction.set(notificationRef, {
+        insightId: insight.id,
+        title: insight.title,
+        slug: insight.slug,
+        status: 'sending',
+        attempts: attempts + 1,
+        lastError: '',
+        createdAt: existing.createdAt || FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true })
+
+      return { shouldSend: true, attempts: attempts + 1 }
     })
 
-    return true
-  })
+    if (!claim.shouldSend) {
+      return jsonResponse(200, { skipped: true, reason: claim.reason })
+    }
 
-  if (!shouldSend) {
-    return jsonResponse(200, { skipped: true, reason: 'Already notified' })
+    const subscribersSnapshot = await db
+      .collection('insightSubscribers')
+      .where('status', '==', 'active')
+      .get()
+
+    const subscribers = subscribersSnapshot.docs
+      .map((documentSnapshot) => documentSnapshot.data())
+      .filter((subscriber) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(subscriber.email || ''))
+
+    const results = []
+    for (const subscriber of subscribers) {
+      try {
+        const messageId = await sendEmail(buildSendgridPayload({ insight, subscriber }))
+        results.push({ status: 'fulfilled', email: subscriber.email, messageId })
+      } catch (error) {
+        results.push({
+          status: 'rejected',
+          email: subscriber.email,
+          error: error?.message || String(error),
+        })
+      }
+    }
+
+    const sentCount = results.filter((result) => result.status === 'fulfilled').length
+    const failures = results.filter((result) => result.status === 'rejected')
+    const failedCount = failures.length
+
+    await notificationRef.set({
+      status: failedCount > 0 ? 'sent_with_errors' : 'sent',
+      subscriberCount: subscribers.length,
+      sentCount,
+      failedCount,
+      failures: failures.slice(0, 25),
+      sentAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true })
+
+    return jsonResponse(200, {
+      insightId: insight.id,
+      subscriberCount: subscribers.length,
+      sentCount,
+      failedCount,
+      attempt: claim.attempts,
+    })
+  } catch (error) {
+    console.error('Insight subscriber notification failed:', error)
+
+    if (notificationRef) {
+      await notificationRef.set({
+        status: 'failed',
+        lastError: error?.message || String(error),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true }).catch(() => {})
+    }
+
+    return jsonResponse(500, {
+      error: 'Unable to notify insight subscribers.',
+      detail: error?.message || String(error),
+    })
   }
-
-  const subscribersSnapshot = await db
-    .collection('insightSubscribers')
-    .where('status', '==', 'active')
-    .get()
-
-  const subscribers = subscribersSnapshot.docs
-    .map((documentSnapshot) => documentSnapshot.data())
-    .filter((subscriber) => subscriber.email)
-
-  const results = await Promise.allSettled(
-    subscribers.map((subscriber) => sendEmail(buildSendgridPayload({ insight, subscriber })))
-  )
-
-  const sentCount = results.filter((result) => result.status === 'fulfilled').length
-  const failedCount = results.length - sentCount
-
-  await notificationRef.set({
-    status: failedCount > 0 ? 'sent_with_errors' : 'sent',
-    subscriberCount: subscribers.length,
-    sentCount,
-    failedCount,
-    sentAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
-  }, { merge: true })
-
-  return jsonResponse(200, {
-    insightId: insight.id,
-    sentCount,
-    failedCount,
-  })
 }

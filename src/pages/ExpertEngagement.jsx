@@ -48,6 +48,51 @@ function formatProgramType(value = '') {
   return value.split('-').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
 }
 
+const CALL_START_HOUR = 10
+const CALL_END_HOUR = 18
+const CALL_NOTICE_HOURS = 24
+
+function toLocalDateInputValue(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function buildLocalCallDate(dateValue, hour) {
+  if (!dateValue || !Number.isInteger(hour)) return null
+  const [year, month, day] = dateValue.split('-').map(Number)
+  const date = new Date(year, month - 1, day, hour, 0, 0, 0)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function isCallDay(date) {
+  const day = date?.getDay()
+  return day >= 1 && day <= 6
+}
+
+function getCallTimeLabel(hour) {
+  return new Date(2000, 0, 1, hour).toLocaleTimeString('en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+function validateCallDateTime(date) {
+  if (!date || Number.isNaN(date.getTime())) return 'Please select a valid date and time.'
+  if (!isCallDay(date)) return 'Calls are available only from Monday to Saturday.'
+  if (date.getHours() < CALL_START_HOUR || date.getHours() > CALL_END_HOUR || date.getMinutes() !== 0) {
+    return 'Please select a call time between 10:00 AM and 6:00 PM.'
+  }
+
+  const minimumCallTime = Date.now() + (CALL_NOTICE_HOURS * 60 * 60 * 1000)
+  if (date.getTime() < minimumCallTime) {
+    return 'Please select a call time at least 24 hours from now.'
+  }
+
+  return ''
+}
+
 export default function ExpertEngagement() {
   const { slug, section = 'call' } = useParams()
   const activeSection = tabs.some((tab) => tab.id === section) ? section : 'call'
@@ -235,17 +280,38 @@ export default function ExpertEngagement() {
 }
 
 function ExpertCallRequest({ expert }) {
-  const [preferredDateTime, setPreferredDateTime] = useState('')
+  const [preferredDate, setPreferredDate] = useState('')
+  const [preferredTime, setPreferredTime] = useState('')
   const [showDetails, setShowDetails] = useState(false)
   const [formData, setFormData] = useState({ name: '', email: '', contactNo: '' })
   const [submitting, setSubmitting] = useState(false)
   const [status, setStatus] = useState({ type: '', message: '' })
 
+  const minimumDate = toLocalDateInputValue(new Date(Date.now() + (CALL_NOTICE_HOURS * 60 * 60 * 1000)))
+  const selectedDate = preferredDate ? buildLocalCallDate(preferredDate, CALL_START_HOUR) : null
+  const selectedDateIsAvailable = selectedDate ? isCallDay(selectedDate) : true
+  const availableTimeSlots = Array.from(
+    { length: CALL_END_HOUR - CALL_START_HOUR + 1 },
+    (_, index) => CALL_START_HOUR + index,
+  ).filter((hour) => {
+    const callDate = buildLocalCallDate(preferredDate, hour)
+    return callDate && isCallDay(callDate) && callDate.getTime() >= Date.now() + (CALL_NOTICE_HOURS * 60 * 60 * 1000)
+  })
+
+  const getSelectedCallDate = () => buildLocalCallDate(preferredDate, Number(preferredTime))
+
   const handleConnect = () => {
-    if (!preferredDateTime) {
+    if (!preferredDate || !preferredTime) {
       setStatus({ type: 'error', message: 'Please select your preferred date and time.' })
       return
     }
+
+    const validationError = validateCallDateTime(getSelectedCallDate())
+    if (validationError) {
+      setStatus({ type: 'error', message: validationError })
+      return
+    }
+
     setStatus({ type: '', message: '' })
     setShowDetails(true)
   }
@@ -256,15 +322,16 @@ function ExpertCallRequest({ expert }) {
     setStatus({ type: '', message: '' })
 
     try {
-      const preferredDate = new Date(preferredDateTime)
-      if (Number.isNaN(preferredDate.getTime())) throw new Error('Please select a valid date and time.')
+      const preferredCallDate = getSelectedCallDate()
+      const validationError = validateCallDateTime(preferredCallDate)
+      if (validationError) throw new Error(validationError)
 
       await addDoc(collection(db, 'expertCallRequests'), {
         expertId: expert._id,
         expertSlug: expert.slug || '',
         expertName: expert.fullName,
         expertHeadline: expert.headline || expert.currentDesignation || expert.designation || '',
-        preferredCallAt: preferredDate,
+        preferredCallAt: preferredCallDate,
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         contactNo: formData.contactNo.trim(),
@@ -279,7 +346,8 @@ function ExpertCallRequest({ expert }) {
         message: 'Thank you. Your 1:1 call request has been submitted. Our team will contact you shortly.',
       })
       setFormData({ name: '', email: '', contactNo: '' })
-      setPreferredDateTime('')
+      setPreferredDate('')
+      setPreferredTime('')
       setShowDetails(false)
     } catch (submitError) {
       console.error('Expert call request failed:', submitError)
@@ -295,19 +363,56 @@ function ExpertCallRequest({ expert }) {
         <div className="rounded-lg bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
         <p className="text-sm font-black uppercase tracking-[0.16em] text-primary-600">Private consultation</p>
         <h2 className="mt-2 text-3xl font-black text-[#000047]">Request a 1:1 call with {expert.fullName}</h2>
-        <p className="mt-3 leading-7 text-gray-600">Choose your preferred date and time. The Magnafic team will review the request and confirm the final call schedule.</p>
+        <p className="mt-3 leading-7 text-gray-600">Choose a time at least 24 hours in advance. Calls are available Monday to Saturday, from 10:00 AM to 6:00 PM.</p>
 
-        <div className="mt-7">
-          <label htmlFor="preferred-call-time" className="mb-2 block text-sm font-bold text-gray-800">Preferred date and time *</label>
-          <input
-            id="preferred-call-time"
-            type="datetime-local"
-            value={preferredDateTime}
-            min={new Date().toISOString().slice(0, 16)}
-            onChange={(event) => setPreferredDateTime(event.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 font-semibold outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-          />
+        <div className="mt-7 grid gap-5 sm:grid-cols-2">
+          <div>
+            <label htmlFor="preferred-call-date" className="mb-2 block text-sm font-bold text-gray-800">Preferred date *</label>
+            <input
+              id="preferred-call-date"
+              type="date"
+              value={preferredDate}
+              min={minimumDate}
+              onChange={(event) => {
+                const value = event.target.value
+                const date = buildLocalCallDate(value, CALL_START_HOUR)
+                setPreferredDate(value)
+                setPreferredTime('')
+                setShowDetails(false)
+                setStatus(
+                  date && !isCallDay(date)
+                    ? { type: 'error', message: 'Calls are available only from Monday to Saturday. Please select another date.' }
+                    : { type: '', message: '' },
+                )
+              }}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 font-semibold outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+            />
+          </div>
+          <div>
+            <label htmlFor="preferred-call-time" className="mb-2 block text-sm font-bold text-gray-800">Preferred time *</label>
+            <select
+              id="preferred-call-time"
+              value={preferredTime}
+              disabled={!preferredDate || !selectedDateIsAvailable || availableTimeSlots.length === 0}
+              onChange={(event) => {
+                setPreferredTime(event.target.value)
+                setShowDetails(false)
+                setStatus({ type: '', message: '' })
+              }}
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 font-semibold outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+            >
+              <option value="">Select a time</option>
+              {availableTimeSlots.map((hour) => (
+                <option key={hour} value={hour}>{getCallTimeLabel(hour)}</option>
+              ))}
+            </select>
+          </div>
         </div>
+        {preferredDate && selectedDateIsAvailable && availableTimeSlots.length === 0 && (
+          <p className="mt-3 rounded-lg bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 ring-1 ring-amber-100">
+            No slots on this date meet the 24-hour notice period. Please choose a later date.
+          </p>
+        )}
 
         {!showDetails && (
           <button type="button" onClick={handleConnect} className="mt-5 inline-flex w-full items-center justify-center rounded-lg bg-gradient-primary px-6 py-4 font-extrabold text-white">
