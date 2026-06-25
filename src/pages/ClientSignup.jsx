@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Building2, Mail, MapPin, Phone, User } from 'lucide-react'
 import SEO from '../components/SEO'
 import { signupClient } from '../lib/auth'
-import { createProblemBriefFromStoredAnswers } from '../lib/dashboard'
+import { createProblemBriefFromStoredAnswers, PROBLEM_ANSWERS_KEY } from '../lib/dashboard'
+
+const confirmationEndpoint = '/.netlify/functions/send-client-submission-confirmation'
 
 function getSignupErrorMessage(error) {
   switch (error?.code) {
@@ -43,12 +45,38 @@ export default function ClientSignup() {
     setError('')
 
     try {
+      const hasProblemAnswers = Boolean(localStorage.getItem(PROBLEM_ANSWERS_KEY))
       await signupClient(form)
+      let problemBriefCreated = false
+
       try {
-        await createProblemBriefFromStoredAnswers()
+        const problemBrief = await createProblemBriefFromStoredAnswers()
+        problemBriefCreated = hasProblemAnswers && Boolean(problemBrief?.briefId)
       } catch (briefError) {
         console.error('Problem brief creation failed:', briefError)
       }
+
+      if (problemBriefCreated) {
+        try {
+          const confirmationResponse = await fetch(confirmationEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: form.name.trim(),
+              email: form.email.trim(),
+              submissionType: 'problem',
+            }),
+          })
+
+          if (!confirmationResponse.ok) {
+            const confirmationResult = await confirmationResponse.json().catch(() => ({}))
+            console.warn('Problem submission confirmation email was not sent:', confirmationResult)
+          }
+        } catch (confirmationError) {
+          console.warn('Problem submission confirmation email failed:', confirmationError)
+        }
+      }
+
       navigate('/dashboard')
     } catch (signupError) {
       console.error('Firebase signup failed:', signupError)

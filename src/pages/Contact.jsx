@@ -5,6 +5,7 @@ import { useInView } from 'react-intersection-observer';
 import { db } from '../lib/firebase';
 
 const contactEndpoint = import.meta.env.VITE_SEND_CONTACT_MESSAGE_URL || '/.netlify/functions/send-contact-message';
+const confirmationEndpoint = '/.netlify/functions/send-client-submission-confirmation';
 
 const ContactUs = () => {
   useEffect(() => {
@@ -72,8 +73,33 @@ const ContactUs = () => {
         throw new Error(result.error || 'Unable to send your message right now.');
       }
 
+      let confirmationResult = {};
+
+      try {
+        const confirmationResponse = await fetch(confirmationEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            submissionType: 'contact',
+          }),
+        });
+        confirmationResult = await confirmationResponse.json().catch(() => ({}));
+
+        if (!confirmationResponse.ok) {
+          console.warn('Contact confirmation email was not sent:', confirmationResult);
+        }
+      } catch (confirmationError) {
+        console.warn('Contact confirmation email failed:', confirmationError);
+      }
+
       setSubmitStatus('success');
-      setSubmitMessage('Thank you! Your message has been sent successfully. We\'ll get back to you soon.');
+      setSubmitMessage(
+        confirmationResult.confirmationSent
+          ? 'Thank you! Your message has been sent successfully. A confirmation email has been sent to you.'
+          : 'Thank you! Your message has been sent successfully. We\'ll get back to you soon.'
+      );
 
       try {
         await addDoc(collection(db, 'contactMessages'), {
@@ -85,6 +111,8 @@ const ContactUs = () => {
           status: 'sent',
           channel: 'netlify-sendgrid',
           toEmail: 'dharneesh@magnafic.com',
+          clientConfirmationSent: confirmationResult.confirmationSent === true,
+          clientConfirmationMessageId: confirmationResult.messageId || '',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });

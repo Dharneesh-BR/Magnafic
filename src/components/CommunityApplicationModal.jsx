@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { addDoc, collection, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { MessageCircle, Send, X } from 'lucide-react'
 import { db } from '../lib/firebase'
 
@@ -24,6 +24,7 @@ export default function CommunityApplicationModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState('')
   const [submitError, setSubmitError] = useState('')
+  const [confirmationSent, setConfirmationSent] = useState(false)
 
   if (!open) return null
 
@@ -40,6 +41,7 @@ export default function CommunityApplicationModal({
     setIsSubmitting(true)
     setSubmitStatus('')
     setSubmitError('')
+    setConfirmationSent(false)
 
     try {
       const applicationPayload = {
@@ -52,28 +54,55 @@ export default function CommunityApplicationModal({
         sourcePath: window.location.pathname
       }
 
-      const emailResponse = await fetch('/.netlify/functions/send-community-application-emails', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(applicationPayload)
-      })
-      const emailResult = await emailResponse.json().catch(() => ({}))
-
-      if (!emailResponse.ok) {
-        throw new Error(emailResult.error || 'Unable to send application emails.')
-      }
-
-      await addDoc(collection(db, 'communityApplications'), {
+      const applicationDocument = await addDoc(collection(db, 'communityApplications'), {
         ...applicationPayload,
         status: 'new',
-        adminEmailNotificationSent: emailResult.adminNotificationSent === true,
-        acknowledgementEmailSent: emailResult.acknowledgementSent === true,
-        adminEmailMessageId: emailResult.adminMessageId || '',
-        acknowledgementEmailMessageId: emailResult.acknowledgementMessageId || '',
+        adminEmailNotificationSent: false,
+        acknowledgementEmailSent: false,
+        emailNotificationStatus: 'pending',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       })
+
+      let emailResult = {}
+
+      try {
+        const emailResponse = await fetch('/.netlify/functions/send-community-application-emails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(applicationPayload)
+        })
+        emailResult = await emailResponse.json().catch(() => ({}))
+
+        await updateDoc(applicationDocument, {
+          adminEmailNotificationSent: emailResult.adminNotificationSent === true,
+          acknowledgementEmailSent: emailResult.acknowledgementSent === true,
+          adminEmailMessageId: emailResult.adminMessageId || '',
+          acknowledgementEmailMessageId: emailResult.acknowledgementMessageId || '',
+          emailNotificationStatus: emailResponse.ok ? 'sent' : 'failed',
+          emailNotificationError: emailResponse.ok ? '' : emailResult.error || 'Unable to send application emails.',
+          updatedAt: serverTimestamp()
+        })
+
+        if (!emailResponse.ok) {
+          console.warn('Application saved, but email notifications were not sent:', emailResult)
+        }
+      } catch (emailError) {
+        console.warn('Application saved, but email notification processing failed:', emailError)
+
+        try {
+          await updateDoc(applicationDocument, {
+            emailNotificationStatus: 'failed',
+            emailNotificationError: emailError.message || 'Unable to send application emails.',
+            updatedAt: serverTimestamp()
+          })
+        } catch (updateError) {
+          console.warn('Unable to record community email notification failure:', updateError)
+        }
+      }
+
       setSubmitStatus('success')
+      setConfirmationSent(emailResult.acknowledgementSent === true)
       setFormData(initialForm)
     } catch (error) {
       console.error('Application submission failed:', error)
@@ -186,7 +215,9 @@ export default function CommunityApplicationModal({
           {submitStatus === 'success' && (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center font-semibold text-emerald-700">
               <p>
-                Thank you. Your application has been submitted successfully and is now available in the admin dashboard.
+                {confirmationSent
+                  ? 'Thank you. Your application has been submitted successfully. A confirmation email has been sent to you.'
+                  : 'Thank you. Your application has been submitted successfully. Our team will contact you shortly.'}
               </p>
               {successJoinLink && (
                 <a
