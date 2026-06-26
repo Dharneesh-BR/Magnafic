@@ -362,16 +362,6 @@ export default function Header() {
 
               {isProductsOpen && (
                 <div className="ml-4 mt-2 space-y-1">
-                  <Link
-                    to="/products"
-                    onClick={() => {
-                      setIsProductsOpen(false)
-                      setIsMenuOpen(false)
-                    }}
-                    className="block border-b border-gray-100 px-3 py-2 text-sm font-bold text-primary-700 hover:bg-primary-50"
-                  >
-                    View All Products
-                  </Link>
                   {products.map((product) => (
                     <button
                       key={product._id}

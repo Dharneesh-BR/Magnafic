@@ -35,7 +35,7 @@ const CompanyLogos = () => {
 
       <div className="relative mx-auto max-w-7xl">
         <div className="mb-10 text-center">
-          <p className="text-3xl font-bold text-primary-600">Trusted by leading CPG Businesses</p>
+          <p className="text-3xl font-bold text-primary-600">Trusted by leading CPG businesses</p>
           
         </div>
 

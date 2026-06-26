@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useState} from 'react'
-import {ArrowLeft, ArrowRight, CheckCircle2, Minus, PackageOpen, Plus} from 'lucide-react'
+import {ArrowLeft, ArrowRight, CheckCircle2, Minus, Plus} from 'lucide-react'
 import {Link, useParams} from 'react-router-dom'
 import MagnaLoader from '../components/MagnaLoader'
 import SEO from '../components/SEO'
@@ -307,42 +307,8 @@ function ProductSection({section, index}) {
   )
 }
 
-function ProductCard({product}) {
-  return (
-    <Link
-      to={`/products/${product.slug || product._id}`}
-      className="group overflow-hidden rounded-3xl bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-2xl"
-    >
-      <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-[#000047] via-primary-700 to-cyan-500">
-        {product.bannerImageUrl ? (
-          <img
-            src={product.bannerImageUrl}
-            alt={product.bannerImageAlt || product.title}
-            className="h-full w-full object-contain transition duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <PackageOpen className="h-16 w-16 text-white/80" />
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#000047]/70 to-transparent" />
-        <p className="absolute bottom-4 left-5 text-xs font-black uppercase tracking-[0.2em] text-cyan-100">Software Product</p>
-      </div>
-      <div className="p-6">
-        <h2 className="text-2xl font-black text-[#000047]">{product.title}</h2>
-        <p className="mt-3 line-clamp-3 leading-7 text-gray-600">{product.shortDescription}</p>
-        <span className="mt-6 inline-flex items-center font-extrabold text-primary-600">
-          View Product
-          <ArrowRight className="ml-2 h-5 w-5 transition group-hover:translate-x-1" />
-        </span>
-      </div>
-    </Link>
-  )
-}
-
 export default function Products() {
   const {slug} = useParams()
-  const [products, setProducts] = useState([])
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -355,18 +321,16 @@ export default function Products() {
       setError('')
 
       try {
-        if (slug) {
-          const data = await mentorClient.fetch(
-            `*[_type == "products" && status == "published" && (slug.current == $slug || _id == $slug)][0] { ${productFields} }`,
-            {slug},
-          )
-          if (mounted) setProduct(data || null)
-        } else {
-          const data = await mentorClient.fetch(
-            `*[_type == "products" && status == "published"] | order(featured desc, coalesce(displayOrder, 9999) asc, title asc) { ${productFields} }`,
-          )
-          if (mounted) setProducts(data || [])
+        if (!slug) {
+          if (mounted) setProduct(null)
+          return
         }
+
+        const data = await mentorClient.fetch(
+          `*[_type == "products" && status == "published" && (slug.current == $slug || _id == $slug)][0] { ${productFields} }`,
+          {slug},
+        )
+        if (mounted) setProduct(data || null)
       } catch (fetchError) {
         console.error('Products fetch failed:', fetchError)
         if (mounted) setError('Unable to load products right now.')
@@ -463,21 +427,6 @@ export default function Products() {
           <p className="text-sm font-black uppercase tracking-[0.22em] text-cyan-200">Products</p>
           <h1 className="mt-4 max-w-4xl text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">Software built to turn business intelligence into action</h1>
           <p className="mt-6 max-w-3xl text-lg leading-8 text-cyan-50">Explore Magnafic software products designed for modern consumer businesses.</p>
-        </div>
-      </section>
-      <section className="px-4 py-14 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          {products.length > 0 ? (
-            <div className="grid gap-7 md:grid-cols-2 lg:grid-cols-3">
-              {products.map((item) => <ProductCard key={item._id} product={item} />)}
-            </div>
-          ) : (
-            <div className="rounded-3xl bg-white p-10 text-center shadow-xl ring-1 ring-gray-100">
-              <PackageOpen className="mx-auto h-12 w-12 text-primary-600" />
-              <h2 className="mt-4 text-2xl font-black text-[#000047]">Products are coming soon</h2>
-              <p className="mt-2 text-gray-600">Published products from Sanity will appear here.</p>
-            </div>
-          )}
         </div>
       </section>
     </div>
