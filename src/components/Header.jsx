@@ -355,7 +355,7 @@ export default function Header() {
               >
                 <span className="flex items-center gap-3">
                   <ShoppingBag className="h-5 w-5 shrink-0 text-primary-600" />
-                  <span>Products</span>
+                  <span>Solutions</span>
                 </span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isProductsOpen ? 'rotate-180' : ''}`} />
               </button>
