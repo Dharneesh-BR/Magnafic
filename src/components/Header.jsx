@@ -227,22 +227,13 @@ export default function Header() {
                 }}
                 className="flex items-center space-x-1 text-gray-900 hover:text-primary transition-colors font-medium"
               >
-                <span>Products</span>
+                <span>Solutions</span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isProductsOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isProductsOpen && (
                 <div className="absolute left-0 z-50 mt-2 min-w-64 overflow-hidden rounded-2xl bg-white shadow-xl shadow-gray-200/50 ring-1 ring-gray-100">
                   <div className="grid max-h-96 overflow-y-auto py-2">
-                    <button
-                      onClick={() => {
-                        navigate('/products')
-                        setIsProductsOpen(false)
-                      }}
-                      className="border-b border-gray-100 px-4 py-3 text-left font-bold text-primary-700 transition hover:bg-primary-50"
-                    >
-                      View All Products
-                    </button>
                     {products.map((product) => (
                       <button
                         key={product._id}
@@ -385,9 +376,12 @@ export default function Header() {
                     <button
                       key={product._id}
                       onClick={() => handleProductSelect(product.slug || product._id)}
-                      className="block w-full border-b border-gray-100 px-3 py-2 text-left text-sm font-medium text-gray-700 transition last:border-b-0 hover:bg-primary-50 hover:text-primary"
+                      className="group block w-full border-b border-gray-100 px-3 py-2 text-left text-sm font-medium text-gray-700 transition last:border-b-0 hover:bg-primary-50 hover:text-primary"
                     >
-                      {product.title}
+                      <span className="flex items-center gap-3">
+                        <ShoppingBag className="h-5 w-5 shrink-0 text-primary-600" aria-hidden="true" />
+                        <span>{product.title}</span>
+                      </span>
                     </button>
                   ))}
                   {products.length === 0 && (

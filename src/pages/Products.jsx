@@ -419,12 +419,7 @@ export default function Products() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_40%,rgba(0,255,255,0.18),transparent_35%)]" />
           <div className="relative mx-auto grid max-w-7xl items-center gap-6 lg:grid-cols-[1.05fr_0.95fr]">
             <div>
-              <Link to="/products" className="mb-5 inline-flex items-center text-sm font-bold text-cyan-100 hover:text-white">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Products
-              </Link>
-              <p className="text-sm font-black uppercase tracking-[0.22em] text-cyan-200">Magnafic Software Product</p>
-              <h1 className="mt-4 text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">{product.title}</h1>
+              <h1 className="text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">{product.title}</h1>
               <p className="mt-4 max-w-2xl text-lg leading-8 text-cyan-50">{product.shortDescription}</p>
               {product.productUrl && (
                 <a href={product.productUrl} className="mt-6 inline-flex items-center rounded-full bg-white px-7 py-4 font-extrabold text-primary-700 shadow-xl transition hover:-translate-y-0.5">
