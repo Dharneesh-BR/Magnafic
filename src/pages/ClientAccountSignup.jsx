@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import SEO from '../components/SEO'
 import { signupClient } from '../lib/auth'
+import { sendClientConfirmation } from '../lib/clientConfirmation'
 
 function getSignupErrorMessage(error) {
   switch (error?.code) {
@@ -76,6 +77,17 @@ export default function ClientAccountSignup() {
         email: form.email.trim(),
         password: form.password,
       })
+
+      try {
+        await sendClientConfirmation({
+          name: form.name,
+          email: form.email,
+          submissionType: 'client',
+        })
+      } catch (confirmationError) {
+        console.warn('Client signup confirmation email failed:', confirmationError)
+      }
+
       navigate('/dashboard')
     } catch (signupError) {
       console.error('Client account signup failed:', signupError)

@@ -28,6 +28,30 @@ export const mentorSchema = defineType({
       description: 'LinkedIn-style professional headline shown under the mentor name.',
     }),
     defineField({
+      name: 'email',
+      title: 'Email ID',
+      type: 'string',
+      description: 'Private. Used only for consultant email notifications and not displayed on the website.',
+      validation: (Rule) =>
+        Rule.regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, {
+          name: 'email',
+          invert: false,
+        }).warning('Enter a valid email address.'),
+    }),
+    defineField({
+      name: 'contactNo',
+      title: 'Contact Number',
+      type: 'string',
+      description: 'Private. Used only for internal consultant communication and not displayed on the website.',
+    }),
+    defineField({
+      name: 'receiveNotifications',
+      title: 'Receive Email Notifications',
+      type: 'boolean',
+      initialValue: true,
+      description: 'Turn off only if this consultant should not receive automated notification emails.',
+    }),
+    defineField({
       name: 'profileImage',
       title: 'Profile Image',
       type: 'image',

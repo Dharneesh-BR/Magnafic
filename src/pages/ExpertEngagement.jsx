@@ -20,6 +20,7 @@ import MagnaLoader from '../components/MagnaLoader'
 import SEO from '../components/SEO'
 import { db } from '../lib/firebase'
 import { mentorClient } from '../lib/sanityClient'
+import { notifyConsultants } from '../lib/consultantNotifications'
 
 const tabs = [
   { id: 'call', label: '1:1 Call', icon: CalendarDays },
@@ -340,6 +341,22 @@ function ExpertCallRequest({ expert }) {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
+
+      try {
+        await notifyConsultants({
+          eventType: 'expert-call-request',
+          consultantIds: [expert._id],
+          context: {
+            clientName: formData.name.trim(),
+            clientEmail: formData.email.trim().toLowerCase(),
+            contactNo: formData.contactNo.trim(),
+            preferredCallAt: preferredCallDate.toLocaleString(),
+            sourcePath: window.location.pathname,
+          },
+        })
+      } catch (notificationError) {
+        console.warn('Consultant 1:1 call notification failed:', notificationError)
+      }
 
       setStatus({
         type: 'success',

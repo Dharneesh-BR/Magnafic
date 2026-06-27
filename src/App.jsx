@@ -20,6 +20,7 @@ import ClientAccountSignup from './pages/ClientAccountSignup'
 import Academy from './pages/Academy'
 import Programs from './pages/Programs'
 import Products from './pages/Products'
+import AdPage from './pages/AdPage'
 import Contact from './pages/Contact'
 import DescribeProblem from './pages/DescribeProblem'
 import CapabilityDetail from './pages/CapabilityDetail'
@@ -45,6 +46,7 @@ function AppContent() {
   const location = useLocation()
   const isDashboardPage = location.pathname.startsWith('/dashboard/')
   const isAddPage = location.pathname === '/add'
+  const isAdPage = location.pathname.startsWith('/ads/')
 
   if (location.pathname.startsWith('/admin')) {
     return (
@@ -59,7 +61,7 @@ function AppContent() {
   return (
     <div className="min-h-screen">
       <SEO />
-      {!isDashboardPage && !isAddPage && <Header />}
+      {!isDashboardPage && !isAddPage && !isAdPage && <Header />}
       <main>
         <ErrorBoundary resetKey={location.pathname}>
           <Routes>
@@ -87,13 +89,14 @@ function AppContent() {
             <Route path="/programs/:slug" element={<Programs />} />
             <Route path="/products" element={<Products />} />
             <Route path="/products/:slug" element={<Products />} />
+            <Route path="/ads/:slug" element={<AdPage />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/capabilities/:id" element={<CapabilityDetail />} />
             <Route path="/services/:id" element={<ServiceDetail />} />
           </Routes>
         </ErrorBoundary>
       </main>
-      {!isDashboardPage && !isAddPage && <Footer />}
+      {!isDashboardPage && !isAddPage && !isAdPage && <Footer />}
     </div>
   )
 }

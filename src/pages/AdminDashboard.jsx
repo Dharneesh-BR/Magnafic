@@ -7,6 +7,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import SEO from '../components/SEO'
 import { auth, db, firebaseConfig } from '../lib/firebase'
 import { mentorClient } from '../lib/sanityClient'
+import { notifyConsultants } from '../lib/consultantNotifications'
 
 const meetingPlatforms = [
   { value: 'google-meet', label: 'Google Meet' },
@@ -959,6 +960,21 @@ export default function AdminDashboard() {
         allocatedByAdminEmail: adminProfile?.email || '',
         updatedAt: serverTimestamp(),
       })
+
+      try {
+        await notifyConsultants({
+          eventType: 'client-assigned',
+          consultantIds: [consultant.sanityExpertId].filter(Boolean),
+          context: {
+            clientName: brief.clientName || brief.company || 'Client',
+            company: brief.company || '',
+            clientEmail: brief.clientEmail || brief.businessEmail || '',
+            capability: brief.capability || '',
+          },
+        })
+      } catch (notificationError) {
+        console.warn('Consultant assignment notification failed:', notificationError)
+      }
     } catch (allocationError) {
       console.error('Admin referral allocation failed:', allocationError)
       setDataError(getAdminError(allocationError))
@@ -1222,6 +1238,18 @@ export default function AdminDashboard() {
         createdByAdminId: adminProfile?.id || adminProfile?.uid || '',
         createdByAdminEmail: adminProfile?.email || '',
       })
+
+      try {
+        await notifyConsultants({
+          eventType: 'expert-club-login-created',
+          consultantIds: [selectedExpert.id],
+          context: {
+            consultantName: selectedExpert.name,
+          },
+        })
+      } catch (notificationError) {
+        console.warn('Consultant login notification failed:', notificationError)
+      }
 
       await signOut(secondaryAuth)
       setCredentialDraft(null)

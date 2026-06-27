@@ -21,6 +21,12 @@ const confirmationContent = {
     message:
       'Thank you for sharing your business challenge with Magnafic. Your responses and details have been received successfully. Our team will review them and connect you with the right expertise.',
   },
+  client: {
+    subject: 'Thank you for creating your Magnafic client account',
+    heading: 'Welcome to Magnafic',
+    message:
+      'Thank you for creating your Magnafic client account. Your account has been created successfully, and you can now access your client dashboard.',
+  },
 }
 
 function jsonResponse(statusCode, body) {

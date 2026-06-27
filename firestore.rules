@@ -24,20 +24,33 @@ service cloud.firestore {
     // Public insight subscriptions. Only a normalized active email subscription
     // can be created or refreshed; subscriber data remains private.
     match /insightSubscribers/{document} {
-      allow create, update: if
+      function isValidPublicSubscription(data) {
+        return data.email is string &&
+          data.email.size() >= 5 &&
+          data.email.size() <= 320 &&
+          data.email.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$') &&
+          data.status == 'active' &&
+          data.source in ['insights-page', 'insight-detail'];
+      }
+
+      allow create: if
         request.resource.data.keys().hasOnly([
           'email',
           'status',
           'source',
           'subscribedAt',
           'updatedAt'
-        ]) &&
-        request.resource.data.email is string &&
-        request.resource.data.email.size() >= 5 &&
-        request.resource.data.email.size() <= 320 &&
-        request.resource.data.email.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$') &&
-        request.resource.data.status == 'active' &&
-        request.resource.data.source in ['insights-page', 'insight-detail'];
+        ]) && isValidPublicSubscription(request.resource.data);
+
+      allow update: if
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'email',
+          'status',
+          'source',
+          'subscribedAt',
+          'updatedAt'
+        ]) && isValidPublicSubscription(request.resource.data);
+
       allow read, delete: if request.auth != null;
     }
 

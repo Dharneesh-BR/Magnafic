@@ -10,6 +10,7 @@ import { subscribeConsultantOpportunities } from '../lib/dashboard'
 import { db } from '../lib/firebase'
 import { mentorClient } from '../lib/sanityClient'
 import { getExpertImage } from '../lib/expertImages'
+import { notifyConsultants } from '../lib/consultantNotifications'
 
 function formatDate(date) {
   if (!date) return 'Not scheduled'
@@ -557,6 +558,26 @@ export default function ConsultantDashboard() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
+
+      try {
+        await notifyConsultants({
+          eventType: 'client-referral',
+          consultantIds: [
+            user?.sanityExpertId,
+            preferredConsultant?._id,
+          ].filter(Boolean),
+          context: {
+            clientName: referralForm.clientName.trim(),
+            company: referralForm.company.trim(),
+            clientEmail: referralForm.businessEmail.trim(),
+            capability: selectedReferralCapability.title,
+            description: referralForm.problem.trim(),
+            referredBy: dashboardName,
+          },
+        })
+      } catch (notificationError) {
+        console.warn('Consultant referral notification failed:', notificationError)
+      }
 
       setReferralForm({
         clientName: '',
