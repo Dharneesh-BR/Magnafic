@@ -73,6 +73,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://magnafic.com/insights/ai</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://magnafic.com/insights/why-indias-gated-communities-are-the-new-fb-goldmine</loc>
     <lastmod>2026-06-11</lastmod>
     <changefreq>weekly</changefreq>

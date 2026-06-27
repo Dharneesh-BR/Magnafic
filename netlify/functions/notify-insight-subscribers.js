@@ -1,15 +1,24 @@
 import { cert, getApps, initializeApp } from 'firebase-admin/app'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
+import { createClient } from '@sanity/client'
 
 const DEFAULT_SENDER_EMAIL = 'dharneesh@magnafic.com'
 const AUTHENTICATED_DOMAIN = 'magnafic.com'
 const MAX_SEND_ATTEMPTS = 3
 const SENDING_LOCK_MINUTES = 15
+const SANITY_PROJECT_ID = '8pf5fxwy'
+const SANITY_DATASET = 'production'
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Sanity-Webhook-Secret',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json',
+}
 
 function jsonResponse(statusCode, body) {
   return {
     statusCode,
-    headers: { 'Content-Type': 'application/json' },
+    headers: corsHeaders,
     body: JSON.stringify(body),
   }
 }
@@ -45,6 +54,16 @@ function getDb() {
   return getFirestore()
 }
 
+function getSanityClient() {
+  return createClient({
+    projectId: process.env.SANITY_PROJECT_ID || SANITY_PROJECT_ID,
+    dataset: process.env.SANITY_DATASET || SANITY_DATASET,
+    apiVersion: '2024-01-01',
+    useCdn: false,
+    token: process.env.SANITY_READ_TOKEN || process.env.SANITY_API_READ_TOKEN || process.env.SANITY_API_TOKEN,
+  })
+}
+
 function getInsightPayload(body = {}) {
   const payload = body.result || body.document || body.after || body
   const slug = payload.slug?.current || payload.slug || ''
@@ -56,6 +75,73 @@ function getInsightPayload(body = {}) {
     status: payload.status,
     slug,
     publishedAt: payload.publishedAt || payload._updatedAt || new Date().toISOString(),
+  }
+}
+
+function normalizeSanityId(value = '') {
+  return String(value || '').trim().replace(/^drafts\./, '')
+}
+
+function addDocumentId(ids, value) {
+  const normalizedId = normalizeSanityId(value)
+  if (/^[A-Za-z0-9._-]+$/.test(normalizedId)) ids.add(normalizedId)
+}
+
+function collectCandidateDocumentIds(body = {}) {
+  const ids = new Set()
+  const payload = body.result || body.document || body.after || body
+
+  addDocumentId(ids, payload?._id)
+  addDocumentId(ids, body.documentId)
+
+  if (body.ids && typeof body.ids === 'object') {
+    Object.values(body.ids).flat().forEach((id) => addDocumentId(ids, id))
+  }
+
+  if (Array.isArray(body.mutations)) {
+    for (const mutation of body.mutations) {
+      addDocumentId(ids, mutation?.create?._id)
+      addDocumentId(ids, mutation?.createOrReplace?._id)
+      addDocumentId(ids, mutation?.patch?.id)
+      addDocumentId(ids, mutation?.delete?.id)
+    }
+  }
+
+  return [...ids]
+}
+
+async function resolveInsightPayload(body = {}) {
+  const payloadInsight = getInsightPayload(body)
+
+  if (payloadInsight.id && payloadInsight.title && payloadInsight.status) {
+    return payloadInsight
+  }
+
+  const ids = collectCandidateDocumentIds(body)
+  if (!ids.length) return payloadInsight
+
+  const [sanityInsight] = await getSanityClient().fetch(
+    `*[_type == "blog" && _id in $ids] {
+      _id,
+      title,
+      excerpt,
+      status,
+      "slug": slug.current,
+      publishedAt,
+      _updatedAt
+    }[0...1]`,
+    { ids },
+  )
+
+  if (!sanityInsight) return payloadInsight
+
+  return {
+    id: normalizeSanityId(sanityInsight._id),
+    title: sanityInsight.title || payloadInsight.title,
+    excerpt: sanityInsight.excerpt || payloadInsight.excerpt || '',
+    status: sanityInsight.status || payloadInsight.status,
+    slug: sanityInsight.slug || payloadInsight.slug || '',
+    publishedAt: sanityInsight.publishedAt || sanityInsight._updatedAt || payloadInsight.publishedAt,
   }
 }
 
@@ -135,6 +221,10 @@ async function sendEmail(payload) {
 }
 
 export async function handler(event) {
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers: corsHeaders, body: '' }
+  }
+
   if (event.httpMethod !== 'POST') {
     return jsonResponse(405, { error: 'Method not allowed' })
   }
@@ -167,7 +257,7 @@ export async function handler(event) {
     return jsonResponse(400, { error: 'Invalid request body.' })
   }
 
-  const insight = getInsightPayload(body)
+  const insight = await resolveInsightPayload(body)
 
   if (!insight.id || !insight.title || insight.status !== 'published') {
     return jsonResponse(200, { skipped: true, reason: 'Not a published insight payload' })
