@@ -258,15 +258,15 @@ export default function Header() {
             <Link to="/about" className="text-gray-900 hover:text-primary transition-colors font-medium">About</Link>
             <Link
               to="/founder-community"
-              className="whitespace-nowrap rounded-full border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-extrabold text-primary-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary-300 hover:bg-white hover:shadow-glow-blue xl:px-4 xl:text-sm"
+              className="max-w-28 rounded-full border border-primary-200 bg-primary-50 px-3 py-2 text-center text-xs font-extrabold leading-tight text-primary-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary-300 hover:bg-white hover:shadow-glow-blue xl:max-w-32 xl:px-4 xl:text-sm"
             >
-              Join Founder Community
+              Join Founder<br />Community
             </Link>
             <Link
               to="/join-experts-hub"
-              className="whitespace-nowrap rounded-full border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-extrabold text-primary-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary-300 hover:bg-white hover:shadow-glow-blue xl:px-4 xl:text-sm"
+              className="max-w-28 rounded-full border border-primary-200 bg-primary-50 px-3 py-2 text-center text-xs font-extrabold leading-tight text-primary-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary-300 hover:bg-white hover:shadow-glow-blue xl:max-w-32 xl:px-4 xl:text-sm"
             >
-              Top 1% Expert Club
+              Top 1%<br />Expert Club
             </Link>
 
             {authUser ? (
