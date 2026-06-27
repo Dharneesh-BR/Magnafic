@@ -1,7 +1,7 @@
 import { cert, getApps, initializeApp } from 'firebase-admin/app'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 
-const DEFAULT_SENDER_EMAIL = 'no-reply@magnafic.com'
+const DEFAULT_SENDER_EMAIL = 'dharneesh@magnafic.com'
 const AUTHENTICATED_DOMAIN = 'magnafic.com'
 const MAX_SEND_ATTEMPTS = 3
 const SENDING_LOCK_MINUTES = 15
@@ -73,18 +73,7 @@ function getSiteUrl() {
 }
 
 function getFromEmail() {
-  const configuredEmail = String(
-    process.env.INSIGHTS_FROM_EMAIL ||
-    process.env.SENDGRID_FROM_EMAIL ||
-    process.env.SENDGRID_VERIFIED_SENDER ||
-    process.env.FROM_EMAIL ||
-    DEFAULT_SENDER_EMAIL
-  ).trim().toLowerCase()
-
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredEmail) &&
-    configuredEmail.endsWith(`@${AUTHENTICATED_DOMAIN}`)
-    ? configuredEmail
-    : DEFAULT_SENDER_EMAIL
+  return DEFAULT_SENDER_EMAIL
 }
 
 function buildSendgridPayload({ insight, subscriber }) {

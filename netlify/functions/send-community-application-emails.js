@@ -6,7 +6,7 @@ const corsHeaders = {
 }
 
 const DEFAULT_ADMIN_EMAIL = 'dharneesh@magnafic.com'
-const DEFAULT_SENDER_EMAIL = 'no-reply@magnafic.com'
+const DEFAULT_SENDER_EMAIL = 'consulting@magnafic.com'
 const AUTHENTICATED_DOMAIN = 'magnafic.com'
 
 function jsonResponse(statusCode, body) {
@@ -35,22 +35,7 @@ function isEmail(value = '') {
 }
 
 function getFromEmail() {
-  const configuredEmail = normalizeEmail(
-    process.env.SENDGRID_FROM_EMAIL ||
-    process.env.SENDGRID_VERIFIED_SENDER ||
-    process.env.FROM_EMAIL ||
-    DEFAULT_SENDER_EMAIL
-  )
-
-  if (!isEmail(configuredEmail) || !configuredEmail.endsWith(`@${AUTHENTICATED_DOMAIN}`)) {
-    console.warn('Invalid community email sender configured. Using default sender.', {
-      configuredDomain: configuredEmail.split('@')[1] || '',
-      fallbackFromEmail: DEFAULT_SENDER_EMAIL,
-    })
-    return DEFAULT_SENDER_EMAIL
-  }
-
-  return configuredEmail
+  return DEFAULT_SENDER_EMAIL
 }
 
 function getAdminEmail() {

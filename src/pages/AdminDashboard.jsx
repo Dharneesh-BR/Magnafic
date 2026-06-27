@@ -2509,17 +2509,19 @@ export default function AdminDashboard() {
               <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
                 <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm">
                   <colgroup>
-                    <col className="w-[20%]" />
-                    <col className="w-[22%]" />
-                    <col className="w-[10%]" />
+                    <col className="w-[17%]" />
+                    <col className="w-[19%]" />
+                    <col className="w-[18%]" />
+                    <col className="w-[8%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[12%]" />
                     <col className="w-[14%]" />
-                    <col className="w-[14%]" />
-                    <col className="w-[20%]" />
                   </colgroup>
                   <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
                     <tr className="text-xs font-extrabold uppercase tracking-wide text-white">
                       <th className="px-4 py-4">Consultant Name</th>
                       <th className="px-4 py-4">Capabilities</th>
+                      <th className="px-4 py-4">Login ID</th>
                       <th className="px-4 py-4">Clients</th>
                       <th className="px-4 py-4">Project Paid</th>
                       <th className="px-4 py-4">Referral Paid</th>
@@ -2534,6 +2536,19 @@ export default function AdminDashboard() {
                           {consultant.capabilities.length > 0
                             ? consultant.capabilities.map((capability) => capability.title).join(', ')
                             : 'No connected capabilities'}
+                        </td>
+                        <td className="break-words bg-blue-50/80 px-4 py-5">
+                          <p className="break-all font-black leading-6 text-gray-950">{consultant.email || 'No login ID'}</p>
+                          {consultant.email && (
+                            <button
+                              type="button"
+                              onClick={() => navigator.clipboard?.writeText(consultant.email)}
+                              className="mt-2 inline-flex items-center rounded-lg bg-white px-2.5 py-1.5 text-xs font-black text-primary-700 ring-1 ring-primary-100 transition hover:bg-primary-50"
+                            >
+                              <Mail className="mr-1.5 h-3.5 w-3.5" />
+                              Copy
+                            </button>
+                          )}
                         </td>
                         <td className="bg-slate-50 px-4 py-5">
                           <span className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-white px-3 text-sm font-black text-primary-700 ring-1 ring-primary-100">

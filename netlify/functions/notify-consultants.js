@@ -7,7 +7,7 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
-const DEFAULT_SENDER_EMAIL = 'no-reply@magnafic.com'
+const DEFAULT_SENDER_EMAIL = 'consulting@magnafic.com'
 const AUTHENTICATED_DOMAIN = 'magnafic.com'
 const ALLOWED_EVENT_TYPES = new Set([
   'expert-club-login-created',
@@ -42,17 +42,7 @@ function isEmail(value = '') {
 }
 
 function getFromEmail() {
-  const configuredEmail = normalizeEmail(
-    process.env.CONSULTANT_NOTIFICATIONS_FROM_EMAIL ||
-      process.env.SENDGRID_FROM_EMAIL ||
-      process.env.SENDGRID_VERIFIED_SENDER ||
-      process.env.FROM_EMAIL ||
-      DEFAULT_SENDER_EMAIL,
-  )
-
-  return isEmail(configuredEmail) && configuredEmail.endsWith(`@${AUTHENTICATED_DOMAIN}`)
-    ? configuredEmail
-    : DEFAULT_SENDER_EMAIL
+  return DEFAULT_SENDER_EMAIL
 }
 
 function getSanityClient() {
