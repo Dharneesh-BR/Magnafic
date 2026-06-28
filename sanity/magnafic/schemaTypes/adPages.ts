@@ -66,6 +66,70 @@ const itemMediaObject = defineField({
   fields: mediaFields,
 })
 
+const ctaActionFields = [
+  defineField({
+    name: 'buttonAction',
+    title: 'Button Action',
+    type: 'string',
+    options: {
+      list: [
+        {title: 'External / Internal Link', value: 'link'},
+        {title: 'Razorpay Checkout', value: 'razorpay'},
+        {title: 'Open Form', value: 'form'},
+      ],
+      layout: 'radio',
+    },
+    initialValue: 'link',
+  }),
+  defineField({
+    name: 'buttonUrl',
+    title: 'Button URL',
+    type: 'url',
+    hidden: ({parent}) => (parent?.buttonAction || 'link') !== 'link',
+  }),
+  defineField({
+    name: 'razorpayAmount',
+    title: 'Razorpay Amount',
+    type: 'number',
+    description: 'Amount in rupees, for example 99 or 499.',
+    hidden: ({parent}) => parent?.buttonAction !== 'razorpay',
+    validation: (Rule) => Rule.min(1),
+  }),
+  defineField({
+    name: 'razorpayDescription',
+    title: 'Razorpay Description',
+    type: 'string',
+    description: 'Shown in Razorpay checkout and stored with the payment.',
+    hidden: ({parent}) => parent?.buttonAction !== 'razorpay',
+  }),
+  defineField({
+    name: 'formTitle',
+    title: 'Form Title',
+    type: 'string',
+    hidden: ({parent}) => parent?.buttonAction !== 'form',
+  }),
+  defineField({
+    name: 'formDescription',
+    title: 'Form Description',
+    type: 'text',
+    rows: 3,
+    hidden: ({parent}) => parent?.buttonAction !== 'form',
+  }),
+  defineField({
+    name: 'formButtonLabel',
+    title: 'Form Submit Button Label',
+    type: 'string',
+    hidden: ({parent}) => parent?.buttonAction !== 'form',
+  }),
+  defineField({
+    name: 'showMessageField',
+    title: 'Show Message Field',
+    type: 'boolean',
+    initialValue: true,
+    hidden: ({parent}) => parent?.buttonAction !== 'form',
+  }),
+]
+
 export const adPagesSchema = defineType({
   name: 'adPages',
   title: 'Ad Pages',
@@ -124,10 +188,58 @@ export const adPagesSchema = defineType({
       type: 'string',
     }),
     defineField({
+      name: 'primaryButtonAction',
+      title: 'Primary Button Action',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'External / Internal Link', value: 'link'},
+          {title: 'Razorpay Checkout', value: 'razorpay'},
+          {title: 'Open Form', value: 'form'},
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'link',
+      hidden: ({parent}) => !parent?.primaryButtonLabel,
+    }),
+    defineField({
       name: 'primaryButtonUrl',
       title: 'Primary Button URL',
       type: 'url',
-      hidden: ({parent}) => !parent?.primaryButtonLabel,
+      hidden: ({parent}) => !parent?.primaryButtonLabel || (parent?.primaryButtonAction || 'link') !== 'link',
+    }),
+    defineField({
+      name: 'primaryRazorpayAmount',
+      title: 'Primary Razorpay Amount',
+      type: 'number',
+      description: 'Amount in rupees, for example 99 or 499.',
+      hidden: ({parent}) => !parent?.primaryButtonLabel || parent?.primaryButtonAction !== 'razorpay',
+      validation: (Rule) => Rule.min(1),
+    }),
+    defineField({
+      name: 'primaryRazorpayDescription',
+      title: 'Primary Razorpay Description',
+      type: 'string',
+      hidden: ({parent}) => !parent?.primaryButtonLabel || parent?.primaryButtonAction !== 'razorpay',
+    }),
+    defineField({
+      name: 'primaryFormTitle',
+      title: 'Primary Form Title',
+      type: 'string',
+      hidden: ({parent}) => !parent?.primaryButtonLabel || parent?.primaryButtonAction !== 'form',
+    }),
+    defineField({
+      name: 'primaryFormDescription',
+      title: 'Primary Form Description',
+      type: 'text',
+      rows: 3,
+      hidden: ({parent}) => !parent?.primaryButtonLabel || parent?.primaryButtonAction !== 'form',
+    }),
+    defineField({
+      name: 'primaryFormButtonLabel',
+      title: 'Primary Form Submit Button Label',
+      type: 'string',
+      hidden: ({parent}) => !parent?.primaryButtonLabel || parent?.primaryButtonAction !== 'form',
     }),
     defineField({
       name: 'secondaryButtonLabel',
@@ -331,7 +443,7 @@ export const adPagesSchema = defineType({
                 defineField({name: 'headline', title: 'CTA Headline', type: 'string'}),
                 defineField({name: 'description', title: 'CTA Description', type: 'text', rows: 3}),
                 defineField({name: 'buttonLabel', title: 'Button Label', type: 'string'}),
-                defineField({name: 'buttonUrl', title: 'Button URL', type: 'url'}),
+                ...ctaActionFields,
                 defineField({name: 'media', title: 'CTA Media', type: 'object', fields: mediaFields}),
               ],
             }),

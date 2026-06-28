@@ -75,6 +75,7 @@ function getInsightPayload(body = {}) {
     status: payload.status,
     slug,
     publishedAt: payload.publishedAt || payload._updatedAt || new Date().toISOString(),
+    updatedAt: payload._updatedAt || payload.updatedAt || payload.publishedAt || '',
   }
 }
 
@@ -110,6 +111,14 @@ function collectCandidateDocumentIds(body = {}) {
   return [...ids]
 }
 
+function isArchivedInsight(insight = {}) {
+  return String(insight.status || '').toLowerCase() === 'archived'
+}
+
+function canNotifyForInsight(insight = {}) {
+  return Boolean(insight.id && insight.title && !isArchivedInsight(insight))
+}
+
 async function resolveInsightPayload(body = {}) {
   const payloadInsight = getInsightPayload(body)
 
@@ -142,7 +151,14 @@ async function resolveInsightPayload(body = {}) {
     status: sanityInsight.status || payloadInsight.status,
     slug: sanityInsight.slug || payloadInsight.slug || '',
     publishedAt: sanityInsight.publishedAt || sanityInsight._updatedAt || payloadInsight.publishedAt,
+    updatedAt: sanityInsight._updatedAt || sanityInsight.publishedAt || payloadInsight.updatedAt || '',
   }
+}
+
+function getNotificationId(insight = {}) {
+  const version = insight.updatedAt || insight.publishedAt || ''
+  const key = version ? `${insight.id}-${version}` : insight.id
+  return key.replace(/[^A-Za-z0-9._-]/g, '-').slice(0, 140)
 }
 
 function escapeHtml(value = '') {
@@ -259,15 +275,21 @@ export async function handler(event) {
 
   const insight = await resolveInsightPayload(body)
 
-  if (!insight.id || !insight.title || insight.status !== 'published') {
-    return jsonResponse(200, { skipped: true, reason: 'Not a published insight payload' })
+  if (!canNotifyForInsight(insight)) {
+    return jsonResponse(200, {
+      skipped: true,
+      reason: 'Not a notifiable insight payload',
+      insightId: insight.id || '',
+      status: insight.status || '',
+      hasTitle: Boolean(insight.title),
+    })
   }
 
   let notificationRef = null
 
   try {
     const db = getDb()
-    notificationRef = db.collection('insightNotifications').doc(insight.id)
+    notificationRef = db.collection('insightNotifications').doc(getNotificationId(insight))
     const claim = await db.runTransaction(async (transaction) => {
       const notificationSnapshot = await transaction.get(notificationRef)
       const existing = notificationSnapshot.exists ? notificationSnapshot.data() : {}
@@ -286,8 +308,11 @@ export async function handler(event) {
 
       transaction.set(notificationRef, {
         insightId: insight.id,
+        notificationId: getNotificationId(insight),
         title: insight.title,
         slug: insight.slug,
+        publishedAt: insight.publishedAt || '',
+        updatedAt: insight.updatedAt || '',
         status: 'sending',
         attempts: attempts + 1,
         lastError: '',

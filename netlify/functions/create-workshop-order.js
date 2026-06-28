@@ -10,6 +10,12 @@ function cleanValue(value, maxLength = 200) {
   return String(value || '').trim().slice(0, maxLength)
 }
 
+function cleanAmount(value) {
+  const amount = Number(value)
+  if (!Number.isFinite(amount) || amount <= 0) return 99
+  return Math.round(amount)
+}
+
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return jsonResponse(405, { error: 'Method not allowed' })
@@ -28,12 +34,15 @@ export async function handler(event) {
     const name = cleanValue(body.name)
     const contactNo = cleanValue(body.contactNo, 30)
     const email = cleanValue(body.email).toLowerCase()
+    const program = cleanValue(body.program || 'Business Growth Masterclass')
+    const sourcePath = cleanValue(body.sourcePath || '/add', 300)
+    const amount = cleanAmount(body.amount)
 
     if (!name || !contactNo || !email) {
       return jsonResponse(400, { error: 'Name, contact number, and email are required.' })
     }
 
-    const receipt = `magna-workshop-${Date.now()}`.slice(0, 40)
+    const receipt = `magna-${Date.now()}`.slice(0, 40)
     const response = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
       headers: {
@@ -41,15 +50,15 @@ export async function handler(event) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        amount: 9900,
+        amount: amount * 100,
         currency: 'INR',
         receipt,
         notes: {
           name,
           contactNo,
           email,
-          program: 'Business Growth Masterclass',
-          source: '/add',
+          program,
+          source: sourcePath,
         },
       }),
     })

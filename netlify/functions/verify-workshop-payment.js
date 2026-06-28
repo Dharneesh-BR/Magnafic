@@ -14,6 +14,12 @@ function cleanValue(value, maxLength = 200) {
   return String(value || '').trim().slice(0, maxLength)
 }
 
+function cleanAmount(value) {
+  const amount = Number(value)
+  if (!Number.isFinite(amount) || amount <= 0) return 99
+  return Math.round(amount)
+}
+
 function getServiceAccount() {
   const rawKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
   if (!rawKey) return null
@@ -71,6 +77,9 @@ export async function handler(event) {
     const orderId = cleanValue(body.razorpayOrderId)
     const paymentId = cleanValue(body.razorpayPaymentId)
     const signature = cleanValue(body.razorpaySignature, 500)
+    const program = cleanValue(body.program || 'Business Growth Masterclass')
+    const amount = cleanAmount(body.amount)
+    const sourcePath = cleanValue(body.sourcePath || '/add', 300)
 
     if (!orderId || !paymentId || !signature) {
       return jsonResponse(400, { error: 'Payment verification details are missing.' })
@@ -85,13 +94,13 @@ export async function handler(event) {
       name: cleanValue(body.name),
       contactNo: cleanValue(body.contactNo, 30),
       email: cleanValue(body.email).toLowerCase(),
-      program: 'Business Growth Masterclass',
-      amount: 99,
+      program,
+      amount,
       currency: 'INR',
       paymentStatus: 'paid',
       razorpayOrderId: orderId,
       razorpayPaymentId: paymentId,
-      sourcePath: '/add',
+      sourcePath,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     }
