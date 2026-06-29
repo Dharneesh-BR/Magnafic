@@ -31,6 +31,12 @@ const adPageFields = `
   primaryFormTitle,
   primaryFormDescription,
   primaryFormButtonLabel,
+  primaryConfirmationEmail{
+    enabled,
+    subject,
+    fromName,
+    body
+  },
   secondaryButtonLabel,
   secondaryButtonUrl,
   theme,
@@ -89,6 +95,12 @@ const adPageFields = `
       formDescription,
       formButtonLabel,
       showMessageField,
+      confirmationEmail{
+        enabled,
+        subject,
+        fromName,
+        body
+      },
       media{${mediaFields}}
     }
   },
@@ -168,6 +180,39 @@ function loadRazorpayCheckout() {
     script.onerror = () => resolve(false)
     document.body.appendChild(script)
   })
+}
+
+async function sendAdActionEmail({page, cta, formData, actionType, paymentId = '', amount = ''}) {
+  try {
+    const response = await fetch('/.netlify/functions/send-ad-action-email', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        pageId: page._id,
+        pageSlug: page.slug || page._id,
+        pageTitle: page.title || '',
+        ctaKey: cta.ctaKey || 'primary',
+        actionType,
+        name: formData.name,
+        email: formData.email,
+        contactNo: formData.contactNo,
+        message: formData.message || '',
+        program: cta.paymentDescription || cta.title || page.title || '',
+        amount,
+        paymentId,
+      }),
+    })
+    const result = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      console.warn('Ad action confirmation email was not sent:', result)
+    }
+
+    return result
+  } catch (emailError) {
+    console.warn('Ad action confirmation email failed:', emailError)
+    return {confirmationSent: false, error: emailError?.message || 'Unable to send confirmation email.'}
+  }
 }
 
 function MediaBlock({media, className = ''}) {
@@ -355,6 +400,7 @@ function AdSection({section, index, previousSectionHasMedia = false, onOpenCta})
       paymentDescription: cta.razorpayDescription || cta.headline || section.sectionTitle,
       sourceLabel: section.sectionTitle,
       showMessageField: cta.showMessageField !== false,
+      ctaKey: section._key,
     }
 
     return (
@@ -593,6 +639,7 @@ export default function AdPage() {
     paymentDescription: page.primaryRazorpayDescription || page.headline || page.title,
     sourceLabel: page.title,
     showMessageField: true,
+    ctaKey: 'primary',
   } : null, [page])
 
   if (loading) return <div className="min-h-screen bg-[#f7f9ff] px-4 py-20"><MagnaLoader message="Loading page..." /></div>
@@ -756,6 +803,14 @@ function AdCtaModal({page, cta, onClose}) {
                 throw new Error(verificationResult.error || 'Payment could not be verified.')
               }
 
+              await sendAdActionEmail({
+                page,
+                cta,
+                formData,
+                actionType: 'payment',
+                paymentId: verificationResult.paymentId || paymentResponse.razorpay_payment_id,
+                amount,
+              })
               setStatus({type: 'success', message: 'Payment successful. Our team will contact you shortly.'})
               setFormData({name: '', contactNo: '', email: '', message: ''})
             } catch (verificationError) {
@@ -792,6 +847,12 @@ function AdCtaModal({page, cta, onClose}) {
         updatedAt: serverTimestamp(),
       })
 
+      await sendAdActionEmail({
+        page,
+        cta,
+        formData,
+        actionType: 'form',
+      })
       setStatus({type: 'success', message: 'Thank you. Your details have been submitted successfully.'})
       setFormData({name: '', contactNo: '', email: '', message: ''})
     } catch (submitError) {

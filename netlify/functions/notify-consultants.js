@@ -14,6 +14,10 @@ const ALLOWED_EVENT_TYPES = new Set([
   'expert-call-request',
   'client-referral',
   'client-assigned',
+  'client-assigned-reminder-6h',
+  'client-assigned-reminder-12h',
+  'client-assigned-reminder-20h',
+  'client-assigned-expired-48h',
 ])
 
 function jsonResponse(statusCode, body) {
@@ -41,7 +45,7 @@ function isEmail(value = '') {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
-function getFromEmail() {
+export function getFromEmail() {
   return DEFAULT_SENDER_EMAIL
 }
 
@@ -65,7 +69,7 @@ function normalizePayload(body = {}) {
   }
 }
 
-async function getSanityRecipients(consultantIds = []) {
+export async function getSanityRecipients(consultantIds = []) {
   if (!consultantIds.length) return []
 
   const client = getSanityClient()
@@ -80,7 +84,7 @@ async function getSanityRecipients(consultantIds = []) {
   )
 }
 
-function dedupeRecipients(recipients = []) {
+export function dedupeRecipients(recipients = []) {
   const seen = new Set()
   return recipients
     .map((recipient) => ({
@@ -95,11 +99,63 @@ function dedupeRecipients(recipients = []) {
     })
 }
 
+function getFirstName(value = '') {
+  return String(value || '').trim().split(/\s+/)[0] || 'Consultant'
+}
+
+function formatDateTime(value) {
+  if (!value) return ''
+  const rawDate = typeof value?.toDate === 'function' ? value.toDate() : new Date(value)
+  if (Number.isNaN(rawDate.getTime())) return String(value)
+
+  return new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Kolkata',
+  }).format(rawDate)
+}
+
+function getReferralReminderLabel(eventType) {
+  switch (eventType) {
+    case 'client-assigned-reminder-6h':
+      return 'Reminder 1'
+    case 'client-assigned-reminder-12h':
+      return 'Reminder 2'
+    case 'client-assigned-reminder-20h':
+      return 'Last Reminder'
+    case 'client-assigned-expired-48h':
+      return 'Final Expiry Notification'
+    default:
+      return ''
+  }
+}
+
+function getReferralEmailContent(eventType, context = {}) {
+  const clientName = context.clientName || context.name || 'Not provided'
+  const company = context.company || 'Not provided'
+  const clientEmail = context.clientEmail || context.email || 'Not provided'
+  const referralDateTime = formatDateTime(
+    context.referralDateTime || context.allocatedAt || context.createdAt || context.submittedAt,
+  ) || 'Not provided'
+  const additionalNotes = context.additionalNotes || context.notes || context.description || context.capability || 'Not provided'
+  const reminderLabel = getReferralReminderLabel(eventType)
+  const subjectPrefix = reminderLabel ? `${reminderLabel}: ` : ''
+
+  return {
+    type: 'client-referral-assignment',
+    subject: `${subjectPrefix}New client referral submitted through Magnafic`,
+    heading: reminderLabel || 'New client referral submitted',
+    clientName,
+    company,
+    clientEmail,
+    referralDateTime,
+    additionalNotes,
+  }
+}
+
 function getEventContent(eventType, context = {}) {
   const clientName = context.clientName || context.name || 'A client'
   const company = context.company ? ` from ${context.company}` : ''
-  const capability = context.capability ? ` for ${context.capability}` : ''
-  const scheduledAt = context.scheduledAt ? `\nScheduled time: ${context.scheduledAt}` : ''
   const preferredAt = context.preferredCallAt ? `\nPreferred time: ${context.preferredCallAt}` : ''
 
   if (eventType === 'expert-club-login-created') {
@@ -120,29 +176,111 @@ function getEventContent(eventType, context = {}) {
     }
   }
 
-  if (eventType === 'client-referral') {
-    return {
-      subject: `Referral submitted: ${clientName}`,
-      heading: 'Client referral submitted',
-      message:
-        `A client referral has been submitted${capability}.\nClient: ${clientName}${company}\nEmail: ${context.clientEmail || 'Not provided'}\n\n${context.description || ''}`,
-    }
-  }
-
-  if (eventType === 'client-assigned') {
-    return {
-      subject: `New client assigned: ${clientName}`,
-      heading: 'New client assigned',
-      message:
-        `${clientName}${company} has been assigned to you${capability}.${scheduledAt}\n\nPlease check your consultant dashboard for details.`,
-    }
+  if (
+    eventType === 'client-referral'
+    || eventType === 'client-assigned'
+    || eventType.startsWith('client-assigned-reminder-')
+    || eventType === 'client-assigned-expired-48h'
+  ) {
+    return getReferralEmailContent(eventType, context)
   }
 
   throw new Error('Unsupported consultant notification event type.')
 }
 
-function buildEmail({recipient, eventType, context, fromEmail}) {
+function buildReferralEmail({recipient, content, fromEmail, fromName = 'Magnafic'}) {
+  const firstName = getFirstName(recipient.name)
+  const userName = recipient.email || 'Not provided'
+  const plainText = [
+    `Dear ${firstName},`,
+    '',
+    'A new client referral has been successfully submitted through the Magnafic platform.',
+    '',
+    'Client Details',
+    '',
+    `Client Name: ${content.clientName}`,
+    `Company: ${content.company}`,
+    `Email: ${content.clientEmail}`,
+    '',
+    `Referral Date & Time : ${content.referralDateTime}`,
+    '',
+    `Additional Notes: ${content.additionalNotes}`,
+    '',
+    'Please review the referral at your earliest convenience and confirm your acceptance within one business day so we can proceed with the engagement.',
+    '',
+    'Magnafic Login Link - https://magnafic.com/login',
+    '',
+    `User Name - ${userName}`,
+    '',
+    'Regards,',
+    '',
+    'Team Magnafic',
+    '',
+    'Welcome to New Era of Consulting 6.0',
+    '',
+    'Where Conscious Strategy meets AI Powered Business Excellence',
+    '',
+    'www.Magnafic.com',
+  ].join('\n')
+
+  const detailRows = [
+    ['Client Name', content.clientName],
+    ['Company', content.company],
+    ['Email', content.clientEmail],
+    ['Referral Date & Time', content.referralDateTime],
+    ['Additional Notes', content.additionalNotes],
+  ]
+
+  return {
+    personalizations: [{
+      to: [{email: recipient.email, name: recipient.name}],
+      subject: content.subject,
+    }],
+    from: {email: fromEmail, name: fromName},
+    content: [
+      {
+        type: 'text/plain',
+        value: plainText,
+      },
+      {
+        type: 'text/html',
+        value: `
+          <div style="font-family:Arial,sans-serif;line-height:1.7;color:#111827;max-width:680px;margin:auto">
+            <h1 style="font-size:22px;margin:0 0 20px;color:#000047">${escapeHtml(content.heading)}</h1>
+            <p>Dear ${escapeHtml(firstName)},</p>
+            <p>A new client referral has been successfully submitted through the Magnafic platform.</p>
+            <p><strong>Client Details</strong></p>
+            <table style="border-collapse:collapse;width:100%;margin:12px 0 20px">
+              <tbody>
+                ${detailRows.map(([label, value]) => `
+                  <tr>
+                    <td style="border:1px solid #e5e7eb;padding:10px;font-weight:700;width:34%">${escapeHtml(label)}</td>
+                    <td style="border:1px solid #e5e7eb;padding:10px">${escapeHtml(value)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            <p>Please review the referral at your earliest convenience and confirm your acceptance within one business day so we can proceed with the engagement.</p>
+            <p>Magnafic Login Link - <a href="https://magnafic.com/login">https://magnafic.com/login</a></p>
+            <p>User Name - ${escapeHtml(userName)}</p>
+            <p style="margin-top:24px">Regards,</p>
+            <p><strong>Team Magnafic</strong></p>
+            <p>Welcome to New Era of Consulting 6.0</p>
+            <p>Where Conscious Strategy meets AI Powered Business Excellence</p>
+            <p><a href="https://www.magnafic.com/">www.Magnafic.com</a></p>
+          </div>
+        `,
+      },
+    ],
+  }
+}
+
+export function buildEmail({recipient, eventType, context, fromEmail}) {
   const content = getEventContent(eventType, context)
+  if (content.type === 'client-referral-assignment') {
+    return buildReferralEmail({recipient, content, fromEmail})
+  }
+
   const safeMessage = escapeHtml(content.message).replace(/\n/g, '<br>')
 
   return {
@@ -182,7 +320,7 @@ function buildEmail({recipient, eventType, context, fromEmail}) {
   }
 }
 
-async function sendEmail(payload, apiKey) {
+export async function sendEmail(payload, apiKey) {
   const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
     headers: {

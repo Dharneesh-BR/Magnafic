@@ -130,6 +130,44 @@ const ctaActionFields = [
   }),
 ]
 
+const confirmationEmailObject = defineField({
+  name: 'confirmationEmail',
+  title: 'Confirmation Email Content',
+  type: 'object',
+  description: 'Optional email sent to the visitor after this action is completed. Supports {{First Name}}, {{Name}}, {{Email}}, {{Contact No}}, {{Program}}, {{Amount}}, {{Payment ID}}, {{Page Title}}, and {{Action}}.',
+  fields: [
+    defineField({
+      name: 'enabled',
+      title: 'Send Confirmation Email',
+      type: 'boolean',
+      initialValue: false,
+    }),
+    defineField({
+      name: 'subject',
+      title: 'Email Subject',
+      type: 'string',
+      hidden: ({parent}) => !parent?.enabled,
+      validation: (Rule) => Rule.max(140),
+    }),
+    defineField({
+      name: 'fromName',
+      title: 'Sender Name',
+      type: 'string',
+      initialValue: 'Magnafic',
+      hidden: ({parent}) => !parent?.enabled,
+      validation: (Rule) => Rule.max(80),
+    }),
+    defineField({
+      name: 'body',
+      title: 'Email Body',
+      type: 'text',
+      rows: 12,
+      hidden: ({parent}) => !parent?.enabled,
+      description: 'Plain text email body. Line breaks are preserved in the email.',
+    }),
+  ],
+})
+
 export const adPagesSchema = defineType({
   name: 'adPages',
   title: 'Ad Pages',
@@ -235,6 +273,12 @@ export const adPagesSchema = defineType({
       title: 'Primary Form Submit Button Label',
       type: 'string',
       hidden: ({parent}) => !parent?.primaryButtonLabel || parent?.primaryButtonAction !== 'form',
+    }),
+    defineField({
+      ...confirmationEmailObject,
+      name: 'primaryConfirmationEmail',
+      title: 'Primary Action Confirmation Email',
+      hidden: ({parent}) => !parent?.primaryButtonLabel,
     }),
     defineField({
       name: 'secondaryButtonLabel',
@@ -434,6 +478,7 @@ export const adPagesSchema = defineType({
                 defineField({name: 'description', title: 'CTA Description', type: 'text', rows: 3}),
                 defineField({name: 'buttonLabel', title: 'Button Label', type: 'string'}),
                 ...ctaActionFields,
+                confirmationEmailObject,
                 defineField({name: 'media', title: 'CTA Media', type: 'object', fields: mediaFields}),
               ],
             }),

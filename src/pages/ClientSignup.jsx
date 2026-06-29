@@ -63,6 +63,8 @@ export default function ClientSignup() {
                 company: form.company.trim(),
                 clientEmail: form.email.trim(),
                 capability: problemBrief.capability?.title || '',
+                additionalNotes: problemBrief.capability?.title || '',
+                referralDateTime: new Date().toISOString(),
               },
             })
           } catch (notificationError) {

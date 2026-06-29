@@ -970,6 +970,8 @@ export default function AdminDashboard() {
             company: brief.company || '',
             clientEmail: brief.clientEmail || brief.businessEmail || '',
             capability: brief.capability || '',
+            additionalNotes: brief.description || brief.problem || brief.capability || '',
+            referralDateTime: new Date().toISOString(),
           },
         })
       } catch (notificationError) {
