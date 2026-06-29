@@ -165,11 +165,6 @@ export const adPagesSchema = defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
-      name: 'eyebrow',
-      title: 'Hero Small Label',
-      type: 'string',
-    }),
-    defineField({
       name: 'headline',
       title: 'Hero Headline',
       type: 'string',
@@ -284,11 +279,6 @@ export const adPagesSchema = defineType({
           title: 'Ad Page Section',
           type: 'object',
           fields: [
-            defineField({
-              name: 'eyebrow',
-              title: 'Small Label',
-              type: 'string',
-            }),
             defineField({
               name: 'sectionTitle',
               title: 'Section Title',

@@ -7,6 +7,7 @@ const corsHeaders = {
 
 const DEFAULT_ADMIN_EMAIL = 'dharneesh@magnafic.com'
 const DEFAULT_SENDER_EMAIL = 'consulting@magnafic.com'
+const DHARNEESH_SENDER_EMAIL = 'dharneesh@magnafic.com'
 const AUTHENTICATED_DOMAIN = 'magnafic.com'
 
 function jsonResponse(statusCode, body) {
@@ -46,6 +47,24 @@ function getAdminEmail() {
   )
 
   return isEmail(configuredEmail) ? configuredEmail : DEFAULT_ADMIN_EMAIL
+}
+
+function isExpertClubApplication(payload) {
+  return String(payload.clubName || '').toLowerCase().includes('expert club')
+}
+
+function isFounderCommunityApplication(payload) {
+  return String(payload.clubName || '').toLowerCase().includes('founder community')
+}
+
+function getFirstName(name = '') {
+  return String(name).trim().split(/\s+/)[0] || 'there'
+}
+
+function getAcknowledgementFromEmail(payload, fromEmail) {
+  return isExpertClubApplication(payload) || isFounderCommunityApplication(payload)
+    ? DHARNEESH_SENDER_EMAIL
+    : fromEmail
 }
 
 function getSuppressionsApiKey() {
@@ -128,6 +147,144 @@ function buildAdminEmail(payload, fromEmail, adminEmail) {
 }
 
 function buildAcknowledgementEmail(payload, fromEmail) {
+  if (isFounderCommunityApplication(payload)) {
+    const firstName = getFirstName(payload.name)
+
+    return {
+      personalizations: [{
+        to: [{ email: payload.email, name: payload.name }],
+        subject: 'Thank you for applying to join the Magnafic Founders Community',
+      }],
+      from: { email: fromEmail, name: 'Dharneesh BR' },
+      content: [
+        {
+          type: 'text/plain',
+          value: [
+            `Dear ${firstName},`,
+            '',
+            'Thank you for applying to join the Magnafic Founders Community.',
+            '',
+            "I'm excited that you've taken this step.",
+            '',
+            'Building a Consumer brand business is one of the most rewarding journeys, but it can also be one of the loneliest. Every founder faces moments where the right advice, the right connection, or the right technology can make all the difference.',
+            '',
+            "That's exactly why we created Magnafic.",
+            '',
+            "Our vision is simple: to build a community where ambitious founders of CPG industry don't have to figure everything out alone. A place where they can learn directly from world-class experts, collaborate with experienced entrepreneurs, leverage cutting-edge AI technologies, and gain practical insights that help them build stronger, faster-growing businesses.",
+            '',
+            'Your application has been successfully received and is now under review.',
+            '',
+            'Every application is carefully evaluated to ensure we bring together founders who are committed to learning, sharing, and creating meaningful impact. We believe the strength of any community lies in the quality of its members.',
+            '',
+            "If your application is approved, you'll gain access to exclusive masterclasses, expert-led sessions, AI-powered business resources, strategic networking opportunities, and a trusted ecosystem designed to help founders scale with confidence.",
+            '',
+            'Thank you once again for your interest in becoming part of Magnafic. I look forward to welcoming you into our growing community of visionary founders.',
+            '',
+            "Here's to building something extraordinary together.",
+            '',
+            'Warm regards,',
+            '',
+            'Dharneesh BR',
+            'Founder, Magnafic',
+            '',
+            'Welcome to New Era of Consulting 6.0',
+            '',
+            'Where Conscious Strategy meets AI Powered Business Excellence',
+            '',
+            'www.Magnafic.com',
+          ].join('\n'),
+        },
+        {
+          type: 'text/html',
+          value: `
+            <div style="font-family:Arial,sans-serif;line-height:1.7;color:#111827;max-width:640px;margin:auto">
+              <p>Dear ${escapeHtml(firstName)},</p>
+              <p>Thank you for applying to join the Magnafic Founders Community.</p>
+              <p>I'm excited that you've taken this step.</p>
+              <p>Building a Consumer brand business is one of the most rewarding journeys, but it can also be one of the loneliest. Every founder faces moments where the right advice, the right connection, or the right technology can make all the difference.</p>
+              <p>That's exactly why we created Magnafic.</p>
+              <p>Our vision is simple: to build a community where ambitious founders of CPG industry don't have to figure everything out alone. A place where they can learn directly from world-class experts, collaborate with experienced entrepreneurs, leverage cutting-edge AI technologies, and gain practical insights that help them build stronger, faster-growing businesses.</p>
+              <p>Your application has been successfully received and is now under review.</p>
+              <p>Every application is carefully evaluated to ensure we bring together founders who are committed to learning, sharing, and creating meaningful impact. We believe the strength of any community lies in the quality of its members.</p>
+              <p>If your application is approved, you'll gain access to exclusive masterclasses, expert-led sessions, AI-powered business resources, strategic networking opportunities, and a trusted ecosystem designed to help founders scale with confidence.</p>
+              <p>Thank you once again for your interest in becoming part of Magnafic. I look forward to welcoming you into our growing community of visionary founders.</p>
+              <p>Here's to building something extraordinary together.</p>
+              <p style="margin-top:24px">Warm regards,</p>
+              <p><strong>Dharneesh BR</strong><br>Founder, Magnafic</p>
+              <p>Welcome to New Era of Consulting 6.0</p>
+              <p>Where Conscious Strategy meets AI Powered Business Excellence</p>
+              <p><a href="http://www.magnafic.com/" style="color:#000047;font-weight:700">www.Magnafic.com</a></p>
+            </div>
+          `,
+        },
+      ],
+    }
+  }
+
+  if (isExpertClubApplication(payload)) {
+    const firstName = getFirstName(payload.name)
+
+    return {
+      personalizations: [{
+        to: [{ email: payload.email, name: payload.name }],
+        subject: 'Thank you for applying to join Magnafic',
+      }],
+      from: { email: fromEmail, name: 'Dharneesh B R' },
+      content: [
+        {
+          type: 'text/plain',
+          value: [
+            `Dear ${firstName},`,
+            '',
+            'Thank you for applying to join Magnafic.',
+            '',
+            'I truly appreciate your interest in becoming part of a community built for the Top 1% of consulting professionals & industry experts',
+            '',
+            'At Magnafic, we believe that exceptional expertise deserves exceptional opportunities. Every application is carefully reviewed to ensure we maintain the highest standards of quality, credibility, and impact for both our experts and the organizations they serve.',
+            '',
+            'Our team has successfully received your application, and the review process is now underway. We evaluate every profile based on professional experience, domain expertise, leadership impact, and the value you can create for businesses seeking world-class guidance.',
+            '',
+            'If your profile aligns with our Top 1% selection criteria, a member of our team will reach out to discuss the next steps and onboarding process.',
+            '',
+            'Thank you once again for considering Magnafic. We look forward to learning more about your journey and the expertise you bring.',
+            '',
+            'Warm regards,',
+            '',
+            'Dharneesh B R',
+            '',
+            'Founder, Magnafic',
+            '',
+            'Welcome to New Era of Consulting 6.0',
+            '',
+            'Where Conscious Strategy meets AI Powered Business Excellence',
+            '',
+            'www.Magnafic.com',
+          ].join('\n'),
+        },
+        {
+          type: 'text/html',
+          value: `
+            <div style="font-family:Arial,sans-serif;line-height:1.7;color:#111827;max-width:640px;margin:auto">
+              <p>Dear ${escapeHtml(firstName)},</p>
+              <p>Thank you for applying to join Magnafic.</p>
+              <p>I truly appreciate your interest in becoming part of a community built for the Top 1% of consulting professionals &amp; industry experts</p>
+              <p>At Magnafic, we believe that exceptional expertise deserves exceptional opportunities. Every application is carefully reviewed to ensure we maintain the highest standards of quality, credibility, and impact for both our experts and the organizations they serve.</p>
+              <p>Our team has successfully received your application, and the review process is now underway. We evaluate every profile based on professional experience, domain expertise, leadership impact, and the value you can create for businesses seeking world-class guidance.</p>
+              <p>If your profile aligns with our Top 1% selection criteria, a member of our team will reach out to discuss the next steps and onboarding process.</p>
+              <p>Thank you once again for considering Magnafic. We look forward to learning more about your journey and the expertise you bring.</p>
+              <p style="margin-top:24px">Warm regards,</p>
+              <p><strong>Dharneesh B R</strong></p>
+              <p>Founder, Magnafic</p>
+              <p>Welcome to New Era of Consulting 6.0</p>
+              <p>Where Conscious Strategy meets AI Powered Business Excellence</p>
+              <p><a href="http://www.magnafic.com/" style="color:#000047;font-weight:700">www.Magnafic.com</a></p>
+            </div>
+          `,
+        },
+      ],
+    }
+  }
+
   return {
     personalizations: [{
       to: [{ email: payload.email, name: payload.name }],
@@ -352,7 +509,7 @@ export async function handler(event) {
       emailJobs.push(
         sendEmail(
           'applicant acknowledgement',
-          buildAcknowledgementEmail(payload, fromEmail),
+          buildAcknowledgementEmail(payload, getAcknowledgementFromEmail(payload, fromEmail)),
           apiKey
         )
       )

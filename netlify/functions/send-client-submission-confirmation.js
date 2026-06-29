@@ -58,7 +58,78 @@ function getFromEmail() {
   return DEFAULT_SENDER_EMAIL
 }
 
+function getFirstName(name = '') {
+  return String(name).trim().split(/\s+/)[0] || 'there'
+}
+
+function buildContactConfirmationEmail({name, email}) {
+  const firstName = getFirstName(name)
+
+  return {
+    personalizations: [
+      {
+        to: [{email, name}],
+        subject: 'Thank you for getting in touch with Magnafic',
+      },
+    ],
+    from: {email: getFromEmail(), name: 'Dharneesh B R'},
+    content: [
+      {
+        type: 'text/plain',
+        value: [
+          `Dear ${firstName},`,
+          '',
+          'Thank you for getting in touch with Magnafic.',
+          '',
+          "We appreciate you taking the time to reach out and are excited to learn more about your goals. Whether you're looking to grow your business, connect with industry-leading experts, explore AI-powered solutions, or discover new opportunities, we are here to help.",
+          '',
+          "Your message has been successfully received and is now with our team. We'll review your inquiry carefully and respond as soon as possible, typically within 1–2 business days.",
+          '',
+          'At Magnafic, we believe that the right expertise, meaningful connections, and innovative technology can transform the way businesses grow. We look forward to understanding how we can support your journey.',
+          '',
+          "Thank you for considering Magnafic. We're excited to connect with you.",
+          '',
+          'Warm regards,',
+          '',
+          'Dharneesh B R',
+          '',
+          'Founder, Magnafic',
+          '',
+          'Welcome to New Era of Consulting 6.0',
+          '',
+          'Where Conscious Strategy meets AI Powered Business Excellence',
+          '',
+          'www.Magnafic.com',
+        ].join('\n'),
+      },
+      {
+        type: 'text/html',
+        value: `
+          <div style="font-family:Arial,sans-serif;line-height:1.7;color:#111827;max-width:640px;margin:auto">
+            <p>Dear ${escapeHtml(firstName)},</p>
+            <p>Thank you for getting in touch with Magnafic.</p>
+            <p>We appreciate you taking the time to reach out and are excited to learn more about your goals. Whether you're looking to grow your business, connect with industry-leading experts, explore AI-powered solutions, or discover new opportunities, we are here to help.</p>
+            <p>Your message has been successfully received and is now with our team. We'll review your inquiry carefully and respond as soon as possible, typically within 1–2 business days.</p>
+            <p>At Magnafic, we believe that the right expertise, meaningful connections, and innovative technology can transform the way businesses grow. We look forward to understanding how we can support your journey.</p>
+            <p>Thank you for considering Magnafic. We're excited to connect with you.</p>
+            <p style="margin-top:24px">Warm regards,</p>
+            <p><strong>Dharneesh B R</strong></p>
+            <p>Founder, Magnafic</p>
+            <p>Welcome to New Era of Consulting 6.0</p>
+            <p>Where Conscious Strategy meets AI Powered Business Excellence</p>
+            <p><a href="http://www.magnafic.com/" style="color:#000047;font-weight:700">www.Magnafic.com</a></p>
+          </div>
+        `,
+      },
+    ],
+  }
+}
+
 function buildEmail({name, email, submissionType}) {
+  if (submissionType === 'contact') {
+    return buildContactConfirmationEmail({name, email})
+  }
+
   const content = confirmationContent[submissionType]
   const safeName = escapeHtml(name)
 

@@ -21,7 +21,6 @@ const adPageFields = `
   title,
   "slug": slug.current,
   status,
-  eyebrow,
   headline,
   shortDescription,
   primaryButtonLabel,
@@ -38,7 +37,6 @@ const adPageFields = `
   heroMedia{${mediaFields}},
   sections[]{
     _key,
-    eyebrow,
     sectionTitle,
     sectionFormat,
     intro,
@@ -106,18 +104,18 @@ function RichText({blocks = []}) {
   if (!blocks.length) return null
 
   return (
-    <div className="space-y-4 text-base leading-8 text-gray-600">
+    <div className="space-y-4 text-sm leading-7 text-gray-600 sm:text-base sm:leading-8">
       {blocks.map((block) => {
         const text = blockText(block)
         if (!text) return null
 
-        if (block.style === 'h2') return <h2 key={block._key} className="text-3xl font-black leading-tight text-[#000047]">{text}</h2>
-        if (block.style === 'h3') return <h3 key={block._key} className="text-xl font-black leading-tight text-[#000047]">{text}</h3>
+        if (block.style === 'h2') return <h2 key={block._key} className="text-2xl font-black leading-tight text-[#000047] sm:text-3xl">{text}</h2>
+        if (block.style === 'h3') return <h3 key={block._key} className="text-lg font-black leading-tight text-[#000047] sm:text-xl">{text}</h3>
         if (block.listItem) {
           return (
-            <div key={block._key} className="flex gap-3">
+            <div key={block._key} className="flex min-w-0 gap-3">
               <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-cyan" />
-              <p>{text}</p>
+              <p className="min-w-0">{text}</p>
             </div>
           )
         }
@@ -209,7 +207,7 @@ function MediaBlock({media, className = ''}) {
         <img
           src={media.imageUrl}
           alt={media.imageAlt || media.caption || ''}
-          className="max-h-[34rem] w-full object-contain"
+          className="max-h-[24rem] w-full object-contain sm:max-h-[34rem]"
         />
         {media.caption && <figcaption className="mt-3 text-sm font-semibold text-gray-500">{media.caption}</figcaption>}
       </figure>
@@ -250,7 +248,7 @@ function HeroMediaBlock({media}) {
         <img
           src={media.imageUrl}
           alt={media.imageAlt || media.caption || ''}
-          className="max-h-[36rem] w-full object-contain"
+          className="max-h-[24rem] w-full object-contain sm:max-h-[36rem]"
         />
         {media.caption && <figcaption className="mt-3 text-sm font-semibold text-cyan-50/80">{media.caption}</figcaption>}
       </figure>
@@ -262,19 +260,16 @@ function HeroMediaBlock({media}) {
 
 function SectionHeader({section, light = false}) {
   return (
-    <div className="mb-10 max-w-3xl">
-      {section.eyebrow && (
-        <p className={`text-sm font-black uppercase tracking-[0.2em] ${light ? 'text-cyan-200' : 'text-primary-600'}`}>{section.eyebrow}</p>
-      )}
-      <h2 className={`mt-3 text-3xl font-black leading-tight sm:text-4xl ${light ? 'text-white' : 'text-[#000047]'}`}>{section.sectionTitle}</h2>
-      {section.intro && <p className={`mt-5 text-lg leading-8 ${light ? 'text-cyan-50/85' : 'text-gray-600'}`}>{section.intro}</p>}
+    <div className="mb-8 max-w-3xl sm:mb-10">
+      <h2 className={`mt-3 text-2xl font-black leading-tight sm:text-4xl ${light ? 'text-white' : 'text-[#000047]'}`}>{section.sectionTitle}</h2>
+      {section.intro && <p className={`mt-4 text-base leading-7 sm:mt-5 sm:text-lg sm:leading-8 ${light ? 'text-cyan-50/85' : 'text-gray-600'}`}>{section.intro}</p>}
     </div>
   )
 }
 
 function SectionShell({children, className = '', dark = false}) {
   return (
-    <section className={`${dark ? 'bg-[#050545] text-white' : 'bg-white text-gray-950'} px-4 py-14 sm:px-6 lg:px-8 lg:py-20 ${className}`}>
+    <section className={`${dark ? 'bg-[#050545] text-white' : 'bg-white text-gray-950'} overflow-hidden px-4 py-14 sm:px-6 lg:px-8 lg:py-20 ${className}`}>
       <div className="mx-auto max-w-7xl">{children}</div>
     </section>
   )
@@ -295,11 +290,11 @@ function InlineItemList({items = [], light = false}) {
   return (
     <div className="space-y-4">
       {items.map((item, itemIndex) => (
-        <div key={item._key || `${item.title}-${itemIndex}`} className={`flex gap-4 border-b pb-4 last:border-b-0 last:pb-0 ${light ? 'border-white/15' : 'border-gray-100'}`}>
+        <div key={item._key || `${item.title}-${itemIndex}`} className={`flex min-w-0 gap-3 border-b pb-4 last:border-b-0 last:pb-0 sm:gap-4 ${light ? 'border-white/15' : 'border-gray-100'}`}>
           <CheckCircle2 className={`mt-1 h-5 w-5 shrink-0 ${light ? 'text-cyan-200' : 'text-cyan'}`} />
-          <div>
+          <div className="min-w-0">
             {item.title && <h3 className={`text-lg font-black leading-tight sm:text-xl ${light ? 'text-white' : 'text-[#000047]'}`}>{item.title}</h3>}
-            {item.description && <p className={`mt-2 text-base leading-8 ${light ? 'text-cyan-50/85' : 'text-gray-600'}`}>{item.description}</p>}
+            {item.description && <p className={`mt-2 text-sm leading-7 sm:text-base sm:leading-8 ${light ? 'text-cyan-50/85' : 'text-gray-600'}`}>{item.description}</p>}
             <MediaBlock media={item.media} className="mt-4" />
           </div>
         </div>
@@ -312,27 +307,34 @@ function CtaButton({action, variant = 'primary', onOpenCta}) {
   if (!action?.label) return null
 
   const className = variant === 'secondary'
-    ? 'inline-flex items-center rounded-full border border-white/30 px-7 py-4 font-extrabold text-white transition hover:bg-white/10'
-    : 'inline-flex items-center rounded-full bg-cyan px-7 py-4 font-extrabold text-[#000047] shadow-lg shadow-cyan/20 transition hover:-translate-y-0.5'
+    ? 'inline-flex w-full min-w-0 items-center justify-center rounded-full border border-white/30 px-5 py-3.5 text-center text-sm font-extrabold leading-snug text-white transition hover:bg-white/10 sm:w-auto sm:px-7 sm:py-4 sm:text-base'
+    : 'inline-flex w-full min-w-0 items-center justify-center rounded-full bg-cyan px-5 py-3.5 text-center text-sm font-extrabold leading-snug text-[#000047] shadow-lg shadow-cyan/20 transition hover:-translate-y-0.5 sm:w-auto sm:px-7 sm:py-4 sm:text-base'
 
   if (action.action === 'link' && action.url) {
     return (
       <a href={action.url} className={className}>
-        {action.label}
-        {variant !== 'secondary' && <ArrowRight className="ml-2 h-5 w-5" />}
+        <span className="min-w-0 break-words">{action.label}</span>
+        {variant !== 'secondary' && <ArrowRight className="ml-2 h-5 w-5 shrink-0" />}
       </a>
     )
   }
 
   return (
     <button type="button" onClick={() => onOpenCta(action)} className={className}>
-      {action.label}
-      {action.action === 'razorpay' ? <CreditCard className="ml-2 h-5 w-5" /> : <ArrowRight className="ml-2 h-5 w-5" />}
+      <span className="min-w-0 break-words">{action.label}</span>
+      {action.action === 'razorpay' ? <CreditCard className="ml-2 h-5 w-5 shrink-0" /> : <ArrowRight className="ml-2 h-5 w-5 shrink-0" />}
     </button>
   )
 }
 
-function AdSection({section, index, onOpenCta}) {
+function sectionHasPrimaryMedia(section) {
+  if (!section) return false
+  if (section.media?.imageUrl || section.media?.videoUrl || section.media?.videoFileUrl) return true
+  if (section.cta?.media?.imageUrl || section.cta?.media?.videoUrl || section.cta?.media?.videoFileUrl) return true
+  return false
+}
+
+function AdSection({section, index, previousSectionHasMedia = false, onOpenCta}) {
   const format = section.sectionFormat || 'content'
   const items = section.items || []
   const modules = section.modules || []
@@ -357,11 +359,10 @@ function AdSection({section, index, onOpenCta}) {
 
     return (
       <SectionShell className="bg-[#f7fbff]">
-        <div className="grid items-center gap-8 overflow-hidden rounded-lg bg-[#000047] p-7 text-white shadow-xl ring-1 ring-cyan-200/20 lg:grid-cols-[1fr_0.8fr] lg:p-10">
-          <div>
-            {section.eyebrow && <p className="text-sm font-black uppercase tracking-[0.2em] text-cyan-100">{section.eyebrow}</p>}
-            <h2 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">{cta.headline || section.sectionTitle}</h2>
-            {(cta.description || section.intro) && <p className="mt-5 text-lg leading-8 text-cyan-50">{cta.description || section.intro}</p>}
+        <div className="grid items-center gap-8 overflow-hidden rounded-lg bg-[#000047] p-5 text-white shadow-xl ring-1 ring-cyan-200/20 sm:p-7 lg:grid-cols-[1fr_0.8fr] lg:p-10">
+          <div className="min-w-0">
+            <h2 className="mt-3 text-2xl font-black leading-tight sm:text-4xl">{cta.headline || section.sectionTitle}</h2>
+            {(cta.description || section.intro) && <p className="mt-4 text-base leading-7 text-cyan-50 sm:mt-5 sm:text-lg sm:leading-8">{cta.description || section.intro}</p>}
             <div className="mt-8">
               <CtaButton action={ctaAction} onOpenCta={onOpenCta} />
             </div>
@@ -374,18 +375,29 @@ function AdSection({section, index, onOpenCta}) {
 
   if (format === 'content' || format === 'rich-text') {
     const imageOnLeft = index % 2 === 1
+    const contentBetweenContinuousImages = previousSectionHasMedia && sectionHasPrimaryMedia(section)
+    const mediaOrderClass = contentBetweenContinuousImages
+      ? 'order-2'
+      : imageOnLeft
+        ? 'order-1'
+        : 'order-2'
+    const contentOrderClass = contentBetweenContinuousImages
+      ? 'order-1'
+      : imageOnLeft
+        ? 'order-2'
+        : 'order-1'
+
     return (
       <SectionShell className={index % 2 === 0 ? 'bg-white' : 'bg-[#f7fbff]'}>
         <div className={`grid items-center gap-10 ${section.media ? 'lg:grid-cols-2' : ''}`}>
           {section.media && (
-            <div className={imageOnLeft ? 'lg:order-1' : 'lg:order-2'}>
+            <div className={mediaOrderClass}>
               <MediaBlock media={section.media} />
             </div>
           )}
-          <div className={imageOnLeft ? 'lg:order-2' : 'lg:order-1'}>
-            {section.eyebrow && <p className="text-sm font-black uppercase tracking-[0.2em] text-primary-600">{section.eyebrow}</p>}
-            <h2 className="mt-3 text-3xl font-black leading-tight text-[#000047] sm:text-4xl">{section.sectionTitle}</h2>
-            {section.intro && <p className="mt-5 text-lg leading-8 text-gray-600">{section.intro}</p>}
+          <div className={`${contentOrderClass} min-w-0`}>
+            <h2 className="mt-3 text-2xl font-black leading-tight text-[#000047] sm:text-4xl">{section.sectionTitle}</h2>
+            {section.intro && <p className="mt-4 text-base leading-7 text-gray-600 sm:mt-5 sm:text-lg sm:leading-8">{section.intro}</p>}
             <div className="mt-6"><RichText blocks={section.body || []} /></div>
             {items.length > 0 && (
               <div className="mt-7">
@@ -421,13 +433,13 @@ function AdSection({section, index, onOpenCta}) {
           <SectionHeader section={section} light={isDark} />
           <div className={`grid gap-6 ${format === 'media-gallery' ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
             {items.map((item, itemIndex) => (
-              <article key={item._key || `${item.title}-${itemIndex}`} className={`${isDark ? 'border-white/15 bg-white/10 text-white' : 'border-gray-100 bg-white text-gray-950'} rounded-lg border p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg`}>
+              <article key={item._key || `${item.title}-${itemIndex}`} className={`${isDark ? 'border-white/15 bg-white/10 text-white' : 'border-gray-100 bg-white text-gray-950'} min-w-0 rounded-lg border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg sm:p-6`}>
                 <MediaBlock media={item.media} className="mb-5" />
                 <div className="mb-4 flex items-center justify-between gap-4">
-                  {format === 'stats' && item.metric ? <p className="text-4xl font-black text-primary-600">{item.metric}</p> : <ItemMark label={item.iconLabel} index={itemIndex} light={isDark} />}
+                  {format === 'stats' && item.metric ? <p className="text-3xl font-black text-primary-600 sm:text-4xl">{item.metric}</p> : <ItemMark label={item.iconLabel} index={itemIndex} light={isDark} />}
                 </div>
                 {item.title && <h3 className="text-xl font-black leading-tight">{item.title}</h3>}
-                {item.description && <p className={`mt-3 text-base leading-7 ${isDark ? 'text-cyan-50/85' : 'text-gray-600'}`}>{item.description}</p>}
+                {item.description && <p className={`mt-3 text-sm leading-6 sm:text-base sm:leading-7 ${isDark ? 'text-cyan-50/85' : 'text-gray-600'}`}>{item.description}</p>}
               </article>
             ))}
           </div>
@@ -441,14 +453,14 @@ function AdSection({section, index, onOpenCta}) {
           <SectionHeader section={section} />
           <div className="grid gap-6 lg:grid-cols-2">
             {items.map((item, itemIndex) => (
-              <article key={item._key || `${item.title}-${itemIndex}`} className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-cyan-100">
-                <div className="flex items-start gap-4">
+              <article key={item._key || `${item.title}-${itemIndex}`} className="min-w-0 rounded-lg bg-white p-5 shadow-sm ring-1 ring-cyan-100 sm:p-6">
+                <div className="flex min-w-0 items-start gap-3 sm:gap-4">
                   <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${itemIndex === 0 ? 'bg-primary-50 text-primary-700' : 'bg-red-50 text-red-600'}`}>
                     {itemIndex === 0 ? <CheckCircle2 className="h-6 w-6" /> : <X className="h-6 w-6" />}
                   </span>
-                  <div>
+                  <div className="min-w-0">
                     {item.title && <h3 className="text-xl font-black text-gray-950">{item.title}</h3>}
-                    {item.description && <p className="mt-3 whitespace-pre-line text-base leading-7 text-gray-600">{item.description}</p>}
+                    {item.description && <p className="mt-3 whitespace-pre-line text-sm leading-6 text-gray-600 sm:text-base sm:leading-7">{item.description}</p>}
                     <MediaBlock media={item.media} className="mt-5" />
                   </div>
                 </div>
@@ -470,12 +482,12 @@ function AdSection({section, index, onOpenCta}) {
           </div>
           <div className="space-y-4">
             {rows.map((row, rowIndex) => (
-              <details key={`${row.title}-${rowIndex}`} className="group rounded-lg bg-[#f7fbff] p-5 shadow-sm ring-1 ring-cyan-100">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-black text-gray-950">
-                  <span>{row.title}</span>
+              <details key={`${row.title}-${rowIndex}`} className="group min-w-0 rounded-lg bg-[#f7fbff] p-5 shadow-sm ring-1 ring-cyan-100">
+                <summary className="flex min-w-0 cursor-pointer list-none items-center justify-between gap-4 text-base font-black leading-tight text-gray-950 sm:text-lg">
+                  <span className="min-w-0">{row.title}</span>
                   <ChevronDown className="h-5 w-5 shrink-0 text-primary-600 transition group-open:rotate-180" />
                 </summary>
-                {row.description && <p className="mt-4 border-t border-gray-100 pt-4 text-base leading-7 text-gray-600">{row.description}</p>}
+                {row.description && <p className="mt-4 border-t border-gray-100 pt-4 text-sm leading-6 text-gray-600 sm:text-base sm:leading-7">{row.description}</p>}
                 <MediaBlock media={row.media} className="mt-5" />
               </details>
             ))}
@@ -492,13 +504,13 @@ function AdSection({section, index, onOpenCta}) {
           <SectionHeader section={section} light />
           <div className="space-y-5">
             {rows.map((row, rowIndex) => (
-              <article key={row._key || `${row.title}-${rowIndex}`} className="rounded-lg border border-white/15 bg-white/10 p-6 shadow-lg">
-                <p className="text-sm font-black uppercase tracking-[0.18em] text-cyan-200">{row.timeLabel || `Step ${rowIndex + 1}`}</p>
-                <h3 className="mt-2 text-2xl font-black">{row.title}</h3>
-                {row.description && <p className="mt-3 text-base leading-7 text-cyan-50/85">{row.description}</p>}
+              <article key={row._key || `${row.title}-${rowIndex}`} className="min-w-0 rounded-lg border border-white/15 bg-white/10 p-5 shadow-lg sm:p-6">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200 sm:text-sm sm:tracking-[0.18em]">{row.timeLabel || `Step ${rowIndex + 1}`}</p>
+                <h3 className="mt-2 text-xl font-black leading-tight sm:text-2xl">{row.title}</h3>
+                {row.description && <p className="mt-3 text-sm leading-6 text-cyan-50/85 sm:text-base sm:leading-7">{row.description}</p>}
                 {row.lessons?.length > 0 && (
                   <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-                    {row.lessons.map((lesson) => <li key={lesson} className="flex gap-3"><Sparkles className="mt-1 h-4 w-4 shrink-0 text-cyan-200" />{lesson}</li>)}
+                    {row.lessons.map((lesson) => <li key={lesson} className="flex min-w-0 gap-3 text-sm leading-6 sm:text-base"><Sparkles className="mt-1 h-4 w-4 shrink-0 text-cyan-200" /><span className="min-w-0">{lesson}</span></li>)}
                   </ul>
                 )}
                 <MediaBlock media={row.media} className="mt-6" />
@@ -515,10 +527,10 @@ function AdSection({section, index, onOpenCta}) {
           <SectionHeader section={section} />
           <div className="grid gap-6 md:grid-cols-2">
             {testimonials.map((testimonial, testimonialIndex) => (
-              <figure key={testimonial._key || `${testimonial.name}-${testimonialIndex}`} className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-cyan-100">
+              <figure key={testimonial._key || `${testimonial.name}-${testimonialIndex}`} className="min-w-0 rounded-lg bg-white p-5 shadow-sm ring-1 ring-cyan-100 sm:p-6">
                 <MediaBlock media={testimonial.media} className="mb-5" />
                 <Quote className="mb-5 h-9 w-9 text-primary-600" />
-                <blockquote className="text-lg leading-8 text-gray-800">{testimonial.quote}</blockquote>
+                <blockquote className="text-base leading-7 text-gray-800 sm:text-lg sm:leading-8">{testimonial.quote}</blockquote>
                 {(testimonial.name || testimonial.designation) && (
                   <figcaption className="mt-6 border-t border-gray-100 pt-5 font-black text-gray-950">
                     {testimonial.name}
@@ -598,25 +610,29 @@ export default function AdPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen overflow-x-hidden bg-white">
       <SEO
         title={pageTitle}
         description={page.seoDescription || page.shortDescription}
         path={`/ads/${page.slug || page._id}`}
         image={page.heroMedia?.imageUrl}
       />
-      <section className="relative overflow-hidden bg-[#000047] px-4 py-16 text-white sm:px-6 lg:px-8 lg:py-20">
+      <section className="relative overflow-hidden bg-[#000047] px-4 py-14 text-white sm:px-6 sm:py-16 lg:px-8 lg:py-20">
         <div className="absolute inset-x-0 bottom-0 h-1 bg-cyan" />
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1fr_0.9fr]">
-          <div>
-            {page.eyebrow && <p className="text-sm font-black uppercase tracking-[0.22em] text-cyan-200">{page.eyebrow}</p>}
-            <h1 className="mt-4 max-w-4xl text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">{page.headline}</h1>
-            {page.shortDescription && <p className="mt-5 max-w-2xl text-lg leading-8 text-cyan-50">{page.shortDescription}</p>}
-            <div className="mt-8 flex flex-wrap gap-4">
+          <div className="min-w-0 text-center lg:text-left">
+            <img
+              src="/favicon.png"
+              alt="Magnafic icon"
+              className="mx-auto mb-5 h-24 w-24 object-contain sm:h-28 sm:w-28 lg:mx-0"
+            />
+            <h1 className="mx-auto mt-4 max-w-4xl text-3xl font-black leading-tight sm:text-5xl lg:mx-0 lg:text-6xl">{page.headline}</h1>
+            {page.shortDescription && <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-cyan-50 sm:text-lg sm:leading-8 lg:mx-0">{page.shortDescription}</p>}
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-4 lg:justify-start">
               <CtaButton action={primaryAction} onOpenCta={setActiveCta} />
               {page.secondaryButtonLabel && page.secondaryButtonUrl && (
-                <a href={page.secondaryButtonUrl} className="inline-flex items-center rounded-full border border-white/30 px-7 py-4 font-extrabold text-white transition hover:bg-white/10">
-                  {page.secondaryButtonLabel}
+                <a href={page.secondaryButtonUrl} className="inline-flex w-full min-w-0 items-center justify-center rounded-full border border-white/30 px-5 py-3.5 text-center text-sm font-extrabold leading-snug text-white transition hover:bg-white/10 sm:w-auto sm:px-7 sm:py-4 sm:text-base">
+                  <span className="min-w-0 break-words">{page.secondaryButtonLabel}</span>
                 </a>
               )}
             </div>
@@ -626,8 +642,14 @@ export default function AdPage() {
       </section>
 
       <main>
-        {(page.sections || []).map((section, index) => (
-          <AdSection key={section._key || `${section.sectionTitle}-${index}`} section={section} index={index} onOpenCta={setActiveCta} />
+        {(page.sections || []).map((section, index, sections) => (
+          <AdSection
+            key={section._key || `${section.sectionTitle}-${index}`}
+            section={section}
+            index={index}
+            previousSectionHasMedia={sectionHasPrimaryMedia(sections[index - 1])}
+            onOpenCta={setActiveCta}
+          />
         ))}
       </main>
       <AdCtaModal page={page} cta={activeCta} onClose={() => setActiveCta(null)} />
@@ -792,12 +814,12 @@ function AdCtaModal({page, cta, onClose}) {
         >
           <X className="h-5 w-5" />
         </button>
-        <div className="bg-[#000047] px-6 py-8 text-white sm:px-8">
-          <h2 className="pr-12 text-2xl font-extrabold sm:text-3xl">{cta.title || (isPayment ? 'Complete Registration' : 'Submit Your Details')}</h2>
-          {cta.description && <p className="mt-2 text-white/80">{cta.description}</p>}
+        <div className="bg-[#000047] px-6 py-7 text-white sm:px-8 sm:py-8">
+          <h2 className="pr-12 text-xl font-extrabold leading-tight sm:text-3xl">{cta.title || (isPayment ? 'Complete Registration' : 'Submit Your Details')}</h2>
+          {cta.description && <p className="mt-2 text-sm leading-6 text-white/80 sm:text-base">{cta.description}</p>}
           {isPayment && <p className="mt-3 font-bold text-cyan">Amount: Rs {Number(cta.amount) > 0 ? Number(cta.amount) : 99}</p>}
         </div>
-        <form onSubmit={handleFormSubmit} className="space-y-5 p-6 sm:p-8">
+        <form onSubmit={handleFormSubmit} className="space-y-4 p-5 sm:space-y-5 sm:p-8">
           <AdInput id="ad-cta-name" name="name" label="Name" value={formData.name} onChange={updateField} autoComplete="name" placeholder="Your full name" />
           <AdInput id="ad-cta-contact" name="contactNo" label="Contact Number" type="tel" value={formData.contactNo} onChange={updateField} autoComplete="tel" placeholder="+91 98765 43210" />
           <AdInput id="ad-cta-email" name="email" label="Email ID" type="email" value={formData.email} onChange={updateField} autoComplete="email" placeholder="you@example.com" />
@@ -811,7 +833,7 @@ function AdCtaModal({page, cta, onClose}) {
                 onChange={updateField}
                 rows={4}
                 placeholder="Tell us what you are looking for"
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
               />
             </div>
           )}
@@ -823,10 +845,12 @@ function AdCtaModal({page, cta, onClose}) {
           <button
             type="submit"
             disabled={submitting || status.type === 'success'}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#000047] px-6 py-4 font-extrabold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-lg bg-[#000047] px-6 py-4 text-center font-extrabold leading-snug text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : isPayment ? <CreditCard className="h-5 w-5" /> : <ArrowRight className="h-5 w-5" />}
-            {submitting ? (isPayment ? 'Opening Payment...' : 'Submitting...') : isPayment ? `Pay Rs ${Number(cta.amount) > 0 ? Number(cta.amount) : 99}` : (cta.submitLabel || 'Submit')}
+            <span className="min-w-0 break-words">
+              {submitting ? (isPayment ? 'Opening Payment...' : 'Submitting...') : isPayment ? `Pay Rs ${Number(cta.amount) > 0 ? Number(cta.amount) : 99}` : (cta.submitLabel || 'Submit')}
+            </span>
           </button>
         </form>
       </div>
@@ -847,7 +871,7 @@ function AdInput({id, name, label, type = 'text', value, onChange, autoComplete,
         required
         autoComplete={autoComplete}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
       />
     </div>
   )
