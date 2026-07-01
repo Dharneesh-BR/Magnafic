@@ -97,23 +97,54 @@ export default function ConsultantDocuments({ user, expert }) {
     setError('')
 
     try {
-      const query = `*[_type == "mouDocument" && consultant._ref == $consultantId] | order(createdAt desc, _createdAt desc) {
-        _id,
-        title,
-        status,
-        version,
-        createdAt,
-        signedAt,
-        signedPdf,
-        "pdfUrl": pdfFile.asset->url,
-        "pdfFileName": pdfFile.asset->originalFilename,
-        auditTrail
+      const query = `{
+        "mentor": *[_type == "mentor" && _id == $consultantId][0] {
+          _id,
+          mouDocuments[] {
+            _key,
+            title,
+            status,
+            version,
+            createdAt,
+            signedAt,
+            signedPdf,
+            "pdfUrl": pdfFile.asset->url,
+            "pdfFileName": pdfFile.asset->originalFilename,
+            auditTrail
+          }
+        },
+        "standaloneDocuments": *[_type == "mouDocument" && consultant._ref == $consultantId] | order(createdAt desc, _createdAt desc) {
+          _id,
+          title,
+          status,
+          version,
+          createdAt,
+          signedAt,
+          signedPdf,
+          "pdfUrl": pdfFile.asset->url,
+          "pdfFileName": pdfFile.asset->originalFilename,
+          auditTrail
+        }
       }`
 
       const data = await mentorClient.fetch(query, { consultantId: user.sanityExpertId.trim() })
-      setDocuments(data || [])
+      const embeddedDocuments = (data?.mentor?.mouDocuments || []).map((document) => ({
+        ...document,
+        _id: `${data.mentor._id}:${document._key}`,
+        mentorId: data.mentor._id,
+        source: 'mentor',
+      }))
+      const standaloneDocuments = (data?.standaloneDocuments || []).map((document) => ({
+        ...document,
+        source: 'mouDocument',
+      }))
+      const nextDocuments = [...embeddedDocuments, ...standaloneDocuments].sort((a, b) => (
+        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      ))
+
+      setDocuments(nextDocuments)
       setSelectedDocumentId((currentId) => (
-        data?.some((item) => item._id === currentId) ? currentId : data?.[0]?._id || ''
+        nextDocuments.some((item) => item._id === currentId) ? currentId : nextDocuments[0]?._id || ''
       ))
     } catch (fetchError) {
       console.error('Error fetching assigned documents:', fetchError)

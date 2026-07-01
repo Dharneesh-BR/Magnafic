@@ -52,6 +52,183 @@ export const mentorSchema = defineType({
       description: 'Turn off only if this consultant should not receive automated notification emails.',
     }),
     defineField({
+      name: 'mouDocuments',
+      title: 'MOU Documents',
+      type: 'array',
+      description: 'Track MOU documents, signing status, signed PDFs, and audit history directly on this mentor profile.',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            defineField({
+              name: 'title',
+              title: 'Title',
+              type: 'string',
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'pdfFile',
+              title: 'PDF File',
+              type: 'file',
+              options: {
+                accept: 'application/pdf',
+              },
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'status',
+              title: 'Status',
+              type: 'string',
+              initialValue: 'pending',
+              options: {
+                list: [
+                  { title: 'Pending', value: 'pending' },
+                  { title: 'Signed', value: 'signed' },
+                  { title: 'Expired', value: 'expired' },
+                ],
+                layout: 'radio',
+              },
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'signedPdf',
+              title: 'Signed PDF URL',
+              type: 'url',
+              description: 'Automatically populated after the consultant signs.',
+            }),
+            defineField({
+              name: 'signedAt',
+              title: 'Signed At',
+              type: 'datetime',
+            }),
+            defineField({
+              name: 'version',
+              title: 'Version',
+              type: 'string',
+              initialValue: '1.0',
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'createdAt',
+              title: 'Created At',
+              type: 'datetime',
+              initialValue: () => new Date().toISOString(),
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'auditTrail',
+              title: 'Audit Trail',
+              type: 'array',
+              readOnly: true,
+              of: [
+                {
+                  type: 'object',
+                  fields: [
+                    defineField({ name: 'consultantId', title: 'Consultant ID', type: 'string' }),
+                    defineField({ name: 'consultantName', title: 'Consultant Name', type: 'string' }),
+                    defineField({ name: 'documentId', title: 'Document ID', type: 'string' }),
+                    defineField({ name: 'signedAt', title: 'Signed At', type: 'datetime' }),
+                    defineField({ name: 'documentVersion', title: 'Document Version', type: 'string' }),
+                    defineField({ name: 'signatureImageUrl', title: 'Signature Image URL', type: 'url' }),
+                  ],
+                  preview: {
+                    select: {
+                      title: 'consultantName',
+                      signedAt: 'signedAt',
+                      version: 'documentVersion',
+                    },
+                    prepare({ title, signedAt, version }) {
+                      return {
+                        title: title || 'Signature event',
+                        subtitle: [signedAt, version ? `Version ${version}` : ''].filter(Boolean).join(' | '),
+                      }
+                    },
+                  },
+                },
+              ],
+            }),
+          ],
+          preview: {
+            select: {
+              title: 'title',
+              status: 'status',
+              version: 'version',
+            },
+            prepare({ title, status, version }) {
+              return {
+                title: title || 'MOU Document',
+                subtitle: [status, version ? `v${version}` : ''].filter(Boolean).join(' | '),
+              }
+            },
+          },
+        },
+      ],
+    }),
+    defineField({
+      name: 'invoices',
+      title: 'Invoices',
+      type: 'array',
+      description: 'Track consultant invoices directly on this mentor profile.',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            defineField({
+              name: 'invoiceDate',
+              title: 'Invoice Date',
+              type: 'date',
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'amount',
+              title: 'Amount',
+              type: 'number',
+              validation: (Rule) => Rule.required().min(0),
+            }),
+            defineField({
+              name: 'pdfFile',
+              title: 'PDF File',
+              type: 'file',
+              options: {
+                accept: 'application/pdf',
+              },
+              description: 'Upload the invoice PDF for this invoice.',
+            }),
+            defineField({
+              name: 'description',
+              title: 'Description',
+              type: 'text',
+              rows: 2,
+              description: 'Short note about what this invoice covers.',
+              validation: (Rule) => Rule.max(240).warning('Keep the invoice description brief.'),
+            }),
+          ],
+          preview: {
+            select: {
+              date: 'invoiceDate',
+              amount: 'amount',
+              description: 'description',
+            },
+            prepare({ date, amount, description }) {
+              const formattedAmount =
+                typeof amount === 'number'
+                  ? new Intl.NumberFormat('en-IN', {
+                      style: 'currency',
+                      currency: 'INR',
+                      maximumFractionDigits: 0,
+                    }).format(amount)
+                  : 'Amount not set'
+
+              return {
+                title: [date, formattedAmount].filter(Boolean).join(' | ') || 'Invoice',
+                subtitle: description || 'No description',
+              }
+            },
+          },
+        },
+      ],
+    }),
+    defineField({
       name: 'profileImage',
       title: 'Profile Image',
       type: 'image',

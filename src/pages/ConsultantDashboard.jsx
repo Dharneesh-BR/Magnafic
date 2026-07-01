@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertCircle, ArrowLeft, BadgeCheck, Bot, BriefcaseBusiness, CalendarPlus, CheckCircle2, CircleDollarSign, ClipboardList, Eye, FileText, FolderCheck, Handshake, KeyRound, Loader2, LogOut, MapPin, PanelLeftClose, PanelLeftOpen, Timer, UserPlus, Users } from 'lucide-react'
+import { AlertCircle, ArrowLeft, BadgeCheck, Bot, BriefcaseBusiness, CalendarPlus, CheckCircle2, ChevronDown, CircleDollarSign, ClipboardList, Download, Eye, FileText, FolderCheck, Handshake, KeyRound, Loader2, LogOut, MapPin, PanelLeftClose, PanelLeftOpen, ShoppingBag, Timer, UserPlus, Users } from 'lucide-react'
 import { addDoc, collection, doc, limit, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import SEO from '../components/SEO'
@@ -15,11 +15,14 @@ import { notifyConsultants } from '../lib/consultantNotifications'
 function formatDate(date) {
   if (!date) return 'Not scheduled'
 
+  const parsedDate = date instanceof Date ? date : new Date(date)
+  if (Number.isNaN(parsedDate.getTime())) return 'Not scheduled'
+
   return new Intl.DateTimeFormat('en', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
-  }).format(date)
+  }).format(parsedDate)
 }
 
 function formatDateTime(date) {
@@ -182,6 +185,14 @@ export default function ConsultantDashboard() {
   const [referralError, setReferralError] = useState('')
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear())
+  const [navCapabilities, setNavCapabilities] = useState([])
+  const [navPrograms, setNavPrograms] = useState([])
+  const [navProducts, setNavProducts] = useState([])
+  const [openMenuGroups, setOpenMenuGroups] = useState({
+    'expert-services': false,
+    programs: false,
+    products: false,
+  })
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -194,7 +205,77 @@ export default function ConsultantDashboard() {
     { id: 'opportunities', label: 'Dashboard', icon: BriefcaseBusiness },
     { id: 'copilot', label: 'Magnafic Copilot', icon: Bot },
     { id: 'mou', label: 'Documents', icon: FileText },
+    { id: 'invoices', label: 'Invoice', icon: CircleDollarSign },
+    { id: 'insights', label: 'Insights', icon: Eye, path: '/insights' },
+    {
+      id: 'expert-services',
+      label: 'Expert Services',
+      icon: Handshake,
+      children: navCapabilities.map((capability) => ({
+        id: capability._id,
+        label: capability.title,
+        icon: BriefcaseBusiness,
+        path: `/capabilities/${capability.slug || capability._id}`,
+      })),
+      emptyLabel: 'No Expert services available',
+    },
+    {
+      id: 'programs',
+      label: 'Programs',
+      icon: ClipboardList,
+      children: navPrograms.map((program) => ({
+        id: program._id,
+        label: program.title,
+        icon: ClipboardList,
+        path: `/programs/${program.slug || program._id}`,
+      })),
+      emptyLabel: 'No programs available',
+    },
+    {
+      id: 'products',
+      label: 'Products',
+      icon: FolderCheck,
+      children: navProducts.map((product) => ({
+        id: product._id,
+        label: product.title,
+        icon: ShoppingBag,
+        path: `/products/${product.slug || product._id}`,
+      })),
+      emptyLabel: 'No products available',
+    },
   ]
+
+  useEffect(() => {
+    const fetchNavigationItems = async () => {
+      try {
+        const [capabilityData, programData, productData] = await Promise.all([
+          mentorClient.fetch(`*[_type == "capabilities"] | order(coalesce(displayOrder, 9999) asc, title asc) {
+            _id,
+            "slug": slug.current,
+            title
+          }`),
+          mentorClient.fetch(`*[_type == "programs" && status == "published"] | order(featured desc, startDate desc, title asc) {
+            _id,
+            "slug": slug.current,
+            title
+          }`),
+          mentorClient.fetch(`*[_type == "products" && status == "published"] | order(coalesce(displayOrder, 9999) asc, title asc) {
+            _id,
+            "slug": slug.current,
+            title
+          }`),
+        ])
+
+        setNavCapabilities(capabilityData || [])
+        setNavPrograms(programData || [])
+        setNavProducts(productData || [])
+      } catch (navigationError) {
+        console.error('Consultant dashboard navigation failed:', navigationError)
+      }
+    }
+
+    fetchNavigationItems()
+  }, [])
 
   useEffect(() => {
     const localUser = getAuthUser()
@@ -267,6 +348,14 @@ export default function ConsultantDashboard() {
           shortBio,
           profileIntro,
           keySkills,
+          invoices[]{
+            _key,
+            invoiceDate,
+            amount,
+            description,
+            "pdfUrl": pdfFile.asset->url,
+            "pdfFileName": pdfFile.asset->originalFilename
+          },
           experience[]{
             roleTitle,
             companyName,
@@ -651,6 +740,14 @@ export default function ConsultantDashboard() {
   const dashboardHeadline = expert?.headline || expert?.currentDesignation || 'Consultant'
   const dashboardCompany = expert?.currentCompany
   const dashboardLocation = expert?.location
+  const invoices = useMemo(() => (
+    [...(expert?.invoices || [])].sort((a, b) => (
+      new Date(b.invoiceDate || 0).getTime() - new Date(a.invoiceDate || 0).getTime()
+    ))
+  ), [expert?.invoices])
+  const invoiceTotal = useMemo(() => (
+    invoices.reduce((total, invoice) => total + (Number(invoice?.amount) || 0), 0)
+  ), [invoices])
   const selectedOpportunity = opportunities.find((item) => item.id === enquiryId)
 
   return (
@@ -829,26 +926,71 @@ export default function ConsultantDashboard() {
               </button>
             </div>
             <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} lg:block`}>
-            <nav className="grid grid-cols-2 gap-2 lg:block lg:space-y-2">
-              {menuItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveView(item.id)
-                    setIsMobileMenuOpen(false)
-                  }}
-                  title={item.label}
-                  className={`flex w-full items-center rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
-                    activeView === item.id
-                      ? 'bg-[#000047] text-white shadow-lg shadow-primary-900/15'
-                      : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'
-                  } ${isMenuExpanded ? 'gap-3 lg:justify-start' : 'gap-3 lg:justify-center'}`}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span className={`${isMenuExpanded ? 'lg:inline' : 'lg:hidden'}`}>{item.label}</span>
-                </button>
-              ))}
+            <nav className="space-y-2">
+              {menuItems.map((item) => {
+                const hasChildren = Array.isArray(item.children)
+                const isOpen = openMenuGroups[item.id]
+
+                return (
+                  <div key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (hasChildren) {
+                          setOpenMenuGroups((current) => ({
+                            ...current,
+                            [item.id]: !current[item.id],
+                          }))
+                          setIsMenuExpanded(true)
+                          return
+                        }
+
+                        if (item.path) {
+                          navigate(item.path)
+                        } else {
+                          setActiveView(item.id)
+                        }
+                        setIsMobileMenuOpen(false)
+                      }}
+                      title={item.label}
+                      aria-expanded={hasChildren ? Boolean(isOpen) : undefined}
+                      className={`flex w-full items-center rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+                        activeView === item.id
+                          ? 'bg-[#000047] text-white shadow-lg shadow-primary-900/15'
+                          : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'
+                      } ${isMenuExpanded ? 'gap-3 lg:justify-start' : 'gap-3 lg:justify-center'}`}
+                    >
+                      <item.icon className="h-5 w-5 shrink-0" />
+                      <span className={`${isMenuExpanded ? 'lg:inline' : 'lg:hidden'}`}>{item.label}</span>
+                      {hasChildren && (
+                        <ChevronDown className={`ml-auto h-4 w-4 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''} ${isMenuExpanded ? 'lg:block' : 'lg:hidden'}`} />
+                      )}
+                    </button>
+
+                    {hasChildren && isOpen && (
+                      <div className={`${isMenuExpanded ? 'lg:block' : 'lg:hidden'} mt-2 space-y-1 rounded-2xl bg-gray-50 p-2 ring-1 ring-gray-100`}>
+                        {item.children.length > 0 ? item.children.map((child) => (
+                          <button
+                            key={child.id}
+                            type="button"
+                            onClick={() => {
+                              navigate(child.path)
+                              setIsMobileMenuOpen(false)
+                            }}
+                            title={child.label}
+                            className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-gray-700 transition hover:bg-white hover:text-primary-700 hover:shadow-sm"
+                          >
+                            <child.icon className="h-4 w-4 shrink-0 text-primary-600" />
+                            <span className="min-w-0 truncate">{child.label}</span>
+                          </button>
+                        )) : (
+                          <p className="px-3 py-2 text-sm font-medium text-gray-500">{item.emptyLabel}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </nav>
             <div className="mt-4 grid grid-cols-2 gap-2 border-t border-gray-100 pt-4 lg:block lg:space-y-2">
               <button
@@ -1187,6 +1329,89 @@ export default function ConsultantDashboard() {
 
             {activeView === 'mou' && (
               <ConsultantDocuments user={user} expert={expert} />
+            )}
+
+            {activeView === 'invoices' && (
+              <section className="rounded-3xl bg-white p-4 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-6">
+                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-600">Invoice Tracking</p>
+                    <h2 className="mt-2 text-2xl font-bold text-gray-950">Invoices</h2>
+                    <p className="mt-1 text-sm text-gray-500">Invoices added to your mentor profile in Sanity.</p>
+                  </div>
+                  {profileLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
+                </div>
+
+                {profileError && (
+                  <div className="mb-6 flex gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                    <p>{profileError}</p>
+                  </div>
+                )}
+
+                <div className="mb-6 grid gap-3 sm:grid-cols-2">
+                  <section className="rounded-2xl bg-[#000047] p-5 text-white shadow-lg shadow-primary-900/10">
+                    <p className="text-sm font-extrabold text-white/75">Total invoice amount</p>
+                    <p className="mt-4 text-3xl font-black leading-none">{profileLoading ? '-' : formatCurrency(invoiceTotal)}</p>
+                  </section>
+                  <section className="rounded-2xl bg-[#17463a] p-5 text-white shadow-lg shadow-primary-900/10">
+                    <p className="text-sm font-extrabold text-white/75">Invoices</p>
+                    <p className="mt-4 text-3xl font-black leading-none">{profileLoading ? '-' : invoices.length}</p>
+                  </section>
+                </div>
+
+                {!profileLoading && invoices.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
+                    <CircleDollarSign className="mx-auto mb-4 h-10 w-10 text-primary-500" />
+                    <h3 className="text-lg font-bold text-gray-950">No invoices added yet</h3>
+                    <p className="mt-2 text-sm text-gray-600">Invoices added to your mentor profile will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-2xl border border-gray-100">
+                    <div className="grid grid-cols-[0.75fr_0.75fr_1.25fr_0.7fr] bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600 px-4 py-3 text-xs font-extrabold uppercase tracking-wide text-white">
+                      <span>Date</span>
+                      <span>Amount</span>
+                      <span>Description</span>
+                      <span>PDF</span>
+                    </div>
+                    <div className="divide-y divide-gray-100 bg-white">
+                      {invoices.map((invoice) => (
+                        <div key={invoice._key || `${invoice.invoiceDate}-${invoice.amount}`} className="grid grid-cols-1 gap-3 px-4 py-4 text-sm sm:grid-cols-[0.75fr_0.75fr_1.25fr_0.7fr] sm:items-center">
+                          <div>
+                            <span className="block text-xs font-bold uppercase tracking-wide text-gray-400 sm:hidden">Date</span>
+                            <span className="font-bold text-gray-950">{formatDate(invoice.invoiceDate)}</span>
+                          </div>
+                          <div>
+                            <span className="block text-xs font-bold uppercase tracking-wide text-gray-400 sm:hidden">Amount</span>
+                            <span className="font-black text-emerald-700">{formatCurrency(invoice.amount)}</span>
+                          </div>
+                          <div>
+                            <span className="block text-xs font-bold uppercase tracking-wide text-gray-400 sm:hidden">Description</span>
+                            <p className="break-words font-medium text-gray-700">{invoice.description || 'No description added.'}</p>
+                          </div>
+                          <div>
+                            <span className="block text-xs font-bold uppercase tracking-wide text-gray-400 sm:hidden">PDF</span>
+                            {invoice.pdfUrl ? (
+                              <a
+                                href={invoice.pdfUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex max-w-full items-center rounded-xl bg-primary-50 px-3 py-2 text-xs font-black text-primary-700 ring-1 ring-primary-100 transition hover:bg-primary-100"
+                                title={invoice.pdfFileName || 'Open invoice PDF'}
+                              >
+                                <Download className="mr-2 h-4 w-4 shrink-0" />
+                                <span className="truncate">Open PDF</span>
+                              </a>
+                            ) : (
+                              <span className="text-sm font-semibold text-gray-400">Not uploaded</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
             )}
 
             {activeView === 'copilot' && (

@@ -121,16 +121,31 @@ export async function signMouDocument({ document, signatureDataUrl, consultant }
     signatureImageUrl,
   }
 
-  await mentorWriteClient
-    .patch(document._id)
-    .set({
-      status: 'signed',
-      signedPdf: signedPdfUrl,
-      signedAt: signedAtIso,
-    })
-    .setIfMissing({ auditTrail: [] })
-    .append('auditTrail', [auditEntry])
-    .commit()
+  if (document.source === 'mentor' && document.mentorId && document._key) {
+    const mouDocumentPath = `mouDocuments[_key=="${document._key}"]`
+
+    await mentorWriteClient
+      .patch(document.mentorId)
+      .set({
+        [`${mouDocumentPath}.status`]: 'signed',
+        [`${mouDocumentPath}.signedPdf`]: signedPdfUrl,
+        [`${mouDocumentPath}.signedAt`]: signedAtIso,
+      })
+      .setIfMissing({ [`${mouDocumentPath}.auditTrail`]: [] })
+      .append(`${mouDocumentPath}.auditTrail`, [auditEntry])
+      .commit()
+  } else {
+    await mentorWriteClient
+      .patch(document._id)
+      .set({
+        status: 'signed',
+        signedPdf: signedPdfUrl,
+        signedAt: signedAtIso,
+      })
+      .setIfMissing({ auditTrail: [] })
+      .append('auditTrail', [auditEntry])
+      .commit()
+  }
 
   return {
     signedAt: signedAtIso,

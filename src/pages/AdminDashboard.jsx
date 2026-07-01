@@ -87,6 +87,15 @@ function isWithinDateRange(value, startDate, endDate) {
   return true
 }
 
+function getApplicationType(application = {}) {
+  const clubName = `${application.clubName || ''}`.toLowerCase()
+  const sourcePath = `${application.sourcePath || ''}`.toLowerCase()
+
+  if (clubName.includes('founder') || sourcePath.includes('founder')) return 'founder'
+  if (clubName.includes('expert') || clubName.includes('consultant') || sourcePath.includes('expert')) return 'consultant'
+  return 'other'
+}
+
 function formatDateTimeInput(value) {
   const date = toDate(value)
   if (!date) return ''
@@ -221,6 +230,8 @@ export default function AdminDashboard() {
   const [dataError, setDataError] = useState('')
   const [dataMessage, setDataMessage] = useState('')
   const [activeView, setActiveView] = useState('dashboard')
+  const [applicationFilter, setApplicationFilter] = useState('all')
+  const [expandedApplicationReasons, setExpandedApplicationReasons] = useState({})
   const [dashboardFilters, setDashboardFilters] = useState({
     expertId: '',
     startDate: '',
@@ -475,12 +486,18 @@ export default function AdminDashboard() {
     return bTime - aTime
   }), [communityApplications])
 
+  const filteredApplications = useMemo(() => (
+    applicationFilter === 'all'
+      ? sortedApplications
+      : sortedApplications.filter((application) => getApplicationType(application) === applicationFilter)
+  ), [applicationFilter, sortedApplications])
+
   const applicationStats = useMemo(() => ({
-    submitted: sortedApplications.length,
-    new: sortedApplications.filter((application) => (application.status || 'new') === 'new').length,
-    reviewed: sortedApplications.filter((application) => application.status === 'reviewed').length,
-    accepted: sortedApplications.filter((application) => application.status === 'accepted').length,
-  }), [sortedApplications])
+    submitted: filteredApplications.length,
+    new: filteredApplications.filter((application) => (application.status || 'new') === 'new').length,
+    reviewed: filteredApplications.filter((application) => application.status === 'reviewed').length,
+    accepted: filteredApplications.filter((application) => application.status === 'accepted').length,
+  }), [filteredApplications])
 
   const activityNotifications = useMemo(() => {
     const activities = []
@@ -1003,6 +1020,28 @@ export default function AdminDashboard() {
       setDataMessage('Application status updated.')
     } catch (applicationError) {
       console.error('Admin application status update failed:', applicationError)
+      setDataError(getAdminError(applicationError))
+    } finally {
+      setUpdatingApplicationId('')
+    }
+  }
+
+  const handleDeleteRejectedApplication = async (application) => {
+    if (!application?.id || (application.status || 'new') !== 'rejected') return
+
+    const applicantLabel = application.name || application.email || 'this application'
+    const confirmed = window.confirm(`Delete rejected application for ${applicantLabel}? This cannot be undone.`)
+    if (!confirmed) return
+
+    setUpdatingApplicationId(application.id)
+    setDataError('')
+    setDataMessage('')
+
+    try {
+      await deleteDoc(doc(db, 'communityApplications', application.id))
+      setDataMessage('Rejected application deleted.')
+    } catch (applicationError) {
+      console.error('Admin rejected application delete failed:', applicationError)
       setDataError(getAdminError(applicationError))
     } finally {
       setUpdatingApplicationId('')
@@ -2031,9 +2070,30 @@ export default function AdminDashboard() {
                 <div className="mb-6 flex items-center justify-between gap-4">
                   <div>
                     <h2 className="text-2xl font-bold text-gray-950">Community Applications</h2>
-                    <p className="mt-1 text-sm text-gray-500">{sortedApplications.length} founder and expert club applications.</p>
+                    <p className="mt-1 text-sm text-gray-500">{filteredApplications.length} of {sortedApplications.length} founder and consultant applications.</p>
                   </div>
                   {dataLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
+                </div>
+
+                <div className="mb-6 flex flex-wrap gap-2">
+                  {[
+                    { value: 'all', label: 'All' },
+                    { value: 'founder', label: 'Founder' },
+                    { value: 'consultant', label: 'Consultant' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setApplicationFilter(option.value)}
+                      className={`rounded-xl px-4 py-2 text-sm font-black transition ${
+                        applicationFilter === option.value
+                          ? 'bg-[#000047] text-white shadow-lg shadow-primary-900/15'
+                          : 'bg-primary-50 text-primary-700 ring-1 ring-primary-100 hover:bg-primary-100'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="mb-6 grid gap-4 md:grid-cols-4">
@@ -2055,7 +2115,7 @@ export default function AdminDashboard() {
                   ))}
                 </div>
 
-                {sortedApplications.length === 0 ? (
+                {filteredApplications.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-600">
                     No community applications found.
                   </div>
@@ -2074,14 +2134,22 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 bg-white">
-                        {sortedApplications.map((application) => {
+                        {filteredApplications.map((application) => {
                           const status = application.status || 'new'
                           const isUpdating = updatingApplicationId === application.id
+                          const applicationType = getApplicationType(application)
+                          const reason = application.reason || 'Not provided'
+                          const isReasonExpanded = Boolean(expandedApplicationReasons[application.id])
+                          const reasonLineCount = `${reason}`.split(/\r?\n/).length
+                          const canExpandReason = reason !== 'Not provided' && (reasonLineCount > 5 || reason.length > 360)
 
                           return (
                             <tr key={application.id} className="align-top transition hover:bg-primary-50/50">
                               <td className="bg-blue-50/80 px-3 py-4 font-bold leading-6 text-gray-950">
                                 <p className="max-w-[11rem] break-words">{application.clubName || 'Magnafic Community'}</p>
+                                <span className="mt-2 inline-flex rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-primary-700 ring-1 ring-primary-100">
+                                  {applicationType === 'founder' ? 'Founder' : applicationType === 'consultant' ? 'Consultant' : 'Community'}
+                                </span>
                                 <span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.14em] ${
                                   status === 'accepted'
                                     ? 'bg-emerald-100 text-emerald-700'
@@ -2116,7 +2184,19 @@ export default function AdminDashboard() {
                                 )}
                               </td>
                               <td className="bg-blue-50/80 px-3 py-4 leading-6 text-gray-700">
-                                <p className="max-w-md whitespace-pre-wrap break-words">{application.reason || 'Not provided'}</p>
+                                <p className={`max-w-md whitespace-pre-wrap break-words ${!isReasonExpanded && canExpandReason ? 'line-clamp-5' : ''}`}>{reason}</p>
+                                {canExpandReason && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedApplicationReasons((current) => ({
+                                      ...current,
+                                      [application.id]: !current[application.id],
+                                    }))}
+                                    className="mt-2 text-sm font-black text-primary-700 underline decoration-primary-200 underline-offset-4 transition hover:text-primary-900"
+                                  >
+                                    {isReasonExpanded ? 'Show less' : 'Read more'}
+                                  </button>
+                                )}
                               </td>
                               <td className="bg-cyan-50/80 px-3 py-4 font-medium leading-6 text-gray-700">
                                 {formatDateTime(application.createdAt)}
@@ -2143,6 +2223,21 @@ export default function AdminDashboard() {
                                       {nextStatus}
                                     </button>
                                   ))}
+                                  {status === 'rejected' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteRejectedApplication(application)}
+                                      disabled={isUpdating}
+                                      className="inline-flex items-center justify-center rounded-xl bg-red-600 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                      {isUpdating ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                      )}
+                                      Delete
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>

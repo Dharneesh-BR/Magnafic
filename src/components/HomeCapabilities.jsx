@@ -58,7 +58,7 @@ export default function HomeCapabilities() {
   if (capabilities.length === 0) return null
 
   return (
-    <section className="relative overflow-hidden bg-[#f7f9ff] px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+    <section id="expert-services" className="relative scroll-mt-24 overflow-hidden bg-[#f7f9ff] px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300 to-transparent"></div>
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary-200 to-transparent"></div>
 
