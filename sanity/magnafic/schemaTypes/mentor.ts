@@ -45,6 +45,12 @@ export const mentorSchema = defineType({
       description: 'Private. Used only for internal consultant communication and not displayed on the website.',
     }),
     defineField({
+      name: 'googleCalendarLink',
+      title: 'Google Calendar Link',
+      type: 'url',
+      description: 'Scheduling link used for 1:1 call bookings with this mentor.',
+    }),
+    defineField({
       name: 'receiveNotifications',
       title: 'Receive Email Notifications',
       type: 'boolean',
@@ -174,6 +180,12 @@ export const mentorSchema = defineType({
           type: 'object',
           fields: [
             defineField({
+              name: 'invoiceNumber',
+              title: 'Invoice Number',
+              type: 'string',
+              description: 'Reference number for this invoice line item.',
+            }),
+            defineField({
               name: 'invoiceDate',
               title: 'Invoice Date',
               type: 'date',
@@ -187,12 +199,67 @@ export const mentorSchema = defineType({
             }),
             defineField({
               name: 'pdfFile',
-              title: 'PDF File',
+              title: 'Legacy PDF File',
               type: 'file',
               options: {
                 accept: 'application/pdf',
               },
-              description: 'Upload the invoice PDF for this invoice.',
+              description: 'Existing single invoice PDF field. Use Invoice Files below for new uploads.',
+            }),
+            defineField({
+              name: 'invoiceFiles',
+              title: 'Invoice Files',
+              type: 'array',
+              description: 'Upload up to four PDFs for the same invoice line item, for example client and consultant invoices.',
+              validation: (Rule) => Rule.max(4).warning('Only four invoice PDFs can be attached to one line item.'),
+              of: [
+                {
+                  type: 'object',
+                  fields: [
+                    defineField({
+                      name: 'label',
+                      title: 'Label',
+                      type: 'string',
+                      description: 'Short label such as Client Invoice or Consultant Invoice.',
+                    }),
+                    defineField({
+                      name: 'source',
+                      title: 'Source',
+                      type: 'string',
+                      options: {
+                        list: [
+                          { title: 'Client', value: 'client' },
+                          { title: 'Consultant', value: 'consultant' },
+                          { title: 'Other', value: 'other' },
+                        ],
+                        layout: 'radio',
+                      },
+                    }),
+                    defineField({
+                      name: 'file',
+                      title: 'PDF File',
+                      type: 'file',
+                      options: {
+                        accept: 'application/pdf',
+                      },
+                      validation: (Rule) => Rule.required(),
+                    }),
+                  ],
+                  preview: {
+                    select: {
+                      title: 'label',
+                      source: 'source',
+                      filename: 'file.asset.originalFilename',
+                    },
+                    prepare({ title, source, filename }) {
+                      return {
+                        title: title || filename || 'Invoice PDF',
+                        subtitle: source ? source.charAt(0).toUpperCase() + source.slice(1) : '',
+                      }
+                    },
+                  },
+                },
+              ],
             }),
             defineField({
               name: 'description',
@@ -205,11 +272,12 @@ export const mentorSchema = defineType({
           ],
           preview: {
             select: {
+              invoiceNumber: 'invoiceNumber',
               date: 'invoiceDate',
               amount: 'amount',
               description: 'description',
             },
-            prepare({ date, amount, description }) {
+            prepare({ invoiceNumber, date, amount, description }) {
               const formattedAmount =
                 typeof amount === 'number'
                   ? new Intl.NumberFormat('en-IN', {
@@ -220,7 +288,7 @@ export const mentorSchema = defineType({
                   : 'Amount not set'
 
               return {
-                title: [date, formattedAmount].filter(Boolean).join(' | ') || 'Invoice',
+                title: [invoiceNumber, date, formattedAmount].filter(Boolean).join(' | ') || 'Invoice',
                 subtitle: description || 'No description',
               }
             },

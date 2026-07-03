@@ -563,6 +563,8 @@ export default function ExpertDetail() {
   const [error, setError] = useState('')
   const [isSharing, setIsSharing] = useState(false)
   const [isAboutExpanded, setIsAboutExpanded] = useState(false)
+  const [areProjectsExpanded, setAreProjectsExpanded] = useState(false)
+  const [expandedProjectDescriptions, setExpandedProjectDescriptions] = useState({})
   const [shareStatus, setShareStatus] = useState('')
   const [relatedInsights, setRelatedInsights] = useState([])
 
@@ -571,6 +573,8 @@ export default function ExpertDetail() {
       setLoading(true)
       setError('')
       setIsAboutExpanded(false)
+      setAreProjectsExpanded(false)
+      setExpandedProjectDescriptions({})
 
       try {
         const query = `*[_type == "mentor" && (slug.current == $slug || _id == $slug)][0] {
@@ -772,6 +776,8 @@ export default function ExpertDetail() {
   const educationItems = (expert.education || []).filter(Boolean)
   const certificationItems = (expert.certifications || []).filter(Boolean)
   const projectItems = (expert.projects || []).filter(Boolean)
+  const visibleProjectItems = areProjectsExpanded ? projectItems : projectItems.slice(0, 2)
+  const hasMoreProjects = projectItems.length > visibleProjectItems.length
   const recommendationItems = (expert.recommendations || []).filter(Boolean)
 
   const handleShareExpert = async () => {
@@ -1129,28 +1135,64 @@ export default function ExpertDetail() {
             {projectItems.length > 0 && (
               <Section title="Projects / Case Studies">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {projectItems.map((item, index) => (
-                    <article key={`${item.projectTitle}-${index}`} className="overflow-hidden rounded-lg border border-gray-200">
-                      {item.projectImageUrl && (
-                        <div className="flex aspect-[16/9] items-center justify-center bg-gray-100 text-gray-400">
-                          <img src={item.projectImageUrl} alt={item.projectTitle} className="h-full w-full object-cover" />
-                        </div>
-                      )}
-                      <div className="p-4">
-                        <h3 className="font-semibold text-gray-950">{item.projectTitle}</h3>
-                        {item.clientOrCompany && <p className="mt-1 text-sm text-gray-600">{item.clientOrCompany}</p>}
-                        {formatRange(item.startDate, item.endDate) && <p className="mt-1 text-sm text-gray-500">{formatRange(item.startDate, item.endDate)}</p>}
-                        {item.description?.length > 0 && <div className="mt-3 space-y-3">{renderPortableText(item.description, true)}</div>}
-                        {item.projectUrl && (
-                          <a href={item.projectUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center text-sm font-semibold text-primary-700 hover:text-primary-900">
-                            View project
-                            <ExternalLink className="ml-1.5 h-4 w-4" />
-                          </a>
+                  {visibleProjectItems.map((item, index) => {
+                    const projectKey = `${item.projectTitle || 'project'}-${index}`
+                    const isProjectDescriptionExpanded = Boolean(expandedProjectDescriptions[projectKey])
+                    const hasProjectDescription = item.description?.length > 0
+
+                    return (
+                      <article key={projectKey} className="overflow-hidden rounded-lg border border-gray-200">
+                        {item.projectImageUrl && (
+                          <div className="flex aspect-[16/9] items-center justify-center bg-gray-100 text-gray-400">
+                            <img src={item.projectImageUrl} alt={item.projectTitle} className="h-full w-full object-cover" />
+                          </div>
                         )}
-                      </div>
-                    </article>
-                  ))}
+                        <div className="p-4">
+                          <h3 className="font-semibold text-gray-950">{item.projectTitle}</h3>
+                          {item.clientOrCompany && <p className="mt-1 text-sm text-gray-600">{item.clientOrCompany}</p>}
+                          {formatRange(item.startDate, item.endDate) && <p className="mt-1 text-sm text-gray-500">{formatRange(item.startDate, item.endDate)}</p>}
+                          {hasProjectDescription && (
+                            <div className="mt-3 rounded-lg bg-gray-50 p-3 ring-1 ring-gray-100">
+                              <div className={`space-y-3 text-sm leading-6 text-gray-700 ${isProjectDescriptionExpanded ? '' : 'line-clamp-2'}`}>
+                                {renderPortableText(item.description, true)}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedProjectDescriptions((current) => ({
+                                  ...current,
+                                  [projectKey]: !current[projectKey],
+                                }))}
+                                className="mt-2 inline-flex items-center text-sm font-bold text-primary-700 transition hover:text-primary-900"
+                                aria-expanded={isProjectDescriptionExpanded}
+                              >
+                                {isProjectDescriptionExpanded ? 'Show less' : 'Expand'}
+                                <ChevronDown className={`ml-1.5 h-4 w-4 transition-transform ${isProjectDescriptionExpanded ? 'rotate-180' : ''}`} />
+                              </button>
+                            </div>
+                          )}
+                          {item.projectUrl && (
+                            <a href={item.projectUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center text-sm font-semibold text-primary-700 hover:text-primary-900">
+                              View project
+                              <ExternalLink className="ml-1.5 h-4 w-4" />
+                            </a>
+                          )}
+                        </div>
+                      </article>
+                    )
+                  })}
                 </div>
+                {hasMoreProjects || areProjectsExpanded ? (
+                  <div className="mt-5 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setAreProjectsExpanded((current) => !current)}
+                      className="inline-flex items-center rounded-full border border-primary-200 bg-primary-50 px-5 py-2.5 text-sm font-bold text-primary-700 transition hover:bg-primary-100 hover:text-primary-900"
+                    >
+                      {areProjectsExpanded ? 'Show less' : `Read more projects (${projectItems.length - visibleProjectItems.length})`}
+                      <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${areProjectsExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                  </div>
+                ) : null}
               </Section>
             )}
 

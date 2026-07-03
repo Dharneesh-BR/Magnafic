@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, getDocs, query, serverTimestamp, where, writeBatch } from 'firebase/firestore'
 import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -77,6 +77,11 @@ function getCallTimeLabel(hour) {
     hour: 'numeric',
     minute: '2-digit',
   })
+}
+
+function getCallSlotId(expertId, dateValue, hour) {
+  const safeExpertId = String(expertId || 'expert').replace(/[^a-zA-Z0-9_-]/g, '_')
+  return `${safeExpertId}_${dateValue}_${hour}`
 }
 
 function validateCallDateTime(date) {
@@ -286,20 +291,75 @@ function ExpertCallRequest({ expert }) {
   const [showDetails, setShowDetails] = useState(false)
   const [formData, setFormData] = useState({ name: '', email: '', contactNo: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [bookedSlotHours, setBookedSlotHours] = useState([])
   const [status, setStatus] = useState({ type: '', message: '' })
 
   const minimumDate = toLocalDateInputValue(new Date(Date.now() + (CALL_NOTICE_HOURS * 60 * 60 * 1000)))
   const selectedDate = preferredDate ? buildLocalCallDate(preferredDate, CALL_START_HOUR) : null
   const selectedDateIsAvailable = selectedDate ? isCallDay(selectedDate) : true
+  const bookedSlotHourSet = new Set(bookedSlotHours)
   const availableTimeSlots = Array.from(
     { length: CALL_END_HOUR - CALL_START_HOUR + 1 },
     (_, index) => CALL_START_HOUR + index,
   ).filter((hour) => {
     const callDate = buildLocalCallDate(preferredDate, hour)
-    return callDate && isCallDay(callDate) && callDate.getTime() >= Date.now() + (CALL_NOTICE_HOURS * 60 * 60 * 1000)
+    return callDate
+      && isCallDay(callDate)
+      && callDate.getTime() >= Date.now() + (CALL_NOTICE_HOURS * 60 * 60 * 1000)
+      && !bookedSlotHourSet.has(hour)
   })
 
   const getSelectedCallDate = () => buildLocalCallDate(preferredDate, Number(preferredTime))
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadBookedSlots = async () => {
+      setBookedSlotHours([])
+
+      if (!preferredDate || !expert?._id || !selectedDateIsAvailable) {
+        setLoadingSlots(false)
+        return
+      }
+
+      setLoadingSlots(true)
+
+      try {
+        const slotSnapshot = await getDocs(query(
+          collection(db, 'expertCallSlots'),
+          where('dateKey', '==', preferredDate),
+        ))
+
+        if (!mounted) return
+
+        const hours = slotSnapshot.docs
+          .map((slotDoc) => slotDoc.data())
+          .filter((slot) => slot.expertId === expert._id && slot.active !== false)
+          .map((slot) => Number(slot.hour))
+          .filter((hour) => Number.isInteger(hour))
+
+        setBookedSlotHours(hours)
+
+        if (preferredTime && hours.includes(Number(preferredTime))) {
+          setPreferredTime('')
+          setShowDetails(false)
+          setStatus({ type: 'error', message: 'That time slot was just booked. Please choose another available time.' })
+        }
+      } catch (slotError) {
+        console.warn('Unable to load booked call slots:', slotError)
+        if (mounted) setBookedSlotHours([])
+      } finally {
+        if (mounted) setLoadingSlots(false)
+      }
+    }
+
+    loadBookedSlots()
+
+    return () => {
+      mounted = false
+    }
+  }, [expert?._id, preferredDate, preferredTime, selectedDateIsAvailable])
 
   const handleConnect = () => {
     if (!preferredDate || !preferredTime) {
@@ -327,7 +387,31 @@ function ExpertCallRequest({ expert }) {
       const validationError = validateCallDateTime(preferredCallDate)
       if (validationError) throw new Error(validationError)
 
-      await addDoc(collection(db, 'expertCallRequests'), {
+      const selectedHour = Number(preferredTime)
+      if (bookedSlotHourSet.has(selectedHour)) {
+        throw new Error('That time slot is no longer available. Please choose another time.')
+      }
+
+      const batch = writeBatch(db)
+      const requestRef = doc(collection(db, 'expertCallRequests'))
+      const slotRef = doc(db, 'expertCallSlots', getCallSlotId(expert._id, preferredDate, selectedHour))
+      const timestamp = serverTimestamp()
+
+      batch.set(slotRef, {
+        expertId: expert._id,
+        expertSlug: expert.slug || '',
+        expertName: expert.fullName,
+        dateKey: preferredDate,
+        hour: selectedHour,
+        slotStartAt: preferredCallDate,
+        requestId: requestRef.id,
+        status: 'requested',
+        active: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+
+      batch.set(requestRef, {
         expertId: expert._id,
         expertSlug: expert.slug || '',
         expertName: expert.fullName,
@@ -338,9 +422,12 @@ function ExpertCallRequest({ expert }) {
         contactNo: formData.contactNo.trim(),
         status: 'requested',
         sourcePath: window.location.pathname,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        slotId: slotRef.id,
+        createdAt: timestamp,
+        updatedAt: timestamp,
       })
+
+      await batch.commit()
 
       try {
         await notifyConsultants({
@@ -365,6 +452,7 @@ function ExpertCallRequest({ expert }) {
       setFormData({ name: '', email: '', contactNo: '' })
       setPreferredDate('')
       setPreferredTime('')
+      setBookedSlotHours([])
       setShowDetails(false)
     } catch (submitError) {
       console.error('Expert call request failed:', submitError)
@@ -380,7 +468,7 @@ function ExpertCallRequest({ expert }) {
         <div className="rounded-lg bg-white p-6 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:p-8">
         <p className="text-sm font-black uppercase tracking-[0.16em] text-primary-600">Private consultation</p>
         <h2 className="mt-2 text-3xl font-black text-[#000047]">Request a 1:1 call with {expert.fullName}</h2>
-        <p className="mt-3 leading-7 text-gray-600">Choose a time at least 24 hours in advance. Calls are available Monday to Saturday, from 10:00 AM to 6:00 PM.</p>
+        <p className="mt-3 leading-7 text-gray-600">Choose from the available time slots below at least 24 hours in advance. Calls are available Monday to Saturday, from 10:00 AM to 6:00 PM. Your request will be sent to Magnafic for confirmation.</p>
 
         <div className="mt-7 grid gap-5 sm:grid-cols-2">
           <div>
@@ -410,7 +498,7 @@ function ExpertCallRequest({ expert }) {
             <select
               id="preferred-call-time"
               value={preferredTime}
-              disabled={!preferredDate || !selectedDateIsAvailable || availableTimeSlots.length === 0}
+              disabled={!preferredDate || !selectedDateIsAvailable || loadingSlots || availableTimeSlots.length === 0}
               onChange={(event) => {
                 setPreferredTime(event.target.value)
                 setShowDetails(false)
@@ -418,16 +506,16 @@ function ExpertCallRequest({ expert }) {
               }}
               className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 font-semibold outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
             >
-              <option value="">Select a time</option>
+              <option value="">{loadingSlots ? 'Checking availability...' : 'Select a time'}</option>
               {availableTimeSlots.map((hour) => (
                 <option key={hour} value={hour}>{getCallTimeLabel(hour)}</option>
               ))}
             </select>
           </div>
         </div>
-        {preferredDate && selectedDateIsAvailable && availableTimeSlots.length === 0 && (
+        {preferredDate && selectedDateIsAvailable && !loadingSlots && availableTimeSlots.length === 0 && (
           <p className="mt-3 rounded-lg bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 ring-1 ring-amber-100">
-            No slots on this date meet the 24-hour notice period. Please choose a later date.
+            No slots are available on this date. Please choose another date.
           </p>
         )}
 

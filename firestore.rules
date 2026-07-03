@@ -21,6 +21,43 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null;
     }
 
+    // Public availability locks for expert 1:1 calls. These documents contain
+    // slot metadata only, not visitor contact details.
+    match /expertCallSlots/{document} {
+      function isValidPublicSlot(data) {
+        return data.expertId is string &&
+          data.expertId.size() > 0 &&
+          data.expertSlug is string &&
+          data.expertName is string &&
+          data.dateKey is string &&
+          data.dateKey.matches('^\\d{4}-\\d{2}-\\d{2}$') &&
+          data.hour is int &&
+          data.hour >= 10 &&
+          data.hour <= 18 &&
+          data.requestId is string &&
+          data.requestId.size() > 0 &&
+          data.status == 'requested' &&
+          data.active == true;
+      }
+
+      allow read: if true;
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          'expertId',
+          'expertSlug',
+          'expertName',
+          'dateKey',
+          'hour',
+          'slotStartAt',
+          'requestId',
+          'status',
+          'active',
+          'createdAt',
+          'updatedAt'
+        ]) && isValidPublicSlot(request.resource.data);
+      allow update, delete: if request.auth != null;
+    }
+
     // Public insight subscriptions. Only a normalized active email subscription
     // can be created or refreshed; subscriber data remains private.
     match /insightSubscribers/{document} {

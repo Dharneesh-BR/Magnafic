@@ -46,7 +46,7 @@ function getScheduledCallHistory(brief) {
 }
 
 function formatDateTime(value) {
-  const date = value?.toDate?.() || value
+  const date = toComparableDate(value)
   if (!date) return 'Not available'
 
   return new Intl.DateTimeFormat('en', {
@@ -94,6 +94,10 @@ function getApplicationType(application = {}) {
   if (clubName.includes('founder') || sourcePath.includes('founder')) return 'founder'
   if (clubName.includes('expert') || clubName.includes('consultant') || sourcePath.includes('expert')) return 'consultant'
   return 'other'
+}
+
+function isRejectedValue(value) {
+  return ['rejected', 'declined', 'junk'].includes(`${value || ''}`.toLowerCase())
 }
 
 function formatDateTimeInput(value) {
@@ -246,6 +250,8 @@ export default function AdminDashboard() {
   const [schedulingBriefId, setSchedulingBriefId] = useState('')
   const [cancellingScheduledCallKey, setCancellingScheduledCallKey] = useState('')
   const [allocatingReferralId, setAllocatingReferralId] = useState('')
+  const [deletingReferralId, setDeletingReferralId] = useState('')
+  const [removingReferralAllocationKey, setRemovingReferralAllocationKey] = useState('')
   const [updatingApplicationId, setUpdatingApplicationId] = useState('')
   const [scheduleDrafts, setScheduleDrafts] = useState({})
   const [schedulePlatformDrafts, setSchedulePlatformDrafts] = useState({})
@@ -448,6 +454,19 @@ export default function AdminDashboard() {
     return (
       getAllocatedConsultantIds(brief).size > 0 ||
       (Array.isArray(brief?.matchedExpertIds) && brief.matchedExpertIds.length > 0)
+    )
+  }
+
+  function isReferralRejectedOrJunk(brief) {
+    return (
+      isRejectedValue(brief?.status) ||
+      isRejectedValue(brief?.referralStatus) ||
+      isRejectedValue(brief?.adminStatus) ||
+      getAllocatedConsultants(brief).some((consultant) => (
+        isRejectedValue(consultant?.status) ||
+        isRejectedValue(consultant?.allocationStatus) ||
+        isRejectedValue(consultant?.referralStatus)
+      ))
     )
   }
 
@@ -1002,6 +1021,74 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleRemoveReferralAllocation = async (brief, consultant) => {
+    if (!brief?.id || !consultant) return
+
+    const consultantLabel = consultant.name || consultant.email || 'this consultant'
+    const confirmed = window.confirm(`Remove ${consultantLabel} from this referral allocation?`)
+    if (!confirmed) return
+
+    const allocationKey = `${brief.id}-${consultant.id || consultant.sanityExpertId || consultant.email || consultant.name}`
+    setRemovingReferralAllocationKey(allocationKey)
+    setDataError('')
+    setDataMessage('')
+
+    try {
+      const currentAllocations = getAllocatedConsultants(brief)
+      const remainingAllocations = currentAllocations.filter((item) => {
+        if (consultant.id && item.id === consultant.id) return false
+        if (consultant.sanityExpertId && item.sanityExpertId === consultant.sanityExpertId) return false
+        if (consultant.email && item.email === consultant.email) return false
+        return item !== consultant
+      })
+      const removedSanityExpertId = consultant.sanityExpertId || ''
+      const remainingMatchedExpertIds = Array.isArray(brief.matchedExpertIds)
+        ? brief.matchedExpertIds.filter((expertId) => expertId !== removedSanityExpertId)
+        : []
+      const primaryAllocation = remainingAllocations[0] || null
+
+      await updateDoc(doc(db, 'clientBriefs', brief.id), {
+        allocatedConsultants: remainingAllocations,
+        matchedExpertIds: remainingMatchedExpertIds,
+        assignedConsultantId: primaryAllocation?.id || null,
+        allocatedConsultantName: primaryAllocation?.name || '',
+        allocatedConsultantEmail: primaryAllocation?.email || '',
+        allocatedConsultantSanityId: primaryAllocation?.sanityExpertId || '',
+        referralStatus: remainingAllocations.length > 0 ? 'allocated' : 'pending-admin-allocation',
+        status: remainingAllocations.length > 0 ? 'matching' : 'referral-pending',
+        updatedAt: serverTimestamp(),
+      })
+      setDataMessage('Referral allocation removed.')
+    } catch (removeError) {
+      console.error('Admin referral allocation removal failed:', removeError)
+      setDataError(getAdminError(removeError))
+    } finally {
+      setRemovingReferralAllocationKey('')
+    }
+  }
+
+  const handleDeleteJunkReferral = async (brief) => {
+    if (!brief?.id || !isReferralRejectedOrJunk(brief)) return
+
+    const referralLabel = brief.clientName || brief.company || 'this referral'
+    const confirmed = window.confirm(`Delete junk/rejected referral for ${referralLabel}? This cannot be undone.`)
+    if (!confirmed) return
+
+    setDeletingReferralId(brief.id)
+    setDataError('')
+    setDataMessage('')
+
+    try {
+      await deleteDoc(doc(db, 'clientBriefs', brief.id))
+      setDataMessage('Junk referral deleted.')
+    } catch (deleteError) {
+      console.error('Admin junk referral delete failed:', deleteError)
+      setDataError(getAdminError(deleteError))
+    } finally {
+      setDeletingReferralId('')
+    }
+  }
+
   const handleUpdateApplicationStatus = async (application, status) => {
     if (!application?.id) return
 
@@ -1513,6 +1600,11 @@ export default function AdminDashboard() {
                     <p className="mt-1 text-sm text-gray-500">
                       {selectedRouteClient ? `${selectedRouteClient.attachedBriefs.length} attached briefs` : 'Client not found'}
                     </p>
+                    {selectedRouteClient && (
+                      <p className="mt-2 text-sm font-semibold text-primary-700">
+                        Account created: {formatDateTime(selectedRouteClient.createdAt)}
+                      </p>
+                    )}
                   </div>
                   {dataLoading && <Loader2 className="h-5 w-5 animate-spin text-primary-600" />}
                 </div>
@@ -1526,8 +1618,8 @@ export default function AdminDashboard() {
                     No briefs are attached to this client.
                   </div>
                 ) : (
-                  <div className="overflow-hidden rounded-2xl border border-gray-100">
-                    <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm lg:text-base">
+                  <div className="overflow-x-auto rounded-2xl border border-gray-100">
+                    <table className="min-w-[1200px] divide-y divide-gray-100 text-left text-sm lg:text-base">
                       <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
                         <tr className="text-xs font-extrabold uppercase tracking-wide text-white lg:text-sm">
                           <th className="break-words px-2 py-4 lg:px-3">Brief</th>
@@ -1701,8 +1793,8 @@ export default function AdminDashboard() {
                     No clients are attached to this consultant.
                   </div>
                 ) : (
-                  <div className="overflow-hidden rounded-2xl border border-gray-100">
-                    <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm lg:text-base">
+                  <div className="overflow-x-auto rounded-2xl border border-gray-100">
+                    <table className="min-w-[1200px] divide-y divide-gray-100 text-left text-sm lg:text-base">
                       <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
                         <tr className="text-xs font-extrabold uppercase tracking-wide text-white lg:text-sm">
                           <th className="break-words px-2 py-4 lg:px-3">Client Name</th>
@@ -2010,8 +2102,8 @@ export default function AdminDashboard() {
                     No clients found.
                   </div>
                 ) : (
-                  <div className="overflow-hidden rounded-2xl border border-gray-100">
-                    <table className="w-full table-fixed divide-y divide-gray-100 text-left text-sm lg:text-base">
+                  <div className="overflow-x-auto rounded-2xl border border-gray-100">
+                    <table className="min-w-[1200px] divide-y divide-gray-100 text-left text-sm lg:text-base">
                       <thead className="bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600">
                         <tr className="text-xs font-extrabold uppercase tracking-wide text-white lg:text-sm">
                           <th className="break-words px-2 py-4 lg:px-3">Client Name</th>
@@ -2019,6 +2111,7 @@ export default function AdminDashboard() {
                           <th className="break-words px-2 py-4 lg:px-3">Company</th>
                           <th className="break-words px-2 py-4 lg:px-3">City</th>
                           <th className="break-words px-2 py-4 lg:px-3">Phone</th>
+                          <th className="break-words px-2 py-4 lg:px-3">Account Created</th>
                           <th className="break-words px-2 py-4 lg:px-3">Briefs</th>
                           <th className="break-words px-2 py-4 text-right lg:px-3">Action</th>
                         </tr>
@@ -2031,7 +2124,8 @@ export default function AdminDashboard() {
                             <td className="break-words bg-blue-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{client.company || 'Not provided'}</td>
                             <td className="break-words bg-cyan-50/80 px-2 py-4 font-semibold leading-6 text-gray-800 lg:px-3">{client.city || 'Not provided'}</td>
                             <td className="break-words bg-blue-50/80 px-2 py-4 font-medium leading-6 text-gray-700 lg:px-3">{client.phone || 'Not provided'}</td>
-                            <td className="break-words bg-cyan-50/80 px-2 py-4 font-bold leading-6 text-primary-700 lg:px-3">{client.attachedBriefs.length}</td>
+                            <td className="break-words bg-cyan-50/80 px-2 py-4 font-medium leading-6 text-gray-700 lg:px-3">{formatDateTime(client.createdAt)}</td>
+                            <td className="break-words bg-blue-50/80 px-2 py-4 font-bold leading-6 text-primary-700 lg:px-3">{client.attachedBriefs.length}</td>
                             <td className="bg-blue-50/80 px-2 py-4 text-right lg:px-3">
                               <div className="flex flex-wrap justify-end gap-2">
                               <Link
@@ -2301,6 +2395,7 @@ export default function AdminDashboard() {
                         {referralRequests.map((brief) => {
                           const allocatedConsultants = getAllocatedConsultants(brief)
                           const allocatedConsultantIds = getAllocatedConsultantIds(brief)
+                          const isJunkReferral = isReferralRejectedOrJunk(brief)
                           const draftAllocationValue = allocationDrafts[brief.id]
                           const allocationValue = draftAllocationValue && !allocatedConsultantIds.has(draftAllocationValue)
                             ? draftAllocationValue
@@ -2333,10 +2428,37 @@ export default function AdminDashboard() {
                                     <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-emerald-700">Allocated</p>
                                     {allocatedConsultants.map((consultant, index) => (
                                       <div key={`${consultant.id || consultant.email || consultant.name || 'consultant'}-${index}`} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-100">
-                                        <p className="break-words">{consultant.name || consultant.email || 'Consultant'}</p>
-                                        {consultant.email && (
-                                          <p className="mt-1 break-words font-medium text-emerald-700">{consultant.email}</p>
-                                        )}
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="min-w-0">
+                                            <p className="break-words">{consultant.name || consultant.email || 'Consultant'}</p>
+                                            {consultant.email && (
+                                              <p className="mt-1 break-words font-medium text-emerald-700">{consultant.email}</p>
+                                            )}
+                                            {(consultant.status || consultant.allocationStatus || consultant.referralStatus) && (
+                                              <p className={`mt-1 text-[11px] font-black uppercase tracking-[0.14em] ${
+                                                isRejectedValue(consultant.status || consultant.allocationStatus || consultant.referralStatus)
+                                                  ? 'text-red-700'
+                                                  : 'text-emerald-700'
+                                              }`}>
+                                                {consultant.status || consultant.allocationStatus || consultant.referralStatus}
+                                              </p>
+                                            )}
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRemoveReferralAllocation(brief, consultant)}
+                                            disabled={removingReferralAllocationKey === `${brief.id}-${consultant.id || consultant.sanityExpertId || consultant.email || consultant.name}`}
+                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-red-600 ring-1 ring-red-100 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                            title="Remove allocation"
+                                            aria-label={`Remove ${consultant.name || consultant.email || 'consultant'} from allocation`}
+                                          >
+                                            {removingReferralAllocationKey === `${brief.id}-${consultant.id || consultant.sanityExpertId || consultant.email || consultant.name}` ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <Trash2 className="h-4 w-4" />
+                                            )}
+                                          </button>
+                                        </div>
                                       </div>
                                     ))}
                                   </div>
@@ -2364,6 +2486,21 @@ export default function AdminDashboard() {
                                     <Eye className="mr-2 h-4 w-4" />
                                     Brief
                                   </Link>
+                                  {isJunkReferral && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteJunkReferral(brief)}
+                                      disabled={deletingReferralId === brief.id}
+                                      className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                      {deletingReferralId === brief.id ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                      )}
+                                      Delete junk
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>

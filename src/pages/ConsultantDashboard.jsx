@@ -350,11 +350,19 @@ export default function ConsultantDashboard() {
           keySkills,
           invoices[]{
             _key,
+            invoiceNumber,
             invoiceDate,
             amount,
             description,
             "pdfUrl": pdfFile.asset->url,
-            "pdfFileName": pdfFile.asset->originalFilename
+            "pdfFileName": pdfFile.asset->originalFilename,
+            invoiceFiles[]{
+              _key,
+              label,
+              source,
+              "url": file.asset->url,
+              "fileName": file.asset->originalFilename
+            }
           },
           experience[]{
             roleTitle,
@@ -1368,15 +1376,31 @@ export default function ConsultantDashboard() {
                   </div>
                 ) : (
                   <div className="overflow-hidden rounded-2xl border border-gray-100">
-                    <div className="grid grid-cols-[0.75fr_0.75fr_1.25fr_0.7fr] bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600 px-4 py-3 text-xs font-extrabold uppercase tracking-wide text-white">
+                    <div className="grid grid-cols-[0.75fr_0.75fr_0.75fr_1.2fr_1fr] bg-gradient-to-r from-[#000047] via-primary-700 to-cyan-600 px-4 py-3 text-xs font-extrabold uppercase tracking-wide text-white">
+                      <span>Invoice No.</span>
                       <span>Date</span>
                       <span>Amount</span>
                       <span>Description</span>
-                      <span>PDF</span>
+                      <span>Files</span>
                     </div>
                     <div className="divide-y divide-gray-100 bg-white">
-                      {invoices.map((invoice) => (
-                        <div key={invoice._key || `${invoice.invoiceDate}-${invoice.amount}`} className="grid grid-cols-1 gap-3 px-4 py-4 text-sm sm:grid-cols-[0.75fr_0.75fr_1.25fr_0.7fr] sm:items-center">
+                      {invoices.map((invoice) => {
+                        const invoiceFiles = [
+                          ...(invoice.pdfUrl ? [{
+                            _key: 'legacy',
+                            label: invoice.pdfFileName || 'Invoice PDF',
+                            url: invoice.pdfUrl,
+                            fileName: invoice.pdfFileName,
+                          }] : []),
+                          ...(invoice.invoiceFiles || []).filter((file) => file?.url),
+                        ]
+
+                        return (
+                        <div key={invoice._key || `${invoice.invoiceDate}-${invoice.amount}`} className="grid grid-cols-1 gap-3 px-4 py-4 text-sm sm:grid-cols-[0.75fr_0.75fr_0.75fr_1.2fr_1fr] sm:items-center">
+                          <div>
+                            <span className="block text-xs font-bold uppercase tracking-wide text-gray-400 sm:hidden">Invoice No.</span>
+                            <span className="break-words font-bold text-gray-950">{invoice.invoiceNumber || '-'}</span>
+                          </div>
                           <div>
                             <span className="block text-xs font-bold uppercase tracking-wide text-gray-400 sm:hidden">Date</span>
                             <span className="font-bold text-gray-950">{formatDate(invoice.invoiceDate)}</span>
@@ -1390,24 +1414,30 @@ export default function ConsultantDashboard() {
                             <p className="break-words font-medium text-gray-700">{invoice.description || 'No description added.'}</p>
                           </div>
                           <div>
-                            <span className="block text-xs font-bold uppercase tracking-wide text-gray-400 sm:hidden">PDF</span>
-                            {invoice.pdfUrl ? (
-                              <a
-                                href={invoice.pdfUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex max-w-full items-center rounded-xl bg-primary-50 px-3 py-2 text-xs font-black text-primary-700 ring-1 ring-primary-100 transition hover:bg-primary-100"
-                                title={invoice.pdfFileName || 'Open invoice PDF'}
-                              >
-                                <Download className="mr-2 h-4 w-4 shrink-0" />
-                                <span className="truncate">Open PDF</span>
-                              </a>
+                            <span className="block text-xs font-bold uppercase tracking-wide text-gray-400 sm:hidden">Files</span>
+                            {invoiceFiles.length > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                {invoiceFiles.map((file, fileIndex) => (
+                                  <a
+                                    key={file._key || file.url}
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex max-w-full items-center rounded-xl bg-primary-50 px-3 py-2 text-xs font-black text-primary-700 ring-1 ring-primary-100 transition hover:bg-primary-100"
+                                    title={file.fileName || file.label || 'Open invoice PDF'}
+                                  >
+                                    <Download className="mr-2 h-4 w-4 shrink-0" />
+                                    <span className="truncate">{file.label || file.source || `PDF ${fileIndex + 1}`}</span>
+                                  </a>
+                                ))}
+                              </div>
                             ) : (
                               <span className="text-sm font-semibold text-gray-400">Not uploaded</span>
                             )}
                           </div>
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 )}
