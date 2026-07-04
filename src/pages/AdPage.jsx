@@ -638,14 +638,14 @@ function StickyRegistrationBar({action, settings, countdownCta, onOpenCta}) {
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-0">
-      <div className="flex w-full max-w-md flex-col items-center justify-center rounded-[3rem] bg-[#555083] px-6 pb-7 pt-5 text-center text-white shadow-2xl shadow-blue-950/30 backdrop-blur-md sm:max-w-xl sm:px-8">
+    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4">
+      <div className="flex w-full max-w-md flex-col items-center justify-center rounded-[3.5rem] bg-[#030052]/95 px-8 py-5 text-center text-white shadow-2xl shadow-blue-950/40 backdrop-blur-md sm:max-w-xl sm:px-10">
         <button
           type="button"
           onClick={handleClick}
-          className="inline-flex max-w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#101b8d] to-[#00d6e6] px-4 py-3 text-[15px] font-bold leading-6 shadow-lg shadow-blue-950/20 sm:gap-3 sm:px-6 sm:text-xl sm:leading-7"
+          className="inline-flex max-w-full items-center justify-center gap-2 text-xl font-extrabold leading-7 text-white sm:gap-3 sm:text-2xl"
         >
-          <Rocket className="h-5 w-5 shrink-0 text-white sm:h-6 sm:w-6" />
+          <Rocket className="h-6 w-6 shrink-0 text-white sm:h-7 sm:w-7" />
           {offerLabel ? (
             <span className="flex min-w-0 items-baseline justify-center gap-1.5 sm:gap-2">
               <span className="shrink whitespace-nowrap">{offerLabel.main}</span>
@@ -656,9 +656,9 @@ function StickyRegistrationBar({action, settings, countdownCta, onOpenCta}) {
           )}
         </button>
         {durationSeconds > 0 && (
-          <span className="mt-1 inline-flex items-center gap-1.5 text-xl font-bold leading-7 text-white">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-[#555083]">
-              <Clock3 className="h-4 w-4" strokeWidth={2.8} />
+          <span className="mt-1 inline-flex items-center gap-1.5 text-xl font-extrabold leading-7 text-white sm:text-2xl sm:leading-8">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-[#030052] sm:h-7 sm:w-7">
+              <Clock3 className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.8} />
             </span>
             {formatCountdown(remainingSeconds)} {settings?.countdownLabel || 'left'}
           </span>
@@ -1452,7 +1452,7 @@ export default function AdPage({slugOverride, pathOverride}) {
       />
       <section className="relative overflow-hidden bg-[#fbfaf9] px-4 pb-8 pt-12 sm:pb-12 sm:pt-10">
         <div className="relative mx-auto max-w-6xl">
-          <h1 className="mx-auto mb-7 max-w-6xl bg-gradient-to-r from-[#000080] via-[#1e3a8a] to-[#1e40af] bg-clip-text text-center text-[2rem] font-extrabold leading-[1.2] text-transparent md:text-4xl md:leading-tight lg:text-5xl">{page.headline}</h1>
+          <h1 className="mx-auto mb-7 max-w-6xl bg-gradient-to-r from-[#000080] via-[#1e3a8a] to-[#1e40af] bg-clip-text text-center text-[2rem] font-black leading-[1.2] text-transparent md:text-4xl md:leading-tight lg:text-5xl">{page.headline}</h1>
           {page.shortDescription && (
             <div className="mx-auto max-w-6xl rounded-xl border border-[#3533cd]/20 bg-gradient-to-r from-[#3533cd] to-[#00ffff] px-5 py-4 text-center shadow-lg">
               <p className="text-[1.45rem] font-bold leading-[1.28] text-white sm:text-2xl sm:leading-8">{page.shortDescription}</p>
