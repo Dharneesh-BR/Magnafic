@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useState} from 'react'
 import {addDoc, collection, serverTimestamp} from 'firebase/firestore'
-import {ArrowRight, CheckCircle2, ChevronDown, CreditCard, Loader2, Quote, Sparkles, X} from 'lucide-react'
+import {ArrowRight, Brain, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, CreditCard, Languages, Loader2, Quote, Repeat2, Rocket, Settings, Sparkles, Video, X} from 'lucide-react'
 import {useParams} from 'react-router-dom'
 import MagnaLoader from '../components/MagnaLoader'
 import SEO from '../components/SEO'
@@ -41,6 +41,17 @@ const adPageFields = `
   secondaryButtonUrl,
   theme,
   heroMedia{${mediaFields}},
+  workshopDetails[]{
+    _key,
+    icon,
+    label
+  },
+  stickyRegistrationBar{
+    enabled,
+    buttonLabel,
+    countdownMinutes,
+    countdownLabel
+  },
   sections[]{
     _key,
     sectionTitle,
@@ -95,13 +106,14 @@ const adPageFields = `
       formDescription,
       formButtonLabel,
       showMessageField,
+      countdownMinutes,
+      countdownLabel,
       confirmationEmail{
         enabled,
         subject,
         fromName,
         body
-      },
-      media{${mediaFields}}
+      }
     }
   },
   seoTitle,
@@ -252,7 +264,7 @@ function MediaBlock({media, className = ''}) {
         <img
           src={media.imageUrl}
           alt={media.imageAlt || media.caption || ''}
-          className="max-h-[24rem] w-full object-contain sm:max-h-[34rem]"
+          className="max-h-[26rem] w-full object-contain sm:max-h-[36rem]"
         />
         {media.caption && <figcaption className="mt-3 text-sm font-semibold text-gray-500">{media.caption}</figcaption>}
       </figure>
@@ -260,6 +272,42 @@ function MediaBlock({media, className = ''}) {
   }
 
   return null
+}
+
+function FirstSectionMediaBlock({media}) {
+  if (!media?.imageUrl) return <MediaBlock media={media} className="mx-auto text-center [&_figcaption]:text-center [&_img]:mx-auto" />
+
+  return (
+    <figure className="mx-auto inline-block max-w-full text-center">
+      <img
+        src={media.imageUrl}
+        alt={media.imageAlt || media.caption || ''}
+        className="block max-h-[17rem] w-full object-contain sm:max-h-[24rem]"
+      />
+      <div className="h-1 w-full bg-gradient-to-r from-[#3b2bd9] to-[#12e6e8]" />
+      {media.caption && <figcaption className="mt-4 text-center text-2xl font-black leading-8 text-[#0b176d] sm:text-3xl sm:leading-9">{media.caption}</figcaption>}
+    </figure>
+  )
+}
+
+function MentorIntroDetails({intro}) {
+  const lines = String(intro || '')
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+  const details = lines.slice(1)
+
+  if (!details.length) return null
+
+  return (
+    <div className="mx-auto mt-2 max-w-md text-center">
+      {details.map((line, index) => (
+        <p key={`${line}-${index}`} className="text-sm font-bold leading-6 text-gray-800 sm:text-base">
+          {line}
+        </p>
+      ))}
+    </div>
+  )
 }
 
 function HeroMediaBlock({media}) {
@@ -289,13 +337,12 @@ function HeroMediaBlock({media}) {
 
   if (media.imageUrl) {
     return (
-      <figure className="relative">
+      <figure className="relative overflow-visible">
         <img
           src={media.imageUrl}
           alt={media.imageAlt || media.caption || ''}
-          className="max-h-[24rem] w-full object-contain sm:max-h-[36rem]"
+          className="h-auto w-full max-w-none rounded-2xl object-cover shadow-xl sm:scale-125"
         />
-        {media.caption && <figcaption className="mt-3 text-sm font-semibold text-cyan-50/80">{media.caption}</figcaption>}
       </figure>
     )
   }
@@ -305,17 +352,17 @@ function HeroMediaBlock({media}) {
 
 function SectionHeader({section, light = false}) {
   return (
-    <div className="mb-8 max-w-3xl sm:mb-10">
-      <h2 className={`mt-3 text-2xl font-black leading-tight sm:text-4xl ${light ? 'text-white' : 'text-[#000047]'}`}>{section.sectionTitle}</h2>
-      {section.intro && <p className={`mt-4 text-base leading-7 sm:mt-5 sm:text-lg sm:leading-8 ${light ? 'text-cyan-50/85' : 'text-gray-600'}`}>{section.intro}</p>}
+    <div className="mx-auto mb-8 max-w-6xl text-center">
+      <h2 className={`text-2xl font-extrabold leading-8 sm:text-3xl sm:leading-9 ${light ? 'text-white' : 'text-[#071a78]'}`}>{section.sectionTitle}</h2>
+      {section.intro && <p className={`mx-auto mt-4 max-w-4xl whitespace-pre-line text-base leading-6 sm:text-lg sm:leading-7 ${light ? 'text-cyan-50/85' : 'text-gray-700'}`}>{section.intro}</p>}
     </div>
   )
 }
 
 function SectionShell({children, className = '', dark = false}) {
   return (
-    <section className={`${dark ? 'bg-[#050545] text-white' : 'bg-white text-gray-950'} overflow-hidden px-4 py-14 sm:px-6 lg:px-8 lg:py-20 ${className}`}>
-      <div className="mx-auto max-w-7xl">{children}</div>
+    <section className={`${dark ? 'bg-[#000047] text-white' : 'bg-[#fbfaf9] text-gray-950'} overflow-hidden px-4 py-12 ${className}`}>
+      <div className="mx-auto max-w-6xl">{children}</div>
     </section>
   )
 }
@@ -329,17 +376,25 @@ function ItemMark({label, index, light = false}) {
   )
 }
 
-function InlineItemList({items = [], light = false}) {
+function InlineItemList({items = [], light = false, centered = false, gradientIcons = false, bulletStyle = false}) {
   if (!items.length) return null
 
   return (
-    <div className="space-y-4">
+    <div className={bulletStyle ? 'space-y-5' : 'space-y-4'}>
       {items.map((item, itemIndex) => (
-        <div key={item._key || `${item.title}-${itemIndex}`} className={`flex min-w-0 gap-3 border-b pb-4 last:border-b-0 last:pb-0 sm:gap-4 ${light ? 'border-white/15' : 'border-gray-100'}`}>
-          <CheckCircle2 className={`mt-1 h-5 w-5 shrink-0 ${light ? 'text-cyan-200' : 'text-cyan'}`} />
+        <div key={item._key || `${item.title}-${itemIndex}`} className={`flex min-w-0 ${bulletStyle ? 'items-start gap-3 border-b-0 pb-0' : `gap-3 border-b pb-4 last:border-b-0 last:pb-0 sm:gap-4 ${centered ? 'flex-col items-center text-center' : ''} ${light ? 'border-white/15' : 'border-gray-100'}`}`}>
+          {bulletStyle ? (
+            <span className="mt-2.5 h-2 w-2 shrink-0 rounded-full bg-[#3d35d7]" />
+          ) : gradientIcons ? (
+            <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-blue-700 to-cyan-400 shadow-sm shadow-cyan-500/20">
+              <CheckCircle2 className="h-4.5 w-4.5 text-white" />
+            </span>
+          ) : (
+            <CheckCircle2 className={`mt-1 h-5 w-5 shrink-0 ${light ? 'text-cyan-200' : 'text-cyan'}`} />
+          )}
           <div className="min-w-0">
-            {item.title && <h3 className={`text-lg font-black leading-tight sm:text-xl ${light ? 'text-white' : 'text-[#000047]'}`}>{item.title}</h3>}
-            {item.description && <p className={`mt-2 text-sm leading-7 sm:text-base sm:leading-8 ${light ? 'text-cyan-50/85' : 'text-gray-600'}`}>{item.description}</p>}
+            {!bulletStyle && item.title && <h3 className={`text-lg font-black leading-tight sm:text-xl ${light ? 'text-white' : 'text-[#000047]'}`}>{item.title}</h3>}
+            {item.description && <p className={`${bulletStyle ? 'text-base font-normal leading-7 text-gray-950' : `mt-2 text-sm leading-7 sm:text-base sm:leading-8 ${light ? 'text-cyan-50/85' : 'text-gray-600'}`}`}>{item.description}</p>}
             <MediaBlock media={item.media} className="mt-4" />
           </div>
         </div>
@@ -348,44 +403,315 @@ function InlineItemList({items = [], light = false}) {
   )
 }
 
-function CtaButton({action, variant = 'primary', onOpenCta}) {
+function splitButtonLabel(label = '') {
+  const words = label.trim().split(/\s+/).filter(Boolean)
+  if (words.length <= 1) return [label]
+
+  const splitIndex = Math.ceil(words.length / 2)
+  return [
+    words.slice(0, splitIndex).join(' '),
+    words.slice(splitIndex).join(' '),
+  ].filter(Boolean)
+}
+
+function formatOfferButtonLabel(label = '') {
+  const match = label.match(/^(.*?₹\s*1\s*\/-)\s*(2999)$/)
+  if (!match) return null
+
+  return {
+    main: match[1].trim(),
+    oldPrice: match[2],
+  }
+}
+
+function CtaButton({action, variant = 'primary', twoLine = false, fitContent = false, onOpenCta}) {
   if (!action?.label) return null
 
   const className = variant === 'secondary'
-    ? 'inline-flex w-full min-w-0 items-center justify-center rounded-full border border-white/30 px-5 py-3.5 text-center text-sm font-extrabold leading-snug text-white transition hover:bg-white/10 sm:w-auto sm:px-7 sm:py-4 sm:text-base'
-    : 'inline-flex w-full min-w-0 items-center justify-center rounded-full bg-cyan px-5 py-3.5 text-center text-sm font-extrabold leading-snug text-[#000047] shadow-lg shadow-cyan/20 transition hover:-translate-y-0.5 sm:w-auto sm:px-7 sm:py-4 sm:text-base'
+    ? 'inline-flex w-full min-w-0 items-center justify-center rounded-full border border-white/30 px-5 py-3.5 text-center text-lg font-extrabold leading-snug text-white transition hover:bg-white/10 sm:w-auto sm:px-7 sm:py-4 sm:text-base'
+    : `inline-flex min-w-0 items-center justify-center rounded-2xl bg-gradient-to-r from-[#3533cd] to-[#00d9e8] px-10 text-center font-bold leading-7 text-white shadow-[0_16px_30px_rgba(37,99,235,0.25)] transition hover:-translate-y-0.5 ${twoLine ? 'w-full max-w-full py-5 text-xl' : fitContent ? 'w-full max-w-full py-5 text-xl' : 'w-full py-5 text-xl'}`
+  const labelLines = twoLine ? splitButtonLabel(action.label) : []
+  const offerLabel = formatOfferButtonLabel(action.label)
+  const labelContent = offerLabel ? (
+    <span className="flex min-w-0 flex-col items-center justify-center leading-tight">
+      <span className="min-w-0 whitespace-nowrap text-xl font-extrabold leading-7">{offerLabel.main}</span>
+      <span className="mt-0.5 min-w-0 text-xl font-extrabold leading-6 line-through decoration-white decoration-2">{offerLabel.oldPrice}</span>
+    </span>
+  ) : twoLine ? (
+    <span className="flex min-w-0 flex-col items-center justify-center leading-tight">
+      {labelLines.map((line, index) => (
+        <span key={`${line}-${index}`} className="min-w-0 break-words">{line}</span>
+      ))}
+    </span>
+  ) : (
+    <span className="min-w-0 break-words">{action.label}</span>
+  )
 
   if (action.action === 'link' && action.url) {
     return (
       <a href={action.url} className={className}>
-        <span className="min-w-0 break-words">{action.label}</span>
-        {variant !== 'secondary' && <ArrowRight className="ml-2 h-5 w-5 shrink-0" />}
+        {labelContent}
       </a>
     )
   }
 
   return (
     <button type="button" onClick={() => onOpenCta(action)} className={className}>
-      <span className="min-w-0 break-words">{action.label}</span>
-      {action.action === 'razorpay' ? <CreditCard className="ml-2 h-5 w-5 shrink-0" /> : <ArrowRight className="ml-2 h-5 w-5 shrink-0" />}
+      {labelContent}
     </button>
+  )
+}
+
+function formatCountdown(seconds) {
+  const safeSeconds = Math.max(0, Number(seconds) || 0)
+  const hours = Math.floor(safeSeconds / 3600)
+  const minutes = Math.floor((safeSeconds % 3600) / 60)
+  const remainingSeconds = safeSeconds % 60
+  const parts = hours > 0 ? [hours, minutes, remainingSeconds] : [minutes, remainingSeconds]
+
+  return parts.map((part) => String(part).padStart(2, '0')).join(':')
+}
+
+function CtaCountdown({minutes, label}) {
+  const durationSeconds = Math.max(0, Math.floor(Number(minutes) * 60))
+  const [remainingSeconds, setRemainingSeconds] = useState(durationSeconds)
+
+  useEffect(() => {
+    setRemainingSeconds(durationSeconds)
+    if (!durationSeconds) return undefined
+
+    const intervalId = window.setInterval(() => {
+      setRemainingSeconds((current) => Math.max(0, current - 1))
+    }, 1000)
+
+    return () => window.clearInterval(intervalId)
+  }, [durationSeconds])
+
+  if (!durationSeconds) return null
+
+  return (
+    <div className="mx-auto mt-8 text-center">
+      <span className="block font-mono text-2xl font-extrabold leading-none text-[#07142d] sm:text-3xl">
+        {formatCountdown(remainingSeconds)}
+      </span>
+      <span className="mt-2 block text-xl font-bold leading-7 text-red-600 sm:text-2xl">
+        {label || 'Remaining Time'}
+      </span>
+    </div>
+  )
+}
+
+function CtaAlarmImage({media}) {
+  if (!media?.imageUrl) return null
+
+  return (
+    <img
+      src={media.imageUrl}
+      alt={media.imageAlt || media.caption || ''}
+      className="mx-auto h-28 w-28 object-contain sm:h-32 sm:w-32"
+    />
+  )
+}
+
+function MagnaDifferentIcon({index}) {
+  const className = 'h-5 w-5 text-white'
+  if (index === 0) return <Repeat2 className={className} />
+  if (index === 1) return <Sparkles className={className} />
+  return <Check className={className} />
+}
+
+function CurriculumSessionCard({title, lessons = []}) {
+  const sessionGroups = []
+  let current = null
+
+  lessons.forEach((lesson) => {
+    if (/^Session\s+\d+:/i.test(lesson)) {
+      current = {heading: lesson, bullets: []}
+      sessionGroups.push(current)
+      return
+    }
+
+    if (!current) {
+      current = {heading: title, bullets: []}
+      sessionGroups.push(current)
+    }
+
+    current.bullets.push(lesson)
+  })
+
+  return (
+    <div className="space-y-6">
+      {sessionGroups.map((session) => {
+        const headingSeparatorIndex = session.heading.indexOf(':')
+        const sessionLabel = headingSeparatorIndex >= 0 ? session.heading.slice(0, headingSeparatorIndex) : session.heading
+        const sessionTitle = headingSeparatorIndex >= 0 ? session.heading.slice(headingSeparatorIndex + 1).trim() : ''
+        const titleMatch = sessionTitle.match(/^([A-Z])\s+(?:—|-)\s+(.+)$/)
+
+        return (
+          <article key={session.heading} className="rounded-2xl bg-white px-5 py-6 text-center text-[#07142d] shadow-lg sm:px-7">
+            <h4 className="text-xl font-extrabold leading-7 text-black">{sessionLabel}:</h4>
+            {sessionTitle && (
+              <p className="mt-1 text-xl font-extrabold leading-7">
+                {titleMatch ? (
+                  <>
+                    <span className="text-[#3533cd]">{titleMatch[1]}</span>
+                    <span className="text-[#07142d]"> - </span>
+                    <span className="text-[#00bcd4]">{titleMatch[2]}</span>
+                  </>
+                ) : (
+                  <span className="text-[#00bcd4]">{sessionTitle}</span>
+                )}
+              </p>
+            )}
+            <div className="mt-5 space-y-4 text-left">
+              {session.bullets.map((lesson) => (
+                <div key={lesson} className="flex min-w-0 items-start gap-3">
+                  <span className="mt-0.5 shrink-0 text-sm leading-6 text-[#1512b8]">→</span>
+                  <p className="min-w-0 text-base leading-6 text-[#111827]">{lesson}</p>
+                </div>
+              ))}
+            </div>
+          </article>
+        )
+      })}
+    </div>
+  )
+}
+
+const detailIconMap = {
+  calendar: CalendarDays,
+  language: Languages,
+  clock: Clock3,
+  video: Video,
+  info: Sparkles,
+}
+
+function workshopDetailsFromDescription(description = '') {
+  const text = String(description || '')
+  const dateMatch = text.match(/on\s+([^,.]+(?:,\s*[^,.]+)?)/i)
+  const timeMatch = text.match(/(\d{1,2}(?::\d{2})?\s*(?:AM|PM)\s*-\s*\d{1,2}(?::\d{2})?\s*(?:AM|PM)(?:\s*[A-Z]+)?)/i)
+
+  return [
+    {icon: 'calendar', label: dateMatch?.[1]?.trim() || 'Workshop date'},
+    {icon: 'language', label: 'English, Hindi'},
+    {icon: 'clock', label: timeMatch?.[1]?.trim() || 'Live session'},
+    {icon: 'video', label: 'Live on Zoom'},
+  ]
+}
+
+function findCountdownCta(sections = []) {
+  return sections.find((section) => section.sectionFormat === 'cta' && Number(section.cta?.countdownMinutes) > 0)?.cta || null
+}
+
+function textLines(text = '') {
+  return String(text)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+function StickyRegistrationBar({action, settings, countdownCta, onOpenCta}) {
+  const countdownMinutes = settings?.countdownMinutes || countdownCta?.countdownMinutes
+  const durationSeconds = Math.max(0, Math.floor(Number(countdownMinutes) * 60))
+  const [remainingSeconds, setRemainingSeconds] = useState(durationSeconds)
+
+  useEffect(() => {
+    setRemainingSeconds(durationSeconds)
+    if (!durationSeconds) return undefined
+
+    const intervalId = window.setInterval(() => {
+      setRemainingSeconds((current) => Math.max(0, current - 1))
+    }, 1000)
+
+    return () => window.clearInterval(intervalId)
+  }, [durationSeconds])
+
+  if (settings?.enabled === false || !action?.label) return null
+  const displayAction = {...action, label: settings?.buttonLabel || action.label}
+  const offerLabel = formatOfferButtonLabel(displayAction.label)
+  const handleClick = () => {
+    if (displayAction.action === 'link' && displayAction.url) {
+      window.location.href = displayAction.url
+      return
+    }
+    onOpenCta(displayAction)
+  }
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-0">
+      <div className="flex w-full max-w-md flex-col items-center justify-center rounded-[3rem] bg-[#555083] px-6 pb-7 pt-5 text-center text-white shadow-2xl shadow-blue-950/30 backdrop-blur-md sm:max-w-xl sm:px-8">
+        <button
+          type="button"
+          onClick={handleClick}
+          className="inline-flex max-w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#101b8d] to-[#00d6e6] px-4 py-3 text-[15px] font-bold leading-6 shadow-lg shadow-blue-950/20 sm:gap-3 sm:px-6 sm:text-xl sm:leading-7"
+        >
+          <Rocket className="h-5 w-5 shrink-0 text-white sm:h-6 sm:w-6" />
+          {offerLabel ? (
+            <span className="flex min-w-0 items-baseline justify-center gap-1.5 sm:gap-2">
+              <span className="shrink whitespace-nowrap">{offerLabel.main}</span>
+              <span className="shrink-0 whitespace-nowrap line-through decoration-white decoration-2">{offerLabel.oldPrice}</span>
+            </span>
+          ) : (
+            <span className="min-w-0 whitespace-nowrap">{displayAction.label}</span>
+          )}
+        </button>
+        {durationSeconds > 0 && (
+          <span className="mt-1 inline-flex items-center gap-1.5 text-xl font-bold leading-7 text-white">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-[#555083]">
+              <Clock3 className="h-4 w-4" strokeWidth={2.8} />
+            </span>
+            {formatCountdown(remainingSeconds)} {settings?.countdownLabel || 'left'}
+          </span>
+        )}
+      </div>
+    </div>
   )
 }
 
 function sectionHasPrimaryMedia(section) {
   if (!section) return false
   if (section.media?.imageUrl || section.media?.videoUrl || section.media?.videoFileUrl) return true
-  if (section.cta?.media?.imageUrl || section.cta?.media?.videoUrl || section.cta?.media?.videoFileUrl) return true
   return false
 }
 
-function AdSection({section, index, previousSectionHasMedia = false, onOpenCta}) {
+function AdSection({section, index, previousSectionHasMedia = false, previousSection = null, onOpenCta}) {
   const format = section.sectionFormat || 'content'
   const items = section.items || []
   const modules = section.modules || []
   const timeline = section.timeline || []
   const faqs = section.faqs || []
   const testimonials = section.testimonials || []
+  const useCenteredFirstSection = index === 0 && section.media && items.length > 0 && ['content', 'rich-text', 'list'].includes(format)
+  const keyName = section._key || ''
+  const isFrameworkSection = keyName === 'magna-framework'
+  const isMagnaDifferentSection = keyName === 'what-makes-magna-different'
+  const isMustAttendSection = keyName === 'must-attend-entrepreneurs'
+  const isCloseWorkSection = keyName === 'work-closely-with-founders'
+  const isGuaranteeSection = keyName === 'our-guarantee'
+  const isFaqSection = keyName === 'frequently-asked-questions'
+  const isFitCheckSection = keyName === 'who-is-this-for'
+  const isTrustedBrandsSection = keyName === 'trusted-by-leading-brands'
+  const isAchievementsSection = keyName === 'what-you-will-achieve'
+  const frameworkMedia = isFrameworkSection ? section.media || previousSection?.media : null
+
+  if (useCenteredFirstSection) {
+    return (
+      <SectionShell className="bg-[#fbfaf9] px-4 py-12">
+        <div className="mx-auto w-full rounded-none bg-gradient-to-r from-[#3533cd] to-[#00ffff] px-4 py-12 text-center shadow-xl sm:px-8">
+          <h2 className="mx-auto mb-9 max-w-md text-2xl font-bold leading-8 text-white sm:text-3xl sm:leading-9">{section.sectionTitle}</h2>
+          <div className="rounded-xl bg-white/95 p-5 shadow-xl sm:p-6">
+            <FirstSectionMediaBlock media={section.media} />
+            <MentorIntroDetails intro={section.intro} />
+            {(section.body || []).length > 0 && <div className="mx-auto mt-6 max-w-3xl"><RichText blocks={section.body || []} /></div>}
+            <div className="mx-auto mt-5 h-1 max-w-md bg-gradient-to-r from-[#3533cd] to-[#00ffff]" />
+            <div className="mx-auto mt-6 max-w-5xl text-left">
+              <InlineItemList items={items} bulletStyle />
+            </div>
+          </div>
+        </div>
+      </SectionShell>
+    )
+  }
 
   if (format === 'cta') {
     const cta = section.cta || {}
@@ -404,22 +730,47 @@ function AdSection({section, index, previousSectionHasMedia = false, onOpenCta})
     }
 
     return (
-      <SectionShell className="bg-[#f7fbff]">
-        <div className="grid items-center gap-8 overflow-hidden rounded-lg bg-[#000047] p-5 text-white shadow-xl ring-1 ring-cyan-200/20 sm:p-7 lg:grid-cols-[1fr_0.8fr] lg:p-10">
-          <div className="min-w-0">
-            <h2 className="mt-3 text-2xl font-black leading-tight sm:text-4xl">{cta.headline || section.sectionTitle}</h2>
-            {(cta.description || section.intro) && <p className="mt-4 text-base leading-7 text-cyan-50 sm:mt-5 sm:text-lg sm:leading-8">{cta.description || section.intro}</p>}
-            <div className="mt-8">
-              <CtaButton action={ctaAction} onOpenCta={onOpenCta} />
-            </div>
+      <SectionShell className="bg-[#fbfaf9] px-4 py-12">
+        <div className="mx-auto max-w-md text-center">
+          <CtaButton action={ctaAction} onOpenCta={onOpenCta} />
+          <div className="mt-9 rounded-xl bg-red-50/80 px-6 py-10 text-center shadow-xl shadow-gray-300/60 ring-1 ring-red-100 sm:px-8">
+            <CtaAlarmImage media={section.media} />
+            <CtaCountdown minutes={cta.countdownMinutes} label={cta.countdownLabel} />
+            <h2 className="mx-auto mt-8 max-w-sm text-xl font-bold leading-8 text-red-700 sm:text-2xl sm:leading-9">{cta.headline || section.sectionTitle}</h2>
           </div>
-          <MediaBlock media={cta.media || section.media} />
         </div>
       </SectionShell>
     )
   }
 
   if (format === 'content' || format === 'rich-text') {
+    if (isGuaranteeSection) {
+      const guaranteeLines = textLines(section.intro)
+      const promiseTitle = guaranteeLines[0]
+      const promiseBody = guaranteeLines.slice(1).join(' ')
+
+      return (
+        <SectionShell className="bg-white px-4 py-12">
+          <div className="mx-auto max-w-sm rounded-2xl bg-gradient-to-br from-[#3533cd] to-[#00e0e6] px-6 py-8 text-center text-white shadow-2xl shadow-cyan-100/80 sm:max-w-3xl sm:px-10">
+            <h2 className="text-2xl font-extrabold leading-8 text-white sm:text-3xl sm:leading-9">{section.sectionTitle}</h2>
+            {section.media?.imageUrl && (
+              <img
+                src={section.media.imageUrl}
+                alt={section.media.imageAlt || section.media.caption || section.sectionTitle}
+                className="mx-auto mt-8 h-32 w-32 object-contain sm:h-36 sm:w-36"
+              />
+            )}
+            {promiseTitle && <h3 className="mt-8 text-2xl font-extrabold leading-8 text-white sm:text-3xl sm:leading-9">{promiseTitle}</h3>}
+            {promiseBody && (
+              <p className="mx-auto mt-5 max-w-xs text-xl font-normal leading-8 text-white sm:max-w-md sm:text-2xl sm:leading-9">
+                {promiseBody}
+              </p>
+            )}
+          </div>
+        </SectionShell>
+      )
+    }
+
     const imageOnLeft = index % 2 === 1
     const contentBetweenContinuousImages = previousSectionHasMedia && sectionHasPrimaryMedia(section)
     const mediaOrderClass = contentBetweenContinuousImages
@@ -434,7 +785,8 @@ function AdSection({section, index, previousSectionHasMedia = false, onOpenCta})
         : 'order-1'
 
     return (
-      <SectionShell className={index % 2 === 0 ? 'bg-white' : 'bg-[#f7fbff]'}>
+      <SectionShell className={isGuaranteeSection ? 'bg-white px-4 py-12' : 'bg-[#fbfaf9] px-4 py-12'}>
+        <div className={`${isGuaranteeSection ? 'rounded-2xl border border-[#3533cd]/20 bg-gradient-to-br from-[#3533cd] to-[#00ffff] p-5 shadow-xl' : ''}`}>
         <div className={`grid items-center gap-10 ${section.media ? 'lg:grid-cols-2' : ''}`}>
           {section.media && (
             <div className={mediaOrderClass}>
@@ -442,8 +794,8 @@ function AdSection({section, index, previousSectionHasMedia = false, onOpenCta})
             </div>
           )}
           <div className={`${contentOrderClass} min-w-0`}>
-            <h2 className="mt-3 text-2xl font-black leading-tight text-[#000047] sm:text-4xl">{section.sectionTitle}</h2>
-            {section.intro && <p className="mt-4 text-base leading-7 text-gray-600 sm:mt-5 sm:text-lg sm:leading-8">{section.intro}</p>}
+            <h2 className={`text-2xl font-bold leading-8 ${isGuaranteeSection ? 'text-center text-white' : 'text-[#071a78]'} sm:text-3xl sm:leading-9`}>{section.sectionTitle}</h2>
+            {section.intro && <p className={`mt-4 whitespace-pre-line text-base leading-6 sm:text-lg sm:leading-7 ${isGuaranteeSection ? 'text-center text-white' : 'text-gray-700'}`}>{section.intro}</p>}
             <div className="mt-6"><RichText blocks={section.body || []} /></div>
             {items.length > 0 && (
               <div className="mt-7">
@@ -452,13 +804,14 @@ function AdSection({section, index, previousSectionHasMedia = false, onOpenCta})
             )}
           </div>
         </div>
+        </div>
       </SectionShell>
     )
   }
 
   if (format === 'list') {
     return (
-      <SectionShell className={index % 2 === 0 ? 'bg-[#f7fbff]' : 'bg-white'}>
+      <SectionShell className="bg-[#fbfaf9] px-4 py-12">
         <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr]">
           <div>
             <SectionHeader section={section} />
@@ -473,19 +826,208 @@ function AdSection({section, index, previousSectionHasMedia = false, onOpenCta})
   }
 
   if (['cards', 'outcomes', 'stats', 'media-gallery'].includes(format)) {
-    const isDark = format === 'cards'
+    if (isAchievementsSection) {
+      return (
+        <SectionShell className="bg-white px-4 pb-36 pt-14">
+          <div className="mx-auto max-w-sm text-center sm:max-w-3xl">
+            <h2 className="mx-auto max-w-xs text-4xl font-extrabold uppercase leading-[1.08] text-gray-950 sm:max-w-2xl sm:text-5xl">
+              {section.sectionTitle}
+            </h2>
+            <div className="mx-auto mt-6 h-1 w-24 rounded-full bg-white shadow-sm" />
+            <div className="mt-9 space-y-6 text-left">
+              {items.map((item, itemIndex) => (
+                <article key={item._key || `${item.title}-${itemIndex}`} className="rounded-xl bg-[#ded8ff] px-6 py-6 shadow-sm sm:px-8">
+                  <div className="flex min-w-0 items-start gap-4">
+                    <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#3533cd] text-lg font-extrabold leading-none text-white">
+                      {item.iconLabel || itemIndex + 1}
+                    </span>
+                    <div className="min-w-0">
+                      {item.title && <h3 className="text-2xl font-extrabold leading-7 text-gray-950">{item.title}</h3>}
+                      {item.description && <p className="mt-4 text-lg leading-7 text-[#273044]">{item.description}</p>}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </SectionShell>
+      )
+    }
+
+    if (isFrameworkSection) {
+      return (
+        <SectionShell className="bg-white px-4 py-0">
+          <div className="mx-auto max-w-sm overflow-hidden bg-white sm:max-w-3xl">
+            {frameworkMedia?.imageUrl && (
+              <div className="bg-white px-5 pt-0 text-center">
+                <img
+                  src={frameworkMedia.imageUrl}
+                  alt={frameworkMedia.imageAlt || frameworkMedia.caption || section.sectionTitle}
+                  className="mx-auto h-auto max-h-[19rem] w-full object-contain sm:max-h-[26rem]"
+                />
+              </div>
+            )}
+          </div>
+          <div className="-mx-4 bg-[#000047] px-4 py-14 text-center text-white sm:py-16">
+            <div className="mx-auto max-w-sm sm:max-w-3xl">
+              <h2 className="mx-auto max-w-xs text-4xl font-extrabold leading-[1.12] text-white sm:max-w-md sm:text-5xl">
+                {section.sectionTitle}
+              </h2>
+              {section.intro && (
+                <p className="mx-auto mt-6 max-w-xs text-2xl font-bold leading-8 text-white sm:max-w-md sm:text-3xl sm:leading-10">
+                  {section.intro}
+                </p>
+              )}
+              <div className="mt-9 space-y-6 text-left">
+                {items.map((item, itemIndex) => (
+                  <article key={item._key || `${item.title}-${itemIndex}`} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-6 text-white shadow-lg shadow-blue-950/20 ring-1 ring-white/5 sm:px-6">
+                    <div className="flex min-w-0 items-center gap-5">
+                      <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-cyan-300 bg-white text-5xl font-extrabold leading-none text-[#5630e8] shadow-[0_0_28px_rgba(0,217,232,0.55)]">
+                        {(item.iconLabel || item.title || String(itemIndex + 1)).slice(0, 1)}
+                      </span>
+                      <div className="min-w-0">
+                        {item.title && <h3 className="text-xl font-extrabold uppercase leading-7 text-white/90 sm:text-2xl sm:leading-8">{item.title}</h3>}
+                        {item.description && <p className="mt-3 text-base font-bold leading-6 text-white/90 sm:text-lg sm:leading-7">{item.description}</p>}
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+        </SectionShell>
+      )
+    }
+
+    if (isMagnaDifferentSection) {
+      return (
+        <SectionShell dark className="bg-[#000047] px-4 py-16">
+          <div className="mx-auto max-w-sm sm:max-w-3xl">
+            <h2 className="mx-auto mb-12 max-w-xs text-center text-4xl font-extrabold uppercase leading-[1.14] text-white sm:max-w-xl sm:text-5xl">
+              {section.sectionTitle}
+            </h2>
+            <div className="space-y-6">
+              {items.map((item, itemIndex) => (
+                <article key={item._key || `${item.title}-${itemIndex}`} className="rounded-2xl border border-cyan-200/30 bg-gradient-to-r from-[#2f5bdc] to-[#10d7df] px-6 py-7 text-white shadow-xl shadow-blue-950/20">
+                  <div className="flex items-start gap-4">
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20">
+                      <MagnaDifferentIcon index={itemIndex} />
+                    </span>
+                    <div className="min-w-0">
+                      {item.title && <h3 className="text-xl font-bold leading-7 text-white">{item.title}</h3>}
+                      {item.description && <p className="mt-3 whitespace-pre-line text-lg leading-7 text-white">{item.description}</p>}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </SectionShell>
+      )
+    }
+
+    if (isMustAttendSection) {
+      return (
+        <SectionShell dark className="bg-[#000047] px-4 pb-36 pt-16">
+          <div className="mx-auto max-w-sm sm:max-w-3xl">
+            <h2 className="mx-auto max-w-sm text-center text-4xl font-extrabold leading-[1.12] text-white sm:max-w-2xl sm:text-5xl">
+              {section.sectionTitle}
+            </h2>
+            <div className="mt-12 space-y-7">
+              {items.map((item, itemIndex) => (
+                <article key={item._key || `${item.title}-${itemIndex}`} className="rounded-2xl bg-[#f5fcff] px-6 py-7 text-[#07142d] shadow-xl shadow-blue-950/20 sm:px-8">
+                  <div className="flex min-w-0 items-start gap-5">
+                    <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#3478f6] text-white">
+                      <Sparkles className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      {item.title && <h3 className="text-2xl font-extrabold leading-8 text-gray-950">{item.title}</h3>}
+                      {item.description && <p className="mt-3 text-lg leading-7 text-[#273044]">{item.description}</p>}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </SectionShell>
+      )
+    }
+
+    if (isCloseWorkSection) {
+      return (
+        <SectionShell dark className="bg-[#000047] px-4 pb-36 pt-4">
+          <div className="mx-auto max-w-sm rounded-3xl border border-white/10 border-t-cyan-300 bg-white/15 px-6 py-10 text-center text-white shadow-2xl shadow-blue-950/30 sm:max-w-3xl sm:px-10">
+            <h2 className="mx-auto max-w-sm text-3xl font-extrabold leading-[1.16] text-white sm:text-4xl">
+              {section.sectionTitle}
+            </h2>
+            {section.intro && (
+              <p className="mx-auto mt-6 max-w-xs text-xl font-bold leading-8 text-white/80 sm:max-w-md sm:text-2xl sm:leading-9">
+                {section.intro}
+              </p>
+            )}
+            <div className="mt-12 space-y-9">
+              {items.map((item, itemIndex) => (
+                <article key={item._key || `${item.title}-${itemIndex}`} className="mx-auto max-w-xs text-center">
+                  <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3533cd] to-[#00d9e8] text-white shadow-lg shadow-blue-950/20">
+                    {itemIndex === 0 ? <Brain className="h-7 w-7" /> : itemIndex === 1 ? <Settings className="h-7 w-7" /> : <CheckCircle2 className="h-7 w-7" />}
+                  </span>
+                  {item.title && <h3 className="mt-5 text-xl font-extrabold leading-7 text-white">{item.title}</h3>}
+                  {item.description && <p className="mt-3 text-base font-bold leading-7 text-white/75">{item.description}</p>}
+                </article>
+              ))}
+            </div>
+          </div>
+        </SectionShell>
+      )
+    }
+
+    if (isTrustedBrandsSection) {
+      return (
+        <SectionShell className="bg-white px-4 py-10">
+          <div className="mx-auto max-w-sm rounded-2xl border-2 border-[#1f2937] bg-white px-5 py-9 text-center shadow-sm sm:max-w-3xl sm:px-8">
+            <h2 className="mx-auto max-w-xs text-2xl font-extrabold leading-8 text-[#07142d] sm:max-w-md sm:text-3xl sm:leading-10">
+              {section.sectionTitle}
+            </h2>
+            <div className="mx-auto mt-5 h-1 w-16 rounded-full bg-gradient-to-r from-[#3533cd] to-[#00d9e8]" />
+            {section.intro && (
+              <p className="mx-auto mt-7 max-w-xs text-base leading-6 text-gray-700 sm:max-w-md">
+                {section.intro}
+              </p>
+            )}
+            <div className="mx-auto mt-14 grid max-w-xs grid-cols-3 items-center gap-x-4 gap-y-10 sm:max-w-lg sm:gap-x-8 sm:gap-y-12">
+              {items.map((item, itemIndex) => (
+                <div key={item._key || `${item.title}-${itemIndex}`} className="flex h-10 min-w-0 items-center justify-center">
+                  {item.media?.imageUrl && (
+                    <img
+                      src={item.media.imageUrl}
+                      alt={item.media.imageAlt || item.media.caption || item.title || `Brand ${itemIndex + 1}`}
+                      className="max-h-10 w-full object-contain"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </SectionShell>
+      )
+    }
+
+    const isDark = format === 'cards' || isMustAttendSection || isCloseWorkSection
+    const isTallDarkBand = isFrameworkSection || isMustAttendSection
     return (
-      <SectionShell dark={isDark} className={isDark ? '' : 'bg-[#f7fbff]'}>
+      <SectionShell dark={isDark} className={isDark ? `bg-[#000047] ${isTallDarkBand ? 'py-20 md:py-24' : 'py-16 md:py-20'}` : 'bg-[#fbfaf9] px-4 py-12'}>
           <SectionHeader section={section} light={isDark} />
-          <div className={`grid gap-6 ${format === 'media-gallery' ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
+          <div className={`grid gap-6 ${format === 'media-gallery' ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-3' : isFrameworkSection ? 'space-y-7' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
             {items.map((item, itemIndex) => (
-              <article key={item._key || `${item.title}-${itemIndex}`} className={`${isDark ? 'border-white/15 bg-white/10 text-white' : 'border-gray-100 bg-white text-gray-950'} min-w-0 rounded-lg border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg sm:p-6`}>
+              <article key={item._key || `${item.title}-${itemIndex}`} className={`${isDark ? 'border-white/15 bg-white/10 text-white' : 'border-[#3533cd]/20 bg-white text-gray-950'} ${isFrameworkSection ? 'flex items-center gap-8 rounded-xl px-5 py-5 md:px-6 md:py-6' : 'rounded-xl p-4'} min-w-0 border shadow-lg shadow-blue-950/5 transition hover:-translate-y-0.5 hover:shadow-xl`}>
                 <MediaBlock media={item.media} className="mb-5" />
-                <div className="mb-4 flex items-center justify-between gap-4">
+                <div className={`${isFrameworkSection ? 'mb-0' : 'mb-4'} flex items-center justify-between gap-4`}>
                   {format === 'stats' && item.metric ? <p className="text-3xl font-black text-primary-600 sm:text-4xl">{item.metric}</p> : <ItemMark label={item.iconLabel} index={itemIndex} light={isDark} />}
                 </div>
-                {item.title && <h3 className="text-xl font-black leading-tight">{item.title}</h3>}
-                {item.description && <p className={`mt-3 text-sm leading-6 sm:text-base sm:leading-7 ${isDark ? 'text-cyan-50/85' : 'text-gray-600'}`}>{item.description}</p>}
+                <div className="min-w-0">
+                {item.title && <h3 className="text-xl font-bold leading-7">{item.title}</h3>}
+                {item.description && <p className={`mt-3 whitespace-pre-line text-base leading-6 ${isDark ? 'text-cyan-50/85' : 'text-gray-600'}`}>{item.description}</p>}
+                </div>
               </article>
             ))}
           </div>
@@ -494,24 +1036,193 @@ function AdSection({section, index, previousSectionHasMedia = false, onOpenCta})
   }
 
   if (format === 'differentiators') {
+    const isTransformationSection = keyName === 'consumer-brand-transformation'
+    const isBeforeAfterSection = keyName === 'before-after-magna'
+
+    if (isFitCheckSection) {
+      return (
+        <SectionShell className="bg-white px-4 py-12">
+          <div className="mx-auto max-w-sm text-center sm:max-w-4xl">
+            <h2 className="text-4xl font-extrabold leading-tight text-gray-950 sm:text-5xl">{section.sectionTitle}</h2>
+            {section.intro && (
+              <p className="mx-auto mt-5 max-w-sm whitespace-pre-line text-2xl font-bold leading-8 text-gray-800 sm:max-w-2xl">
+                {section.intro}
+              </p>
+            )}
+            <div className="mt-14 grid gap-8 lg:grid-cols-2">
+              {items.map((item, itemIndex) => {
+                const lines = textLines(item.description)
+                const introLine = lines[0]
+                const bullets = lines.slice(1)
+
+                return (
+                  <article key={item._key || `${item.title}-${itemIndex}`} className="overflow-hidden rounded-2xl bg-white text-gray-950 shadow-[0_0_34px_rgba(0,207,224,0.22)] ring-1 ring-cyan-100">
+                    <div className="px-6 pb-10 pt-6">
+                      <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-[#3533cd] to-[#00d9e8] text-white">
+                        {itemIndex === 0 ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
+                      </span>
+                      {item.title && <h3 className="mt-5 text-base font-bold uppercase leading-6 text-[#2716d8]">{item.title}</h3>}
+                      {introLine && <p className="mx-auto mt-2 max-w-[13rem] text-lg font-extrabold leading-7 text-[#000047]">{introLine}</p>}
+                    </div>
+                    <div className="border-t border-gray-100 px-6 py-7 text-left">
+                      <div className="space-y-5">
+                        {bullets.map((line) => (
+                          <div key={line} className="flex min-w-0 items-start gap-4">
+                            <span className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${itemIndex === 0 ? 'bg-indigo-50 text-[#3533cd]' : 'bg-red-50 text-red-600'}`}>
+                              {itemIndex === 0 ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                            </span>
+                            <p className="min-w-0 text-xl leading-8 text-gray-950">{line}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          </div>
+        </SectionShell>
+      )
+    }
+
+    if (isTransformationSection) {
+      const problemLines = textLines(items[0]?.description)
+      const outcomeLines = textLines(items[1]?.description)
+      const outcomeBullets = outcomeLines.slice(0, 3)
+      const outcomeNotes = outcomeLines.slice(3)
+
+      return (
+        <SectionShell className="bg-white px-4 pb-36 pt-10">
+          <div className="mx-auto max-w-sm rounded-lg bg-gradient-to-b from-[#3533cd] via-[#256fdf] to-[#00cfe0] px-4 pb-28 pt-5 text-white shadow-md sm:max-w-3xl sm:px-6 lg:max-w-4xl">
+            <h2 className="mx-auto mb-8 max-w-md text-center text-xl font-bold leading-8 text-white sm:text-2xl">
+              {section.sectionTitle}
+            </h2>
+
+            {items[0] && (
+              <article className="rounded-lg bg-red-50/95 p-4 text-gray-950 shadow-sm">
+                {items[0].title && <h3 className="mb-3 text-base font-bold leading-6 text-gray-900">{items[0].title}</h3>}
+                <div className="space-y-3">
+                  {problemLines.map((line) => (
+                    <div key={line} className="flex min-w-0 items-start gap-3">
+                      <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+                        <X className="h-3.5 w-3.5" />
+                      </span>
+                      <p className="min-w-0 text-base leading-6 text-gray-950">{line}</p>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            )}
+
+            {items[1] && (
+              <div className="mt-9">
+                {items[1].title && (
+                  <h3 className="mx-auto mb-8 max-w-sm text-center text-xl font-bold leading-8 text-white">
+                    {items[1].title}
+                  </h3>
+                )}
+                <article className="rounded-lg bg-emerald-50/95 p-4 text-gray-950 shadow-sm">
+                  <div className="space-y-3">
+                    {outcomeBullets.map((line) => (
+                      <div key={line} className="flex min-w-0 items-start gap-3">
+                        <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                          <Check className="h-3.5 w-3.5" />
+                        </span>
+                        <p className="min-w-0 text-base leading-6 text-gray-950">{line}</p>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+                {outcomeNotes.length > 0 && (
+                  <div className="mx-auto mt-7 max-w-sm space-y-4 text-center text-lg font-bold leading-7 text-white">
+                    {outcomeNotes.map((line) => <p key={line}>{line}</p>)}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </SectionShell>
+      )
+    }
+
+    if (isBeforeAfterSection) {
+      return (
+        <SectionShell className="bg-white px-4 py-10">
+          <div className="mx-auto max-w-sm space-y-9 sm:max-w-3xl">
+            {isBeforeAfterSection && (
+              <h2 className="mx-auto max-w-sm text-center text-4xl font-extrabold uppercase leading-[1.08] text-gray-950 sm:max-w-2xl sm:text-5xl">
+                {section.sectionTitle}
+              </h2>
+            )}
+            {items.slice(0, 2).map((item, itemIndex) => {
+              const isBefore = itemIndex === 0
+              const lines = textLines(item.description)
+              const headline = lines[0]
+              const bullets = lines.slice(1)
+
+              return (
+                <article
+                  key={item._key || `${item.title}-${itemIndex}`}
+                  className={`overflow-hidden rounded-2xl border bg-white shadow-lg shadow-gray-300/60 ${
+                    isBefore
+                      ? 'border-red-100 border-t-[6px] border-t-red-400 bg-red-50/45'
+                      : 'border-emerald-100 border-t-[6px] border-t-emerald-400 bg-cyan-50/35'
+                  }`}
+                >
+                  <div className="px-6 pb-7 pt-6 text-center">
+                    <div className="inline-flex items-center justify-center gap-3">
+                      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white ${isBefore ? 'bg-red-600' : 'bg-gradient-to-br from-emerald-500 to-cyan-400'}`}>
+                        {isBefore ? <span className="text-xl font-bold leading-none">!</span> : <Check className="h-5 w-5" />}
+                      </span>
+                      {item.title && <h3 className={`text-lg font-bold leading-7 ${isBefore ? 'text-red-600' : 'text-emerald-600'}`}>{item.title}</h3>}
+                    </div>
+                    {headline && <p className="mx-auto mt-7 max-w-xs text-center text-xl font-extrabold leading-7 text-[#000047] sm:text-2xl sm:leading-8">{headline}</p>}
+                  </div>
+                  {bullets.length > 0 && (
+                    <div className={`border-t px-7 py-7 text-left ${isBefore ? 'border-red-100' : 'border-cyan-100'}`}>
+                      <div className="space-y-6">
+                        {bullets.map((line) => (
+                          <div key={line} className="flex min-w-0 items-start gap-4">
+                            <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${isBefore ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                              {isBefore ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                            </span>
+                            <p className="min-w-0 text-lg leading-7 text-[#07142d] sm:text-xl sm:leading-8">{line}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </article>
+              )
+            })}
+          </div>
+        </SectionShell>
+      )
+    }
+
     return (
-      <SectionShell className="bg-[#f7fbff]">
-          <SectionHeader section={section} />
-          <div className="grid gap-6 lg:grid-cols-2">
+      <SectionShell className="bg-[#fbfaf9] px-4 py-12">
+          <div className="grid items-start gap-6 lg:grid-cols-[70%_30%] lg:gap-8">
+            <div className="rounded-lg bg-gradient-to-br from-[#3533cd] to-[#00ffff] p-4 text-white shadow-md lg:-ml-3">
+              <SectionHeader section={section} light />
+              <div className="grid gap-5">
             {items.map((item, itemIndex) => (
-              <article key={item._key || `${item.title}-${itemIndex}`} className="min-w-0 rounded-lg bg-white p-5 shadow-sm ring-1 ring-cyan-100 sm:p-6">
+              <article key={item._key || `${item.title}-${itemIndex}`} className={`${itemIndex === 0 ? 'bg-red-50/95' : 'bg-emerald-50/95'} min-w-0 rounded-xl p-4 text-gray-950 shadow-sm ring-1 ring-white/40`}>
                 <div className="flex min-w-0 items-start gap-3 sm:gap-4">
-                  <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${itemIndex === 0 ? 'bg-primary-50 text-primary-700' : 'bg-red-50 text-red-600'}`}>
-                    {itemIndex === 0 ? <CheckCircle2 className="h-6 w-6" /> : <X className="h-6 w-6" />}
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${itemIndex === 0 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                    {itemIndex === 0 ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
                   </span>
                   <div className="min-w-0">
-                    {item.title && <h3 className="text-xl font-black text-gray-950">{item.title}</h3>}
-                    {item.description && <p className="mt-3 whitespace-pre-line text-sm leading-6 text-gray-600 sm:text-base sm:leading-7">{item.description}</p>}
+                    {item.title && <h3 className="text-xl font-bold leading-7 text-gray-950">{item.title}</h3>}
+                    {item.description && <p className="mt-3 whitespace-pre-line text-base leading-6 text-gray-600">{item.description}</p>}
                     <MediaBlock media={item.media} className="mt-5" />
                   </div>
                 </div>
               </article>
             ))}
+              </div>
+            </div>
+            <MediaBlock media={section.media} className="hidden lg:block" />
           </div>
       </SectionShell>
     )
@@ -519,24 +1230,54 @@ function AdSection({section, index, previousSectionHasMedia = false, onOpenCta})
 
   if (format === 'accordion' || format === 'faqs') {
     const rows = format === 'faqs' ? faqs.map((faq) => ({title: faq.question, description: faq.answer, media: faq.media})) : items
+
+    if (isFaqSection) {
+      return (
+        <SectionShell className="bg-[#fbfaf9] px-4 py-12">
+          <div className="mx-auto max-w-sm overflow-hidden rounded-none bg-gradient-to-r from-[#3533cd] to-[#00d9e8] px-5 py-9 text-center sm:max-w-3xl sm:px-8 sm:py-12">
+            <h2 className="mx-auto max-w-xs text-3xl font-extrabold leading-[1.12] text-white sm:max-w-lg sm:text-5xl sm:leading-tight">
+              {section.sectionTitle}
+            </h2>
+            {section.intro && (
+              <p className="mx-auto mt-6 max-w-sm whitespace-pre-line text-xl font-normal leading-7 text-white sm:max-w-xl sm:text-2xl sm:leading-9">
+                {section.intro}
+              </p>
+            )}
+            <div className="mt-8 space-y-4 text-left">
+              {rows.map((row, rowIndex) => (
+                <details key={`${row.title}-${rowIndex}`} className="group min-w-0 rounded-xl bg-white p-4 shadow-lg shadow-blue-950/10 ring-1 ring-white/40">
+                  <summary className="flex min-w-0 cursor-pointer list-none items-center justify-between gap-4 text-base font-bold leading-6 text-gray-950 sm:text-lg">
+                    <span className="min-w-0">{row.title}</span>
+                    <ChevronDown className="h-5 w-5 shrink-0 text-primary-600 transition group-open:rotate-180" />
+                  </summary>
+                  {row.description && <p className="mt-4 border-t border-gray-100 pt-4 text-base leading-6 text-gray-600">{row.description}</p>}
+                  <MediaBlock media={row.media} className="mt-5" />
+                </details>
+              ))}
+            </div>
+          </div>
+        </SectionShell>
+      )
+    }
+
     return (
-      <SectionShell>
+      <SectionShell className="bg-[#fbfaf9] px-4 py-12">
         <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
           <div>
             <SectionHeader section={section} />
             <MediaBlock media={section.media} />
-          </div>
           <div className="space-y-4">
             {rows.map((row, rowIndex) => (
-              <details key={`${row.title}-${rowIndex}`} className="group min-w-0 rounded-lg bg-[#f7fbff] p-5 shadow-sm ring-1 ring-cyan-100">
-                <summary className="flex min-w-0 cursor-pointer list-none items-center justify-between gap-4 text-base font-black leading-tight text-gray-950 sm:text-lg">
+              <details key={`${row.title}-${rowIndex}`} className="group min-w-0 rounded-xl bg-white p-4 shadow-lg shadow-blue-950/5 ring-1 ring-[#3533cd]/20">
+                <summary className="flex min-w-0 cursor-pointer list-none items-center justify-between gap-4 text-base font-bold leading-6 text-gray-950 sm:text-lg">
                   <span className="min-w-0">{row.title}</span>
                   <ChevronDown className="h-5 w-5 shrink-0 text-primary-600 transition group-open:rotate-180" />
                 </summary>
-                {row.description && <p className="mt-4 border-t border-gray-100 pt-4 text-sm leading-6 text-gray-600 sm:text-base sm:leading-7">{row.description}</p>}
+                {row.description && <p className="mt-4 border-t border-gray-100 pt-4 text-base leading-6 text-gray-600">{row.description}</p>}
                 <MediaBlock media={row.media} className="mt-5" />
               </details>
             ))}
+          </div>
           </div>
         </div>
       </SectionShell>
@@ -545,12 +1286,51 @@ function AdSection({section, index, previousSectionHasMedia = false, onOpenCta})
 
   if (format === 'curriculum' || format === 'timeline') {
     const rows = format === 'curriculum' ? modules : timeline
+
+    if (format === 'curriculum') {
+      return (
+        <SectionShell dark className="bg-[#000047] px-4 py-12">
+          <div className="mx-auto max-w-sm space-y-8 sm:max-w-3xl">
+            <div className="mx-auto mb-14 max-w-md text-center sm:max-w-2xl">
+              <h2 className="text-4xl font-extrabold leading-tight text-white sm:text-5xl sm:leading-tight">
+                {section.sectionTitle}
+              </h2>
+              {section.intro && (
+                <p className="mx-auto mt-7 max-w-md whitespace-pre-line text-xl font-normal leading-8 text-white/90 sm:text-2xl sm:leading-9">
+                  {section.intro}
+                </p>
+              )}
+            </div>
+            {rows.map((row, rowIndex) => {
+              const titleParts = String(row.title || '').split(':')
+              const dayLabel = titleParts[0]?.trim() || `Day ${rowIndex + 1}`
+              const dayTitle = titleParts.slice(1).join(':').trim() || row.title
+
+              return (
+                <article key={row._key || `${row.title}-${rowIndex}`} className="rounded-3xl border border-cyan-300/30 border-t-cyan-300 bg-gradient-to-br from-[#3533cd] to-[#1f74e4] px-6 py-8 text-white shadow-2xl shadow-blue-950/30 sm:px-8">
+                  <div className="mx-auto flex h-16 w-20 items-center justify-center rounded-2xl bg-white text-center text-lg font-extrabold text-[#3533cd] shadow-lg">
+                    {dayLabel}
+                  </div>
+                  <h2 className="mx-auto mt-7 max-w-xs text-center text-2xl font-extrabold uppercase leading-8 text-white">
+                    {dayTitle}
+                  </h2>
+                  <div className="mt-7">
+                    <CurriculumSessionCard title={row.title} lessons={row.lessons || []} />
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        </SectionShell>
+      )
+    }
+
     return (
-      <SectionShell dark>
+      <SectionShell dark className="bg-[#000047] px-4 py-16 md:py-20">
           <SectionHeader section={section} light />
           <div className="space-y-5">
             {rows.map((row, rowIndex) => (
-              <article key={row._key || `${row.title}-${rowIndex}`} className="min-w-0 rounded-lg border border-white/15 bg-white/10 p-5 shadow-lg sm:p-6">
+              <article key={row._key || `${row.title}-${rowIndex}`} className="min-w-0 rounded-xl border border-white/15 bg-white/10 p-4 shadow-lg sm:p-6">
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200 sm:text-sm sm:tracking-[0.18em]">{row.timeLabel || `Step ${rowIndex + 1}`}</p>
                 <h3 className="mt-2 text-xl font-black leading-tight sm:text-2xl">{row.title}</h3>
                 {row.description && <p className="mt-3 text-sm leading-6 text-cyan-50/85 sm:text-base sm:leading-7">{row.description}</p>}
@@ -569,7 +1349,7 @@ function AdSection({section, index, previousSectionHasMedia = false, onOpenCta})
 
   if (format === 'testimonials') {
     return (
-      <SectionShell className="bg-[#f7fbff]">
+      <SectionShell className="bg-[#fbfaf9]">
           <SectionHeader section={section} />
           <div className="grid gap-6 md:grid-cols-2">
             {testimonials.map((testimonial, testimonialIndex) => (
@@ -593,8 +1373,9 @@ function AdSection({section, index, previousSectionHasMedia = false, onOpenCta})
   return null
 }
 
-export default function AdPage() {
-  const {slug} = useParams()
+export default function AdPage({slugOverride, pathOverride}) {
+  const params = useParams()
+  const slug = slugOverride || params.slug
   const [page, setPage] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -641,6 +1422,11 @@ export default function AdPage() {
     showMessageField: true,
     ctaKey: 'primary',
   } : null, [page])
+  const countdownCta = useMemo(() => findCountdownCta(page?.sections || []), [page])
+  const workshopDetails = useMemo(() => {
+    if (page?.workshopDetails?.length) return page.workshopDetails
+    return workshopDetailsFromDescription(page?.shortDescription)
+  }, [page?.shortDescription, page?.workshopDetails])
 
   if (loading) return <div className="min-h-screen bg-[#f7f9ff] px-4 py-20"><MagnaLoader message="Loading page..." /></div>
 
@@ -657,34 +1443,50 @@ export default function AdPage() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white">
+    <div className="min-h-screen overflow-x-hidden bg-[#fbfaf9] pb-28">
       <SEO
         title={pageTitle}
         description={page.seoDescription || page.shortDescription}
-        path={`/ads/${page.slug || page._id}`}
+        path={pathOverride || `/ads/${page.slug || page._id}`}
         image={page.heroMedia?.imageUrl}
       />
-      <section className="relative overflow-hidden bg-[#000047] px-4 py-14 text-white sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-        <div className="absolute inset-x-0 bottom-0 h-1 bg-cyan" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1fr_0.9fr]">
-          <div className="min-w-0 text-center lg:text-left">
-            <img
-              src="/favicon.png"
-              alt="Magnafic icon"
-              className="mx-auto mb-5 h-24 w-24 object-contain sm:h-28 sm:w-28 lg:mx-0"
-            />
-            <h1 className="mx-auto mt-4 max-w-4xl text-3xl font-black leading-tight sm:text-5xl lg:mx-0 lg:text-6xl">{page.headline}</h1>
-            {page.shortDescription && <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-cyan-50 sm:text-lg sm:leading-8 lg:mx-0">{page.shortDescription}</p>}
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-4 lg:justify-start">
-              <CtaButton action={primaryAction} onOpenCta={setActiveCta} />
-              {page.secondaryButtonLabel && page.secondaryButtonUrl && (
-                <a href={page.secondaryButtonUrl} className="inline-flex w-full min-w-0 items-center justify-center rounded-full border border-white/30 px-5 py-3.5 text-center text-sm font-extrabold leading-snug text-white transition hover:bg-white/10 sm:w-auto sm:px-7 sm:py-4 sm:text-base">
-                  <span className="min-w-0 break-words">{page.secondaryButtonLabel}</span>
-                </a>
-              )}
+      <section className="relative overflow-hidden bg-[#fbfaf9] px-4 pb-8 pt-12 sm:pb-12 sm:pt-10">
+        <div className="relative mx-auto max-w-6xl">
+          <h1 className="mx-auto mb-7 max-w-6xl bg-gradient-to-r from-[#000080] via-[#1e3a8a] to-[#1e40af] bg-clip-text text-center text-[2rem] font-extrabold leading-[1.2] text-transparent md:text-4xl md:leading-tight lg:text-5xl">{page.headline}</h1>
+          {page.shortDescription && (
+            <div className="mx-auto max-w-6xl rounded-xl border border-[#3533cd]/20 bg-gradient-to-r from-[#3533cd] to-[#00ffff] px-5 py-4 text-center shadow-lg">
+              <p className="text-[1.45rem] font-bold leading-[1.28] text-white sm:text-2xl sm:leading-8">{page.shortDescription}</p>
+            </div>
+          )}
+          <div className="mt-7 grid items-start gap-8 lg:mt-1 lg:grid-cols-[0.48fr_0.52fr]">
+            <div className="order-2 min-w-0 pt-3 text-center lg:order-1 lg:pt-24">
+              <h2 className="mb-6 text-2xl font-bold leading-8 text-gray-900">Workshop Details</h2>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+                {workshopDetails.map((detail, detailIndex) => {
+                  const DetailIcon = detailIconMap[detail.icon] || Sparkles
+                  return (
+                    <div key={detail._key || `${detail.label}-${detailIndex}`} className="min-w-0 rounded-xl border border-[#3533cd]/20 bg-white p-4 text-center shadow-lg">
+                      <span className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-r from-[#342fd8] to-[#12e6e8] text-white">
+                        <DetailIcon className="h-4 w-4" />
+                      </span>
+                      <p className="mt-3 text-base font-normal leading-6 text-gray-700">{detail.label}</p>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="mt-12 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-4">
+                <CtaButton action={primaryAction} onOpenCta={setActiveCta} />
+                {page.secondaryButtonLabel && page.secondaryButtonUrl && (
+                  <a href={page.secondaryButtonUrl} className="inline-flex w-full min-w-0 items-center justify-center rounded-[1.15rem] border border-[#342fd8]/30 px-5 py-3.5 text-center text-sm font-extrabold leading-snug text-[#071a78] transition hover:bg-white sm:w-auto sm:px-7 sm:py-4 sm:text-base">
+                    <span className="min-w-0 break-words">{page.secondaryButtonLabel}</span>
+                  </a>
+                )}
+              </div>
+            </div>
+            <div className="order-1 lg:order-2">
+              <HeroMediaBlock media={page.heroMedia} />
             </div>
           </div>
-          <HeroMediaBlock media={page.heroMedia} />
         </div>
       </section>
 
@@ -695,10 +1497,12 @@ export default function AdPage() {
             section={section}
             index={index}
             previousSectionHasMedia={sectionHasPrimaryMedia(sections[index - 1])}
+            previousSection={sections[index - 1]}
             onOpenCta={setActiveCta}
           />
         ))}
       </main>
+      <StickyRegistrationBar action={primaryAction} settings={page.stickyRegistrationBar} countdownCta={countdownCta} onOpenCta={setActiveCta} />
       <AdCtaModal page={page} cta={activeCta} onClose={() => setActiveCta(null)} />
     </div>
   )

@@ -9,6 +9,7 @@ import HomeInsightsCarousel from '../components/HomeInsightsCarousel'
 import DescribeProblemCTA from '../components/DescribeProblemCTA'
 import ExpertiseSection from '../components/ExpertiseSection'
 import CompanyLogos from '../components/CompanyLogos'
+import FaqSection from '../components/FaqSection'
 
 
 
@@ -24,6 +25,7 @@ export default function Home() {
       <AboutMagna />
       <DescribeProblemCTA />
       <HomeInsightsCarousel />
+      <FaqSection />
     </div>
   )
 }

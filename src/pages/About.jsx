@@ -1,6 +1,7 @@
 import { Target, Users, Award, Globe, Heart, Zap } from 'lucide-react'
 import Founder from '../components/Founder'
 import CompanyLogos from '../components/CompanyLogos'
+import FaqSection from '../components/FaqSection'
 
 export default function About() {
   const values = [
@@ -150,6 +151,8 @@ export default function About() {
         <Founder />
 
         <CompanyLogos />
+
+        <FaqSection />
 
         <div className="rounded-2xl bg-[#000047] p-5 shadow-lg sm:p-8">
           <h2 className="mb-6 text-center text-4xl font-bold text-white sm:text-3xl">Why Choose Us?</h2>

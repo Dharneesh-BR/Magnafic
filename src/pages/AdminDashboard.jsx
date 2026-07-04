@@ -1067,11 +1067,11 @@ export default function AdminDashboard() {
     }
   }
 
-  const handleDeleteJunkReferral = async (brief) => {
-    if (!brief?.id || !isReferralRejectedOrJunk(brief)) return
+  const handleDeleteReferral = async (brief) => {
+    if (!brief?.id) return
 
     const referralLabel = brief.clientName || brief.company || 'this referral'
-    const confirmed = window.confirm(`Delete junk/rejected referral for ${referralLabel}? This cannot be undone.`)
+    const confirmed = window.confirm(`Delete referral for ${referralLabel}? This cannot be undone.`)
     if (!confirmed) return
 
     setDeletingReferralId(brief.id)
@@ -1080,9 +1080,9 @@ export default function AdminDashboard() {
 
     try {
       await deleteDoc(doc(db, 'clientBriefs', brief.id))
-      setDataMessage('Junk referral deleted.')
+      setDataMessage('Referral deleted.')
     } catch (deleteError) {
-      console.error('Admin junk referral delete failed:', deleteError)
+      console.error('Admin referral delete failed:', deleteError)
       setDataError(getAdminError(deleteError))
     } finally {
       setDeletingReferralId('')
@@ -2395,7 +2395,6 @@ export default function AdminDashboard() {
                         {referralRequests.map((brief) => {
                           const allocatedConsultants = getAllocatedConsultants(brief)
                           const allocatedConsultantIds = getAllocatedConsultantIds(brief)
-                          const isJunkReferral = isReferralRejectedOrJunk(brief)
                           const draftAllocationValue = allocationDrafts[brief.id]
                           const allocationValue = draftAllocationValue && !allocatedConsultantIds.has(draftAllocationValue)
                             ? draftAllocationValue
@@ -2486,21 +2485,19 @@ export default function AdminDashboard() {
                                     <Eye className="mr-2 h-4 w-4" />
                                     Brief
                                   </Link>
-                                  {isJunkReferral && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteJunkReferral(brief)}
-                                      disabled={deletingReferralId === brief.id}
-                                      className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                      {deletingReferralId === brief.id ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                      )}
-                                      Delete junk
-                                    </button>
-                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteReferral(brief)}
+                                    disabled={deletingReferralId === brief.id}
+                                    className="inline-flex max-w-full flex-wrap items-center justify-center rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                  >
+                                    {deletingReferralId === brief.id ? (
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                    )}
+                                    Delete
+                                  </button>
                                 </div>
                               </td>
                             </tr>

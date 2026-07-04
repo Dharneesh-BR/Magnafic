@@ -46,6 +46,7 @@ function AppContent() {
   const isDashboardPage = location.pathname.startsWith('/dashboard/')
   const isAddPage = location.pathname === '/add'
   const isAdPage = location.pathname.startsWith('/ads/')
+  const isMasterclassPage = location.pathname === '/magna-business-masterclass'
 
   if (location.pathname.startsWith('/admin')) {
     return (
@@ -60,7 +61,7 @@ function AppContent() {
   return (
     <div className="min-h-screen">
       <SEO />
-      {!isDashboardPage && !isAddPage && !isAdPage && <Header />}
+      {!isDashboardPage && !isAddPage && !isAdPage && !isMasterclassPage && <Header />}
       <main>
         <ErrorBoundary resetKey={location.pathname}>
           <Routes>
@@ -87,6 +88,8 @@ function AppContent() {
             <Route path="/programs/:slug" element={<Programs />} />
             <Route path="/products" element={<Products />} />
             <Route path="/products/:slug" element={<Products />} />
+            <Route path="/magna-business-masterclass" element={<AdPage slugOverride="magna-business-masterclass" pathOverride="/magna-business-masterclass" />} />
+            <Route path="/ads/business-growth-masterclass" element={<AdPage slugOverride="magna-business-masterclass" />} />
             <Route path="/ads/:slug" element={<AdPage />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/capabilities/:id" element={<CapabilityDetail />} />
@@ -94,7 +97,7 @@ function AppContent() {
           </Routes>
         </ErrorBoundary>
       </main>
-      {!isDashboardPage && !isAddPage && !isAdPage && <Footer />}
+      {!isDashboardPage && !isAddPage && !isAdPage && !isMasterclassPage && <Footer />}
     </div>
   )
 }

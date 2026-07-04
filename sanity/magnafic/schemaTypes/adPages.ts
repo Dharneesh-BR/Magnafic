@@ -168,6 +168,14 @@ const confirmationEmailObject = defineField({
   ],
 })
 
+const workshopDetailIcons = [
+  {title: 'Calendar', value: 'calendar'},
+  {title: 'Language', value: 'language'},
+  {title: 'Clock', value: 'clock'},
+  {title: 'Video / Zoom', value: 'video'},
+  {title: 'Custom / Info', value: 'info'},
+]
+
 export const adPagesSchema = defineType({
   name: 'adPages',
   title: 'Ad Pages',
@@ -297,6 +305,74 @@ export const adPagesSchema = defineType({
       type: 'object',
       description: 'Optional hero image or video.',
       fields: mediaFields,
+    }),
+    defineField({
+      name: 'workshopDetails',
+      title: 'Hero Workshop Detail Cards',
+      type: 'array',
+      description:
+        'Cards shown below the hero description in the live masterclass-style design, for example date, language, time, and Zoom details.',
+      of: [
+        defineArrayMember({
+          type: 'object',
+          fields: [
+            defineField({
+              name: 'icon',
+              title: 'Icon',
+              type: 'string',
+              options: {list: workshopDetailIcons, layout: 'dropdown'},
+              initialValue: 'info',
+            }),
+            defineField({
+              name: 'label',
+              title: 'Detail Text',
+              type: 'string',
+              validation: (Rule) => Rule.required().max(80),
+            }),
+          ],
+          preview: {
+            select: {title: 'label', subtitle: 'icon'},
+          },
+        }),
+      ],
+      validation: (Rule) => Rule.max(4),
+    }),
+    defineField({
+      name: 'stickyRegistrationBar',
+      title: 'Sticky Registration Bar',
+      type: 'object',
+      description: 'Bottom fixed registration bar used in the masterclass-style design.',
+      fields: [
+        defineField({
+          name: 'enabled',
+          title: 'Show Sticky Bar',
+          type: 'boolean',
+          initialValue: true,
+        }),
+        defineField({
+          name: 'buttonLabel',
+          title: 'Sticky Button Label',
+          type: 'string',
+          description: 'Optional. Leave blank to use the primary button label.',
+          hidden: ({parent}) => parent?.enabled === false,
+        }),
+        defineField({
+          name: 'countdownMinutes',
+          title: 'Sticky Countdown Duration (Minutes)',
+          type: 'number',
+          description:
+            'Optional. Leave blank to use the first CTA timer. The timer starts again whenever the page is refreshed.',
+          hidden: ({parent}) => parent?.enabled === false,
+          validation: (Rule) => Rule.min(1),
+        }),
+        defineField({
+          name: 'countdownLabel',
+          title: 'Sticky Countdown Label',
+          type: 'string',
+          description: 'Optional. Example: "left".',
+          hidden: ({parent}) => parent?.enabled === false || !parent?.countdownMinutes,
+        }),
+      ],
     }),
     defineField({
       name: 'theme',
@@ -476,10 +552,23 @@ export const adPagesSchema = defineType({
               fields: [
                 defineField({name: 'headline', title: 'CTA Headline', type: 'string'}),
                 defineField({name: 'description', title: 'CTA Description', type: 'text', rows: 3}),
+                defineField({
+                  name: 'countdownMinutes',
+                  title: 'Countdown Duration (Minutes)',
+                  type: 'number',
+                  description: 'Optional. If set, the CTA shows a countdown timer that starts from this duration every time the page is loaded or refreshed.',
+                  validation: (Rule) => Rule.min(1),
+                }),
+                defineField({
+                  name: 'countdownLabel',
+                  title: 'Countdown Label',
+                  type: 'string',
+                  description: 'Optional label shown above the timer, for example "Offer ends in".',
+                  hidden: ({parent}) => !parent?.countdownMinutes,
+                }),
                 defineField({name: 'buttonLabel', title: 'Button Label', type: 'string'}),
                 ...ctaActionFields,
                 confirmationEmailObject,
-                defineField({name: 'media', title: 'CTA Media', type: 'object', fields: mediaFields}),
               ],
             }),
           ],

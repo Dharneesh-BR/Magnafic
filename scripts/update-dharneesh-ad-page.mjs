@@ -5,6 +5,7 @@ import {createClient} from '@sanity/client'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '..')
+const sourceUrl = 'https://dharneesh.com/magna-business-masterclass'
 
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {}
@@ -44,7 +45,7 @@ function item(title, description, extra = {}) {
   return {_key: key(title), title, description, ...extra}
 }
 
-function media(asset) {
+function media(asset, caption = '') {
   return {
     mediaType: 'image',
     image: {
@@ -54,138 +55,207 @@ function media(asset) {
         _ref: asset._id,
       },
     },
+    caption,
   }
 }
 
-async function uploadImage(relativePath, label) {
-  const absolutePath = path.join(rootDir, 'public', relativePath)
-  const stream = fs.createReadStream(absolutePath)
-  return client.assets.upload('image', stream, {
-    filename: path.basename(absolutePath),
+async function uploadRemoteImage(url, label) {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`Unable to download ${url}: ${response.status}`)
+
+  const buffer = Buffer.from(await response.arrayBuffer())
+  const filename = decodeURIComponent(new URL(url).pathname.split('/').pop() || `${key(label)}.png`)
+
+  return client.assets.upload('image', buffer, {
+    filename,
     title: label,
+    contentType: response.headers.get('content-type') || undefined,
+    source: {
+      name: 'dharneesh.com',
+      id: url,
+      url,
+    },
   })
 }
 
-const [mentorAsset, programAsset] = await Promise.all([
-  uploadImage('dharneesh-mentor.png', 'Dharneesh B R mentor image'),
-  uploadImage('dharneesh-program.png', 'Business Growth Masterclass program image'),
-])
+const imageSources = {
+  hero: ['https://dharneesh.com/Magna.png', 'Scale Your Consumer Brand'],
+  mentor: ['https://dharneesh.com/Edited-1.png', 'Dharneesh B R'],
+  program: ['https://dharneesh.com/Program.png', 'Business Magna Program'],
+  programLong: ['https://dharneesh.com/Programs.png', 'Business Magna Program Details'],
+  alarm: ['https://dharneesh.com/Alaram.png', 'Alarm'],
+  guarantee: ['https://dharneesh.com/Guarntee.webp', 'Guarantee'],
+  brand1: ['https://dharneesh.com/Company%20Logos/1-2.png', 'Brand 1'],
+  brand2: ['https://dharneesh.com/Company%20Logos/2.png', 'Brand 2'],
+  brand3: ['https://dharneesh.com/Company%20Logos/3.png', 'Brand 3'],
+  brand4: ['https://dharneesh.com/Company%20Logos/4.png', 'Brand 4'],
+  brand5: ['https://dharneesh.com/Company%20Logos/5.png', 'Brand 5'],
+  brand6: ['https://dharneesh.com/Company%20Logos/6.png', 'Brand 6'],
+  brand7: ['https://dharneesh.com/Company%20Logos/7.png', 'Brand 7'],
+  brand8: ['https://dharneesh.com/Company%20Logos/8-2.png', 'Brand 8'],
+  brand9: ['https://dharneesh.com/Company%20Logos/9.png', 'Brand 9'],
+}
 
-const mentorMedia = media(mentorAsset)
-const programMedia = media(programAsset)
+const uploadedEntries = await Promise.all(
+  Object.entries(imageSources).map(async ([name, [url, label]]) => [name, await uploadRemoteImage(url, label)]),
+)
+const assets = Object.fromEntries(uploadedEntries)
 
-const joinOutcomes = [
-  'You Unlock Secrets To Create Time & Wealth In Business',
-  'You Learn Strong Foundational Activities To Win In Your Business',
-  'Your Business Growth With Increased Revenue & Cashflow',
-  'More Profit, More Freedom, More Scale Is Guaranteed If You Follow The Exact Steps Covered In The Workshop',
-]
-
-const bestFor = [
-  'MSME Business Owners',
-  'Entrepreneurs looking to scale',
-  'Founders stuck in daily operations',
-  'Business owners seeking growth',
-]
-
-const fourHourLearnings = [
-  'How to build a growth business rather than a survival business',
-  'Characteristics of growth and survival businesses',
-  '3 Reasons why business owners get stuck in survival',
-  'Focus areas to build a growth business',
-]
-
-const struggles = [
-  'Handling sales, operations, team follow-ups, and decisions yourself',
-  'Growing, but still feeling stuck, stressed, or unclear',
-  'Working harder every year without building real freedom',
-  'Facing inconsistent revenue, shrinking margins, or cashflow pressure',
-  'Depending too much on people instead of repeatable systems',
-  'Not having a clear roadmap to scale profitably',
-  'Feeling trapped in daily firefighting instead of strategic growth',
-]
-
-const transformations = [
-  'Build a system-driven business that can run without constant founder involvement',
-  'Create predictable growth engines instead of relying on guesswork',
-  'Gain clarity on numbers, cashflow, profitability, and key business levers',
-  'Upgrade your decision-making from operator mode to leadership mode',
-  'Design workflows, SOPs, and AI-enabled structures that reduce chaos',
-]
-
-const magnaSystem = [
-  ['M', 'Mindset Alignment', 'Shift from pressure-based execution to clear founder leadership.'],
-  ['A', 'Architecture of Systems', 'Build SOPs, workflows, dashboards, and repeatable operating systems.'],
-  ['G', 'Growth Engine Design', 'Engineer leads, conversion, retention, referrals, and revenue visibility.'],
-  ['N', 'Numbers & Navigation', 'Track the few metrics that actually reveal growth, leaks, and profit.'],
-  ['A', 'Alignment of Team & Execution', 'Create team ownership so growth does not depend only on you.'],
-]
-
-const workshopFlow = [
-  ['Fix What Is Stopping Your Growth', 'Identify the patterns that keep business owners stuck in survival mode.'],
-  ['Build A Strong Growth Foundation', 'Understand the difference between a survival business and a growth business.'],
-  ['Design Systems That Reduce Dependency', 'Map the repeatable activities, SOPs, workflows, and tools your business needs.'],
-  ['Create Predictable Revenue', 'See where growth leaks happen across leads, conversion, pricing, and follow-up.'],
-  ['Read Your Numbers Clearly', 'Get sharper visibility on cashflow, margins, KPIs, and founder decisions.'],
-  ['Ask, Clarify, And Plan Next Steps', 'Leave with practical direction for implementation after the workshop.'],
-]
-
-const greatFit = [
-  'MSME founders stuck in daily operations',
-  'Business owners with revenue who want to scale with clarity',
-  'Entrepreneurs who want systems, not just ideas',
-  'Retail, service, manufacturing, and consumer-brand owners building repeatable growth',
-  'Founders ready to move from operator to architect to leader',
-]
-
-const notFit = [
-  'People looking for shortcuts or overnight success',
-  'Founders unwilling to implement after learning',
-  'Anyone expecting motivation-only content without practical work',
-  'People not serious about building long-term systems',
-  'Non-business owners who are not ready to take action',
-]
+const ctaText = 'Join Now @ just ₹1/- 2999'
+const programName = 'MAGNA Business Program'
+const headline = 'From Bottlenecks to Breakthrough Scale Your Consumer Brand 3X in 90 Days'
+const shortDescription = '2 Day Live Intensive Workshop for MSME Consumer Brands'
 
 const mentorPoints = [
   '23+ years of building systems, scaling products, and creating measurable business impact',
-  'Experience across Samsung, Philips, Unilever, GlaxoSmithKline, EAZY, Recibo.AI, and Mind Magna',
-  '650+ brands served across 8 countries through venture and growth work',
-  '7,88,175+ business owners trained in the last 6 years',
+  'Founder of Recibo.AI and EAZY.AI, enabling SME & MNC brands across 8 countries with AI-powered Sales & Distribution solutions.',
+  'Corporate leadership experience spanning FMCG, Consumer Durables, Mobile Devices, and Pharma, with a track record of working across global organizations including Samsung, Philips, Unilever, PepsiCo, Nestle and GlaxoSmithKline.',
+  'Partnered with 650+ brands in 8 countries to drive scalable growth and business outcomes.',
   'Practical frameworks at the intersection of business coaching, brand strategy, and founder transformation',
 ]
 
-const faqs = [
-  ['Who should attend this workshop?', 'MSME business owners, entrepreneurs, and founders looking to scale their business and break free from daily operations.'],
-  ['What will I learn in 4 hours?', 'You will learn proven strategies to build a growth business, characteristics of successful businesses, and actionable steps to increase revenue and profit.'],
-  ['Is the price really just Rs 99?', "Yes. Today's special price is Rs 99/- only. Register before the timer ends to secure this special offer and bonuses worth Rs 6,487/-."],
-  ['What if I am not satisfied?', 'There is a 100% satisfaction guarantee. If you do not find value in the workshop, your investment is refunded.'],
-  ['Is this a live workshop?', 'Yes. The workshop is designed as a live, interactive learning experience with practical business examples and implementation clarity.'],
-  ['Will this help if my business is already running?', 'Yes. This is especially useful for owners who already have a business and want to move from daily operations into structured growth, systems, and leadership.'],
-  ['Do I need advanced marketing or finance knowledge?', 'No. The workshop focuses on practical frameworks that business owners can understand, apply, and refine inside their own context.'],
+const magnaFramework = [
+  ['M', 'MINDSET ALIGNMENT', 'Before strategy, fix the lens of thinking.'],
+  ['A', 'ARCHITECTURE OF SYSTEMS', 'Business stops depending on you when systems start thinking.'],
+  ['G', 'GROWTH ENGINE DESIGN', 'Growth is engineered, not hoped for.'],
+  ['N', 'NUMBERS & NAVIGATION', 'What gets measured gets multiplied.'],
+  ['A', 'ALIGNMENT OF TEAM & EXECUTION', 'Sustainable growth needs team alignment and peak performance.'],
 ]
 
+const achievements = [
+  ['Move From Chaos to Clarity', 'Stop reacting daily. Start operating with structure.'],
+  ['Build Systems That Replace You', 'Create SOPs, workflows, and AI-powered systems that reduce dependency.'],
+  ['Design Predictable Growth Engines', 'No more guesswork—build repeatable marketing and sales systems.'],
+  ['Gain Complete Financial Visibility', 'Understand your numbers, cash flow, and profitability clearly.'],
+  ['Scale Without Burnout', 'Align your energy, team, and execution for long-term sustainability.'],
+]
+
+const magnaDifference = [
+  ['Not Just Training', "We don't just teach. We redesign how your business operates."],
+  ['Built for MSME Reality', 'No startup theory. Everything is designed for real Indian businesses.'],
+  ['AI + Business Systems Integration', 'We combine:\n• AI tools\n• Business frameworks\n• Execution systems'],
+  ['Founder + Business Growth Together', 'Because scaling a business without evolving the founder leads to burnout.'],
+]
+
+const dayOneLessons = [
+  'Session 1: M — Mindset',
+  'The 3 identity shifts required to scale beyond ₹1Cr → ₹100 Cr+',
+  'Why "hard work" is killing growth (and what replaces it)',
+  'Breaking "founder dependency loop"',
+  'Moving from firefighting → foresight-driven leadership',
+  'Session 2: A — Architecture',
+  'How to remove "people dependency"',
+  'Designing SOPs that actually get followed',
+  'Tools & workflows to reduce manual effort by 30–50%',
+  'Automating marketing, sales follow-ups, and operation',
+  'Where AI actually fits in MSME businesses',
+  'Session 3: G — Growth',
+  'How to create predictable monthly revenue',
+  'Fixing inconsistent sales pipelines',
+  'Positioning & messaging for premium growth',
+]
+
+const dayTwoLessons = [
+  'Session 4: N — Numbers',
+  'The only KPIs that actually matter for founders',
+  'Understanding CAC, LTV, conversion ratios, and margins',
+  'How to stop "profit leaks" in your business',
+  'Session 5: A — Alignment',
+  'Aligning team, systems, and founder energy',
+  'Hiring for scale vs hiring for survival',
+  'Time, energy & focus management for founders',
+  'Creating a culture of ownership, not dependency',
+  'Session 6: Q & A Session',
+  'Addressing specific challenges and questions from participants',
+  'Final insights and next steps for implementation',
+]
+
+const mustAttend = [
+  ['Learn from a Proven Business Builder', 'Gain real-world insights from a coach who has successfully built and scaled multiple businesses. No theory—only practical strategies tailored for MSMEs like yours.'],
+  ['Follow a System That Drives Sustainable Growth', 'Understand a proven framework used by 25,000+ business professionals to scale efficiently without being stuck in day-to-day operations.'],
+  ['Step into True Leadership', 'Move beyond managing tasks. Learn how to build, train, and empower a team that runs independently while you focus on growth.'],
+  ['Solve Your Most Critical Business Challenges', "Whether it's low margins, delayed payments, or stagnant sales—discover actionable solutions you can implement immediately."],
+  ['Take Back Control of Your Time and Business', 'Break free from daily chaos by building strong systems and teams that allow your business to run smoothly without constant supervision.'],
+  ['Leave with a Clear, Actionable Growth Plan', 'Walk away with a personalized action plan tailored to your business—ready to implement from day one.'],
+]
+
+const closeWork = [
+  ['Personal Clarity', 'Deep dive into your unique business challenges and breakthrough opportunities'],
+  ['Real Implementation', 'Build actual systems during the program, not just theoretical frameworks'],
+  ['Measurable Outcomes', 'Track concrete improvements in revenue, systems, and personal freedom'],
+]
+
+const faqs = [
+  'How I\'ll get link to attend program?',
+  'Will I get recording of Program?',
+  'Who is this seminar ideal for?',
+  'Can I attend this program along with my business partner(s)?',
+  'Is it a LIVE webinar?',
+]
+
+function ctaSection(keySuffix) {
+  return {
+    _key: `cta-${keySuffix}`,
+    sectionTitle: 'Don’t wait because your competition won’t !',
+    sectionFormat: 'cta',
+    media: media(assets.alarm, 'Alarm'),
+    cta: {
+      headline: 'Don’t wait because your competition won’t !',
+      description: 'Remaining Time',
+      buttonLabel: ctaText,
+      buttonAction: 'razorpay',
+      razorpayAmount: 1,
+      razorpayDescription: programName,
+      formTitle: 'Join the MAGNA Business Program',
+      formDescription: `${programName} - ₹1/-`,
+      formButtonLabel: 'Pay ₹1/-',
+      showMessageField: false,
+      countdownMinutes: 15,
+      countdownLabel: 'Remaining Time',
+      confirmationEmail: {
+        enabled: true,
+        subject: 'Your {{Program}} registration is confirmed',
+        fromName: 'Dharneesh B R',
+        body: [
+          'Dear {{First Name}},',
+          '',
+          'Thank you for registering for {{Program}}.',
+          '',
+          'Your payment has been successfully received and your registration is confirmed.',
+          '',
+          'Amount: {{Amount}}',
+          'Payment ID: {{Payment ID}}',
+          '',
+          'Warm regards,',
+          'Dharneesh B R',
+        ].join('\n'),
+      },
+    },
+  }
+}
+
 const existing = await client.fetch(
-  '*[_type == "adPages" && (slug.current == $slug || _id == $slug)][0]{_id}',
-  {slug: 'business-growth-masterclass'},
+  '*[_type == "adPages" && (slug.current == $slug || _id == $legacySlug)][0]{_id}',
+  {slug: 'magna-business-masterclass', legacySlug: 'business-growth-masterclass'},
 )
 
-const documentId = existing?._id || 'adpage-business-growth-masterclass'
+const documentId = existing?._id || 'adpage-magna-business-masterclass'
 
 const doc = {
   _id: documentId,
   _type: 'adPages',
-  title: 'Business Growth Masterclass',
-  slug: {_type: 'slug', current: 'business-growth-masterclass'},
+  title: headline,
+  slug: {_type: 'slug', current: 'magna-business-masterclass'},
   status: 'published',
-  headline: "Join and Become Like The Top 1% Successful Business Owners & Entrepreneurs Before It's Too Late",
-  shortDescription: 'A 4 hour online workshop with Dharneesh B R on 6th May 2026, 9:00 AM - 1:00 PM IST.',
-  primaryButtonLabel: 'Register Now at Rs 99/- Only',
+  headline,
+  shortDescription,
+  primaryButtonLabel: ctaText,
   primaryButtonAction: 'razorpay',
-  primaryRazorpayAmount: 99,
-  primaryRazorpayDescription: 'Business Growth Masterclass',
-  primaryFormTitle: 'Reserve Your Workshop Seat',
-  primaryFormDescription: 'Business Growth Masterclass - Rs 99/-',
-  primaryFormButtonLabel: 'Pay Rs 99/-',
+  primaryRazorpayAmount: 1,
+  primaryRazorpayDescription: programName,
+  primaryFormTitle: 'Join the MAGNA Business Program',
+  primaryFormDescription: `${programName} - ₹1/-`,
+  primaryFormButtonLabel: 'Pay ₹1/-',
   primaryConfirmationEmail: {
     enabled: true,
     subject: 'Your {{Program}} registration is confirmed',
@@ -195,7 +265,7 @@ const doc = {
       '',
       'Thank you for registering for {{Program}}.',
       '',
-      'Your action has been successfully received by Magnafic. Our team will use the details you shared to support your next step.',
+      'Your action has been successfully received by Magnafic.',
       '',
       'Action: {{Action}}',
       'Amount: {{Amount}}',
@@ -203,197 +273,194 @@ const doc = {
       '',
       'Warm regards,',
       'Dharneesh B R',
-      'Founder, Magnafic',
     ].join('\n'),
   },
-  theme: 'dark',
-  heroMedia: mentorMedia,
+  secondaryButtonLabel: '',
+  secondaryButtonUrl: '',
+  theme: 'light',
+  heroMedia: media(assets.hero, 'Scale Your Consumer Brand'),
+  workshopDetails: [
+    {_key: 'workshop-date', icon: 'calendar', label: '30th & 31st of May'},
+    {_key: 'workshop-language', icon: 'language', label: 'English, Hindi'},
+    {_key: 'workshop-time', icon: 'clock', label: '6 PM to 9 PM'},
+    {_key: 'workshop-platform', icon: 'video', label: 'Live on Zoom'},
+  ],
+  stickyRegistrationBar: {
+    enabled: true,
+    buttonLabel: ctaText,
+    countdownMinutes: 15,
+    countdownLabel: 'left',
+  },
   sections: [
     {
-      _key: 'what-happens-when-you-join',
-      sectionTitle: 'What Happens When You Join?',
+      _key: 'proven-business-builder',
+      sectionTitle: 'Learn from a proven Business Builder',
       sectionFormat: 'list',
-      intro: 'Learn directly from Dharneesh B R, India\'s MSME Business Coach, who has trained over 7,88,175 business owners in the last 6 years.',
-      media: mentorMedia,
-      items: joinOutcomes.map((description, index) => item(`Outcome ${index + 1}`, description)),
-    },
-    {
-      _key: 'register-timer',
-      sectionTitle: 'Register in next',
-      sectionFormat: 'cta',
-      intro: 'To unlock bonuses worth Rs 6,487.',
-      cta: {
-        headline: 'Register in next 15 minutes',
-        description: 'Reserve your seat before the timer ends to unlock bonuses worth Rs 6,487/-. Today\'s price: Rs 99/-.',
-        buttonLabel: 'Register Now at Rs 99/- Only',
-        buttonAction: 'razorpay',
-        razorpayAmount: 99,
-        razorpayDescription: 'Business Growth Masterclass',
-        formTitle: 'Reserve Your Workshop Seat',
-        formDescription: 'Business Growth Masterclass - Rs 99/-',
-        formButtonLabel: 'Pay Rs 99/-',
-        showMessageField: false,
-        confirmationEmail: {
-          enabled: true,
-          subject: 'Your {{Program}} registration is confirmed',
-          fromName: 'Dharneesh B R',
-          body: [
-            'Dear {{First Name}},',
-            '',
-            'Thank you for registering for {{Program}}.',
-            '',
-            'Your payment has been successfully received and your workshop registration is confirmed.',
-            '',
-            'Amount: {{Amount}}',
-            'Payment ID: {{Payment ID}}',
-            '',
-            'We look forward to seeing you in the session.',
-            '',
-            'Warm regards,',
-            'Dharneesh B R',
-            'Founder, Magnafic',
-          ].join('\n'),
-        },
-        media: programMedia,
-      },
-    },
-    {
-      _key: 'best-for-and-learnings',
-      sectionTitle: 'Who This Workshop Will Help The Best?',
-      sectionFormat: 'cards',
-      intro: 'A practical workshop for business owners who want stronger foundations, clearer numbers, and system-led growth.',
-      media: programMedia,
-      items: [
-        ...bestFor.map((description, index) => item(`Best For ${index + 1}`, description)),
-        ...fourHourLearnings.map((description, index) => item(`Learning ${index + 1}`, description)),
-      ],
-    },
-    {
-      _key: 'struggles',
-      sectionTitle: 'Are You Still Struggling To Run And Scale Your Business?',
-      sectionFormat: 'differentiators',
-      intro: 'Stop here if this feels familiar. If you are nodding along, it is time to make a change.',
-      items: [
-        item('Common Founder Struggles', struggles.join('\n')),
-        item('What Changes After The Workshop', 'This workshop is built to help you move from daily firefighting to structured, profitable, system-led growth.'),
-      ],
-    },
-    {
-      _key: 'transformations',
-      sectionTitle: 'How Your Business Can Transform After This Workshop',
-      sectionFormat: 'outcomes',
-      intro: 'Get clarity, systems, and practical direction for scaling without burning yourself out.',
-      items: transformations.map((description, index) => item(`Transformation ${index + 1}`, description)),
-    },
-    {
-      _key: 'magna-growth-system',
-      sectionTitle: 'A Conscious Growth Framework For Scaling Smarter',
-      sectionFormat: 'cards',
-      intro: 'The MAGNA Growth System brings mindset, systems, growth, numbers, and alignment into one practical founder framework.',
-      items: magnaSystem.map(([iconLabel, title, description]) => item(title, description, {iconLabel})),
-    },
-    {
-      _key: 'workshop-flow',
-      sectionTitle: 'What You Will Learn Inside The Workshop',
-      sectionFormat: 'cards',
-      intro: 'A practical, no-fluff flow designed to help you identify leaks and build the next version of your business.',
-      items: workshopFlow.map(([title, description], index) => item(title, description, {iconLabel: String(index + 1)})),
-    },
-    {
-      _key: 'fit-check',
-      sectionTitle: 'Is This Workshop Right For You?',
-      sectionFormat: 'differentiators',
-      items: [
-        item('You Are A Great Fit If You Are:', greatFit.join('\n')),
-        item('This May Not Be A Fit If You Are:', notFit.join('\n')),
-      ],
-    },
-    {
-      _key: 'mentor',
-      sectionTitle: 'Learn From A Proven Business Builder',
-      sectionFormat: 'content',
-      intro: 'Meet your mentor: Dharneesh B R, Business Growth Strategist, Founder & Business Coach.',
-      media: mentorMedia,
+      intro: 'Dharneesh B R\n\n3x Founder | CPG Business Strategist\n\nEx-Samsung, Philips, Unilever, Pepsico, Nestle, GSK',
+      media: media(assets.mentor, 'Dharneesh B R'),
       items: mentorPoints.map((description, index) => item(`Mentor Point ${index + 1}`, description)),
     },
     {
-      _key: 'business-breakthrough',
-      sectionTitle: 'What Will Change In Your Business?',
+      _key: 'consumer-brand-transformation',
+      sectionTitle: 'Build a Consumer Brand that scales without burning you out',
+      sectionFormat: 'differentiators',
+      media: media(assets.mentor, 'Dharneesh B R'),
+      items: [
+        item('Are you still:', [
+          'Handling sales, operations, and decisions yourself?',
+          'Growing—but feeling stuck, stressed, or unclear?',
+          'Working harder every year but not building real freedom?',
+        ].join('\n')),
+        item('A high impact business transformation program designed for MSME founders to:', [
+          'Build system-driven Brand with sustained profitability',
+          'Create predictable growth engines',
+          'Gain clarity, control, and efficiency',
+          '',
+          'Unlike traditional programs, this is not about motivation or theory.',
+          '',
+          'This is about restructuring how your business actually runs.',
+        ].join('\n')),
+      ],
+    },
+    {
+      _key: 'magna-framework',
+      sectionTitle: 'MAGNA Framework',
       sectionFormat: 'cards',
-      intro: 'Business breakthrough comes from the right psychology, right strategies, and right systems.',
+      intro: 'A Conscious Growth System for Scaling Consumer Brands',
+      items: magnaFramework.map(([iconLabel, title, description]) => item(title, description, {iconLabel})),
+    },
+    {
+      _key: 'what-you-will-achieve',
+      sectionTitle: 'WHAT YOU WILL ACHIEVE',
+      sectionFormat: 'outcomes',
+      items: achievements.map(([title, description], index) => item(title, description, {iconLabel: String(index + 1)})),
+    },
+    ctaSection('first'),
+    {
+      _key: 'what-makes-magna-different',
+      sectionTitle: 'WHAT MAKES MAGNA DIFFERENT',
+      sectionFormat: 'cards',
+      items: magnaDifference.map(([title, description]) => item(title, description)),
+    },
+    {
+      _key: 'who-is-this-for',
+      sectionTitle: 'Who is this for?',
+      sectionFormat: 'differentiators',
+      intro: "Use this quick check to see if you're a fit for the Business MAGNA Program.",
       items: [
-        item('Right Psychology Of Running The Business', 'Upgrade from operator mode to leadership mode.'),
-        item('Right Strategies', 'Focus on the few moves that create predictable growth.'),
-        item('Right Systems', 'Create repeatable workflows that reduce founder dependency.'),
+        item('WHO THIS IS FOR', [
+          'This program designed for',
+          'MSME founders stuck in daily operations',
+          'Business owners with ₹20L–₹5Cr+ revenue looking to scale',
+          'Entrepreneurs who want systems, not just ideas',
+          'Founders ready to move from operator → architect → leader',
+        ].join('\n')),
+        item('WHO THIS IS NOT FOR', [
+          'This will not be a fit if:',
+          'People looking for quick hacks or shortcuts',
+          'Founders unwilling to implement',
+          'Those expecting "motivation-only" programs',
+          '',
+          'This is for builders who want real transformation.',
+        ].join('\n')),
       ],
     },
     {
-      _key: 'mission-stats',
-      sectionTitle: "I'm On A MISSION To Help 1 Million Business Owners Achieve Profit & Growth",
-      sectionFormat: 'stats',
-      items: [
-        item('Business Owners Trained', 'Business owners trained through workshops and growth programs.', {metric: '7.8L+'}),
-        item('Social Media Reach', 'Entrepreneurs reached through practical business growth content.', {metric: '2.3M+'}),
-        item('Workshops Conducted', 'Workshops conducted for business owners and founders.', {metric: '600+'}),
-        item('Average Rating', 'Average participant rating for workshop experiences.', {metric: '4.96'}),
-      ],
-    },
-    {
-      _key: 'guarantee',
-      sectionTitle: 'A Promise',
-      sectionFormat: 'content',
-      intro: "If you don't feel this workshop provides immense value and actionable insights to transform your business, we'll refund your investment. No questions asked.",
-      media: programMedia,
-    },
-    {
-      _key: 'faqs',
-      sectionTitle: 'Frequently Asked Questions',
-      sectionFormat: 'faqs',
-      faqs: faqs.map(([question, answer]) => ({_key: key(question), question, answer})),
-    },
-    {
-      _key: 'magna-business-program',
+      _key: 'join-magna-business-program',
       sectionTitle: 'Join the MAGNA Business Program',
       sectionFormat: 'curriculum',
       intro: 'Two focused days to move from founder-led chaos to a system-driven business with clearer growth, control, and execution.',
+      media: media(assets.program, 'Business Magna Program'),
       modules: [
         {
-          _key: 'day-1',
-          title: 'Day 1: Foundation & Systems',
-          description: 'Mindset, architecture, and growth engine design.',
-          lessons: [
-            'The 3 identity shifts required to scale beyond Rs 1Cr to Rs 100 Cr+',
-            'Why hard work is killing growth and what replaces it',
-            'Breaking founder dependency loop',
-            'Designing SOPs that actually get followed',
-            'Where AI actually fits in MSME businesses',
-            'How to create predictable monthly revenue',
-          ],
+          _key: 'day-1-foundation-systems',
+          title: 'Day 1: FOUNDATION & SYSTEMS',
+          description: 'M — Mindset, A — Architecture, G — Growth',
+          lessons: dayOneLessons,
         },
         {
-          _key: 'day-2',
-          title: 'Day 2: Scale & Sustainability',
-          description: 'Numbers, alignment, ownership, and next-step clarity.',
-          lessons: [
-            'The only KPIs that actually matter for founders',
-            'Understanding CAC, LTV, conversion ratios, and margins',
-            'How to stop profit leaks in your business',
-            'Aligning team, systems, and founder energy',
-            'Creating a culture of ownership, not dependency',
-            'Addressing specific challenges and questions from participants',
-          ],
+          _key: 'day-2-scale-sustainability',
+          title: 'Day 2: SCALE & SUSTAINABILITY',
+          description: 'N — Numbers, A — Alignment, Q & A Session',
+          lessons: dayTwoLessons,
         },
       ],
     },
+    ctaSection('second'),
+    {
+      _key: 'before-after-magna',
+      sectionTitle: 'BEFORE vs AFTER MAGNA PROGRAM',
+      sectionFormat: 'differentiators',
+      items: [
+        item('Before', [
+          'Where most founders start',
+          'Constant firefighting',
+          'No time to think',
+          'Revenue is inconsistent',
+          'Business depends on you',
+        ].join('\n')),
+        item('After', [
+          'What MAGNA unlocks',
+          'Structured systems in place',
+          'Team operates independently',
+          'Growth becomes predictable',
+          'You lead instead of execute',
+        ].join('\n')),
+      ],
+    },
+    {
+      _key: 'trusted-by-leading-brands',
+      sectionTitle: 'Trusted by Leading Brands',
+      sectionFormat: 'media-gallery',
+      intro: 'Partnered with industry leaders to drive innovation and excellence',
+      items: Object.entries(assets)
+        .filter(([name]) => name.startsWith('brand'))
+        .map(([name, asset], index) => item(`Brand ${index + 1}`, '', {media: media(asset, name)})),
+    },
+    {
+      _key: 'our-guarantee',
+      sectionTitle: 'Our Guarantee',
+      sectionFormat: 'content',
+      intro: "A Promise\n\nIf you don't feel this workshop provides immense value and actionable insights to transform your business, we'll refund your investment. No questions asked.",
+      media: media(assets.guarantee, 'Guarantee'),
+    },
+    {
+      _key: 'must-attend-entrepreneurs',
+      sectionTitle: 'What Makes This Program a Must-Attend for Entrepreneurs',
+      sectionFormat: 'cards',
+      items: mustAttend.map(([title, description]) => item(title, description)),
+    },
+    {
+      _key: 'work-closely-with-founders',
+      sectionTitle: 'We work closely with founders to ensure',
+      sectionFormat: 'cards',
+      intro: 'Real transformation requires deep focus and personalized attention',
+      items: closeWork.map(([title, description]) => item(title, description)),
+    },
+    ctaSection('final'),
+    {
+      _key: 'frequently-asked-questions',
+      sectionTitle: 'Frequently Asked Questions',
+      sectionFormat: 'faqs',
+      intro: "Got questions? We've got answers to help you make the most of your MAGNA experience",
+      faqs: faqs.map((question) => ({
+        _key: key(question),
+        question,
+        answer: 'Not provided on the source page.',
+      })),
+    },
   ],
-  seoTitle: 'Business Growth Masterclass | Magnafic',
-  seoDescription: 'Join Dharneesh B R for a 4 hour online workshop to build systems, growth clarity, and business scale.',
+  seoTitle: 'MAGNA Business Masterclass | Dharneesh B R',
+  seoDescription: 'Join Dharneesh B R for the MAGNA Business Program to scale your consumer brand 3X in 90 days.',
 }
 
 const result = await client.createOrReplace(doc)
 console.log(JSON.stringify({
   updated: true,
+  sourceUrl,
   id: result._id,
   slug: result.slug?.current,
+  title: result.title,
   sectionCount: result.sections?.length || 0,
+  uploadedAssetCount: uploadedEntries.length,
 }, null, 2))
