@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react'
 import {addDoc, collection, serverTimestamp} from 'firebase/firestore'
-import {ArrowRight, Brain, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, CreditCard, Languages, Loader2, Quote, Repeat2, Rocket, Settings, Sparkles, Video, X} from 'lucide-react'
+import {motion} from 'framer-motion'
+import {Brain, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Languages, Loader2, Quote, Repeat2, Rocket, Settings, Sparkles, Video, X} from 'lucide-react'
 import {useParams} from 'react-router-dom'
 import MagnaLoader from '../components/MagnaLoader'
 import SEO from '../components/SEO'
@@ -394,7 +395,7 @@ function InlineItemList({items = [], light = false, centered = false, gradientIc
           )}
           <div className="min-w-0">
             {!bulletStyle && item.title && <h3 className={`text-lg font-black leading-tight sm:text-xl ${light ? 'text-white' : 'text-[#000047]'}`}>{item.title}</h3>}
-            {item.description && <p className={`${bulletStyle ? 'text-base font-normal leading-7 text-gray-950' : `mt-2 text-sm leading-7 sm:text-base sm:leading-8 ${light ? 'text-cyan-50/85' : 'text-gray-600'}`}`}>{item.description}</p>}
+            {item.description && <p className={`${bulletStyle ? 'text-sm font-normal leading-relaxed text-gray-950' : `mt-2 text-sm leading-7 sm:text-base sm:leading-8 ${light ? 'text-cyan-50/85' : 'text-gray-600'}`}`}>{item.description}</p>}
             <MediaBlock media={item.media} className="mt-4" />
           </div>
         </div>
@@ -549,9 +550,9 @@ function CurriculumSessionCard({title, lessons = []}) {
 
         return (
           <article key={session.heading} className="rounded-2xl bg-white px-5 py-6 text-center text-[#07142d] shadow-lg sm:px-7">
-            <h4 className="text-xl font-extrabold leading-7 text-black">{sessionLabel}:</h4>
+            <h4 className="text-lg font-extrabold leading-7 text-black">{sessionLabel}:</h4>
             {sessionTitle && (
-              <p className="mt-1 text-xl font-extrabold leading-7">
+              <p className="mt-1 text-lg font-extrabold leading-7">
                 {titleMatch ? (
                   <>
                     <span className="text-[#3533cd]">{titleMatch[1]}</span>
@@ -567,7 +568,7 @@ function CurriculumSessionCard({title, lessons = []}) {
               {session.bullets.map((lesson) => (
                 <div key={lesson} className="flex min-w-0 items-start gap-3">
                   <span className="mt-0.5 shrink-0 text-sm leading-6 text-[#1512b8]">→</span>
-                  <p className="min-w-0 text-base leading-6 text-[#111827]">{lesson}</p>
+                  <p className="min-w-0 text-sm leading-relaxed text-[#111827]">{lesson}</p>
                 </div>
               ))}
             </div>
@@ -638,33 +639,50 @@ function StickyRegistrationBar({action, settings, countdownCta, onOpenCta}) {
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4">
-      <div className="flex w-full max-w-md flex-col items-center justify-center rounded-[3.5rem] bg-[#030052]/95 px-8 py-5 text-center text-white shadow-2xl shadow-blue-950/40 backdrop-blur-md sm:max-w-xl sm:px-10">
-        <button
-          type="button"
-          onClick={handleClick}
-          className="inline-flex max-w-full items-center justify-center gap-2 text-xl font-extrabold leading-7 text-white sm:gap-3 sm:text-2xl"
-        >
-          <Rocket className="h-6 w-6 shrink-0 text-white sm:h-7 sm:w-7" />
-          {offerLabel ? (
-            <span className="flex min-w-0 items-baseline justify-center gap-1.5 sm:gap-2">
-              <span className="shrink whitespace-nowrap">{offerLabel.main}</span>
-              <span className="shrink-0 whitespace-nowrap line-through decoration-white decoration-2">{offerLabel.oldPrice}</span>
-            </span>
-          ) : (
-            <span className="min-w-0 whitespace-nowrap">{displayAction.label}</span>
-          )}
-        </button>
-        {durationSeconds > 0 && (
-          <span className="mt-1 inline-flex items-center gap-1.5 text-xl font-extrabold leading-7 text-white sm:text-2xl sm:leading-8">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-[#030052] sm:h-7 sm:w-7">
-              <Clock3 className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.8} />
-            </span>
-            {formatCountdown(remainingSeconds)} {settings?.countdownLabel || 'left'}
+    <motion.div
+      className="fixed inset-x-0 bottom-0 z-50"
+      initial={{opacity: 0, y: 100}}
+      animate={{opacity: 1, y: 0}}
+      transition={{duration: 0.3, delay: 1}}
+    >
+      <motion.button
+        type="button"
+        onClick={handleClick}
+        className="group relative inline-flex w-full items-center justify-center overflow-hidden px-10 py-6 text-xl font-bold text-white shadow-2xl transition-all duration-300"
+        style={{
+          background: 'rgba(0, 0, 71, 0.7)',
+          boxShadow: '0 0 30px rgba(0, 255, 255, 0.4), 0 20px 40px rgba(0, 0, 71, 0.3)',
+          minHeight: '80px',
+          borderRadius: '50px',
+        }}
+        whileHover={{
+          scale: 1.08,
+          boxShadow: '0 0 40px rgba(0, 255, 255, 0.5), 0 25px 50px rgba(0, 0, 71, 0.35)',
+        }}
+        whileTap={{scale: 0.98}}
+      >
+        <span className="relative z-10 flex min-w-0 flex-col items-center">
+          <span className="flex min-w-0 items-center justify-center gap-2 whitespace-nowrap text-xl font-medium">
+            <Rocket className="h-5 w-5 shrink-0 text-white" />
+            {offerLabel ? (
+              <>
+                <span className="shrink whitespace-nowrap">{offerLabel.main}</span>
+                <span className="shrink-0 whitespace-nowrap line-through decoration-white decoration-2">{offerLabel.oldPrice}</span>
+              </>
+            ) : (
+              <span className="min-w-0 whitespace-nowrap">{displayAction.label}</span>
+            )}
           </span>
-        )}
-      </div>
-    </div>
+          {durationSeconds > 0 && (
+            <span className="mt-1 inline-flex items-center gap-1 text-xl font-bold leading-7 text-white/90">
+              <Clock3 className="h-5 w-5 shrink-0 text-white" strokeWidth={2.8} />
+              {formatCountdown(remainingSeconds)} {settings?.countdownLabel || 'left'}
+            </span>
+          )}
+        </span>
+        <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-white/0 via-white/20 to-white/0 transition-transform duration-700 group-hover:translate-x-full" />
+      </motion.button>
+    </motion.div>
   )
 }
 
@@ -698,7 +716,7 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
     return (
       <SectionShell className="bg-[#fbfaf9] px-4 py-12">
         <div className="mx-auto w-full rounded-none bg-gradient-to-r from-[#3533cd] to-[#00ffff] px-4 py-12 text-center shadow-xl sm:px-8">
-          <h2 className="mx-auto mb-9 max-w-md text-2xl font-bold leading-8 text-white sm:text-3xl sm:leading-9">{section.sectionTitle}</h2>
+          <h2 className="mx-auto mb-9 max-w-md text-2xl font-bold leading-tight text-white">{section.sectionTitle}</h2>
           <div className="rounded-xl bg-white/95 p-5 shadow-xl sm:p-6">
             <FirstSectionMediaBlock media={section.media} />
             <MentorIntroDetails intro={section.intro} />
@@ -752,7 +770,7 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
       return (
         <SectionShell className="bg-white px-4 py-12">
           <div className="mx-auto max-w-sm rounded-2xl bg-gradient-to-br from-[#3533cd] to-[#00e0e6] px-6 py-8 text-center text-white shadow-2xl shadow-cyan-100/80 sm:max-w-3xl sm:px-10">
-            <h2 className="text-2xl font-extrabold leading-8 text-white sm:text-3xl sm:leading-9">{section.sectionTitle}</h2>
+            <h2 className="text-2xl font-bold leading-tight text-white">{section.sectionTitle}</h2>
             {section.media?.imageUrl && (
               <img
                 src={section.media.imageUrl}
@@ -760,9 +778,9 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
                 className="mx-auto mt-8 h-32 w-32 object-contain sm:h-36 sm:w-36"
               />
             )}
-            {promiseTitle && <h3 className="mt-8 text-2xl font-extrabold leading-8 text-white sm:text-3xl sm:leading-9">{promiseTitle}</h3>}
+            {promiseTitle && <h3 className="mt-8 text-2xl font-bold leading-8 text-white">{promiseTitle}</h3>}
             {promiseBody && (
-              <p className="mx-auto mt-5 max-w-xs text-xl font-normal leading-8 text-white sm:max-w-md sm:text-2xl sm:leading-9">
+              <p className="mx-auto mt-5 max-w-xs text-lg font-normal leading-relaxed text-white sm:max-w-md">
                 {promiseBody}
               </p>
             )}
@@ -794,7 +812,7 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
             </div>
           )}
           <div className={`${contentOrderClass} min-w-0`}>
-            <h2 className={`text-2xl font-bold leading-8 ${isGuaranteeSection ? 'text-center text-white' : 'text-[#071a78]'} sm:text-3xl sm:leading-9`}>{section.sectionTitle}</h2>
+            <h2 className={`text-2xl font-bold leading-tight ${isGuaranteeSection ? 'text-center text-white' : 'text-[#071a78]'}`}>{section.sectionTitle}</h2>
             {section.intro && <p className={`mt-4 whitespace-pre-line text-base leading-6 sm:text-lg sm:leading-7 ${isGuaranteeSection ? 'text-center text-white' : 'text-gray-700'}`}>{section.intro}</p>}
             <div className="mt-6"><RichText blocks={section.body || []} /></div>
             {items.length > 0 && (
@@ -828,9 +846,9 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
   if (['cards', 'outcomes', 'stats', 'media-gallery'].includes(format)) {
     if (isAchievementsSection) {
       return (
-        <SectionShell className="bg-white px-4 pb-36 pt-14">
+        <SectionShell className="bg-white px-4 pb-24 pt-12">
           <div className="mx-auto max-w-sm text-center sm:max-w-3xl">
-            <h2 className="mx-auto max-w-xs text-4xl font-extrabold uppercase leading-[1.08] text-gray-950 sm:max-w-2xl sm:text-5xl">
+            <h2 className="mx-auto max-w-xs text-4xl font-bold uppercase leading-[1.08] text-gray-950 sm:max-w-2xl md:text-5xl">
               {section.sectionTitle}
             </h2>
             <div className="mx-auto mt-6 h-1 w-24 rounded-full bg-white shadow-sm" />
@@ -842,8 +860,8 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
                       {item.iconLabel || itemIndex + 1}
                     </span>
                     <div className="min-w-0">
-                      {item.title && <h3 className="text-2xl font-extrabold leading-7 text-gray-950">{item.title}</h3>}
-                      {item.description && <p className="mt-4 text-lg leading-7 text-[#273044]">{item.description}</p>}
+                      {item.title && <h3 className="text-xl font-bold leading-tight text-gray-950 md:text-2xl">{item.title}</h3>}
+                      {item.description && <p className="mt-4 text-base leading-relaxed text-[#273044]">{item.description}</p>}
                     </div>
                   </div>
                 </article>
@@ -870,11 +888,11 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
           </div>
           <div className="-mx-4 bg-[#000047] px-4 py-14 text-center text-white sm:py-16">
             <div className="mx-auto max-w-sm sm:max-w-3xl">
-              <h2 className="mx-auto max-w-xs text-4xl font-extrabold leading-[1.12] text-white sm:max-w-md sm:text-5xl">
+              <h2 className="mx-auto max-w-xs text-4xl font-extrabold leading-[1.12] text-white sm:max-w-md md:text-5xl">
                 {section.sectionTitle}
               </h2>
               {section.intro && (
-                <p className="mx-auto mt-6 max-w-xs text-2xl font-bold leading-8 text-white sm:max-w-md sm:text-3xl sm:leading-10">
+                <p className="mx-auto mt-6 max-w-xs text-2xl font-semibold leading-8 text-white/90 sm:max-w-md">
                   {section.intro}
                 </p>
               )}
@@ -886,7 +904,7 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
                         {(item.iconLabel || item.title || String(itemIndex + 1)).slice(0, 1)}
                       </span>
                       <div className="min-w-0">
-                        {item.title && <h3 className="text-xl font-extrabold uppercase leading-7 text-white/90 sm:text-2xl sm:leading-8">{item.title}</h3>}
+                        {item.title && <h3 className="text-xl font-extrabold uppercase leading-7 text-white/90 md:text-2xl md:leading-8">{item.title}</h3>}
                         {item.description && <p className="mt-3 text-base font-bold leading-6 text-white/90 sm:text-lg sm:leading-7">{item.description}</p>}
                       </div>
                     </div>
@@ -903,7 +921,7 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
       return (
         <SectionShell dark className="bg-[#000047] px-4 py-16">
           <div className="mx-auto max-w-sm sm:max-w-3xl">
-            <h2 className="mx-auto mb-12 max-w-xs text-center text-4xl font-extrabold uppercase leading-[1.14] text-white sm:max-w-xl sm:text-5xl">
+            <h2 className="mx-auto mb-12 max-w-xs text-center text-4xl font-extrabold uppercase leading-[1.14] text-white sm:max-w-xl md:text-5xl">
               {section.sectionTitle}
             </h2>
             <div className="space-y-6">
@@ -914,8 +932,8 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
                       <MagnaDifferentIcon index={itemIndex} />
                     </span>
                     <div className="min-w-0">
-                      {item.title && <h3 className="text-xl font-bold leading-7 text-white">{item.title}</h3>}
-                      {item.description && <p className="mt-3 whitespace-pre-line text-lg leading-7 text-white">{item.description}</p>}
+                      {item.title && <h3 className="text-lg font-bold leading-7 text-white">{item.title}</h3>}
+                      {item.description && <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-white/90">{item.description}</p>}
                     </div>
                   </div>
                 </article>
@@ -928,21 +946,21 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
 
     if (isMustAttendSection) {
       return (
-        <SectionShell dark className="bg-[#000047] px-4 pb-36 pt-16">
+        <SectionShell dark className="bg-[#000047] px-4 pb-24 pt-16">
           <div className="mx-auto max-w-sm sm:max-w-3xl">
-            <h2 className="mx-auto max-w-sm text-center text-4xl font-extrabold leading-[1.12] text-white sm:max-w-2xl sm:text-5xl">
+            <h2 className="mx-auto max-w-sm text-center text-4xl font-extrabold leading-[1.12] text-white sm:max-w-2xl md:text-5xl">
               {section.sectionTitle}
             </h2>
             <div className="mt-12 space-y-7">
               {items.map((item, itemIndex) => (
-                <article key={item._key || `${item.title}-${itemIndex}`} className="rounded-2xl bg-[#f5fcff] px-6 py-7 text-[#07142d] shadow-xl shadow-blue-950/20 sm:px-8">
-                  <div className="flex min-w-0 items-start gap-5">
-                    <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#3478f6] text-white">
+                <article key={item._key || `${item.title}-${itemIndex}`} className="rounded-2xl bg-[#f5fcff] px-6 py-7 text-center text-[#07142d] shadow-xl shadow-blue-950/20 sm:px-8">
+                  <div className="min-w-0">
+                    <span className="mx-auto mb-5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#3478f6] text-white">
                       <Sparkles className="h-5 w-5" />
                     </span>
-                    <div className="min-w-0">
-                      {item.title && <h3 className="text-2xl font-extrabold leading-8 text-gray-950">{item.title}</h3>}
-                      {item.description && <p className="mt-3 text-lg leading-7 text-[#273044]">{item.description}</p>}
+                    <div className="min-w-0 text-left">
+                      {item.title && <h3 className="text-xl font-bold leading-tight text-gray-950">{item.title}</h3>}
+                      {item.description && <p className="mt-3 text-base leading-relaxed text-[#273044]">{item.description}</p>}
                     </div>
                   </div>
                 </article>
@@ -955,13 +973,13 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
 
     if (isCloseWorkSection) {
       return (
-        <SectionShell dark className="bg-[#000047] px-4 pb-36 pt-4">
+        <SectionShell dark className="bg-[#000047] px-4 pb-24 pt-4">
           <div className="mx-auto max-w-sm rounded-3xl border border-white/10 border-t-cyan-300 bg-white/15 px-6 py-10 text-center text-white shadow-2xl shadow-blue-950/30 sm:max-w-3xl sm:px-10">
-            <h2 className="mx-auto max-w-sm text-3xl font-extrabold leading-[1.16] text-white sm:text-4xl">
+            <h2 className="mx-auto max-w-sm text-2xl font-bold leading-tight text-white md:text-3xl">
               {section.sectionTitle}
             </h2>
             {section.intro && (
-              <p className="mx-auto mt-6 max-w-xs text-xl font-bold leading-8 text-white/80 sm:max-w-md sm:text-2xl sm:leading-9">
+              <p className="mx-auto mt-6 max-w-xs text-lg font-normal leading-relaxed text-white/80 sm:max-w-md">
                 {section.intro}
               </p>
             )}
@@ -971,8 +989,8 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
                   <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3533cd] to-[#00d9e8] text-white shadow-lg shadow-blue-950/20">
                     {itemIndex === 0 ? <Brain className="h-7 w-7" /> : itemIndex === 1 ? <Settings className="h-7 w-7" /> : <CheckCircle2 className="h-7 w-7" />}
                   </span>
-                  {item.title && <h3 className="mt-5 text-xl font-extrabold leading-7 text-white">{item.title}</h3>}
-                  {item.description && <p className="mt-3 text-base font-bold leading-7 text-white/75">{item.description}</p>}
+                  {item.title && <h3 className="mt-5 text-lg font-bold leading-7 text-white">{item.title}</h3>}
+                  {item.description && <p className="mt-3 text-sm font-normal leading-relaxed text-white/80">{item.description}</p>}
                 </article>
               ))}
             </div>
@@ -985,12 +1003,12 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
       return (
         <SectionShell className="bg-white px-4 py-10">
           <div className="mx-auto max-w-sm rounded-2xl border-2 border-[#1f2937] bg-white px-5 py-9 text-center shadow-sm sm:max-w-3xl sm:px-8">
-            <h2 className="mx-auto max-w-xs text-2xl font-extrabold leading-8 text-[#07142d] sm:max-w-md sm:text-3xl sm:leading-10">
+            <h2 className="mx-auto max-w-xs text-3xl font-bold leading-tight text-gray-900 sm:max-w-md sm:text-4xl lg:text-5xl">
               {section.sectionTitle}
             </h2>
             <div className="mx-auto mt-5 h-1 w-16 rounded-full bg-gradient-to-r from-[#3533cd] to-[#00d9e8]" />
             {section.intro && (
-              <p className="mx-auto mt-7 max-w-xs text-base leading-6 text-gray-700 sm:max-w-md">
+              <p className="mx-auto mt-7 max-w-xs text-lg leading-relaxed text-gray-600 sm:max-w-md sm:text-xl">
                 {section.intro}
               </p>
             )}
@@ -1043,9 +1061,9 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
       return (
         <SectionShell className="bg-white px-4 py-12">
           <div className="mx-auto max-w-sm text-center sm:max-w-4xl">
-            <h2 className="text-4xl font-extrabold leading-tight text-gray-950 sm:text-5xl">{section.sectionTitle}</h2>
+            <h2 className="text-4xl font-extrabold leading-tight text-gray-950 md:text-5xl">{section.sectionTitle}</h2>
             {section.intro && (
-              <p className="mx-auto mt-5 max-w-sm whitespace-pre-line text-2xl font-bold leading-8 text-gray-800 sm:max-w-2xl">
+              <p className="mx-auto mt-5 max-w-sm whitespace-pre-line text-2xl font-semibold leading-8 text-gray-700 sm:max-w-2xl">
                 {section.intro}
               </p>
             )}
@@ -1071,7 +1089,7 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
                             <span className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${itemIndex === 0 ? 'bg-indigo-50 text-[#3533cd]' : 'bg-red-50 text-red-600'}`}>
                               {itemIndex === 0 ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                             </span>
-                            <p className="min-w-0 text-xl leading-8 text-gray-950">{line}</p>
+                            <p className="min-w-0 text-lg leading-relaxed text-gray-800">{line}</p>
                           </div>
                         ))}
                       </div>
@@ -1092,9 +1110,9 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
       const outcomeNotes = outcomeLines.slice(3)
 
       return (
-        <SectionShell className="bg-white px-4 pb-36 pt-10">
-          <div className="mx-auto max-w-sm rounded-lg bg-gradient-to-b from-[#3533cd] via-[#256fdf] to-[#00cfe0] px-4 pb-28 pt-5 text-white shadow-md sm:max-w-3xl sm:px-6 lg:max-w-4xl">
-            <h2 className="mx-auto mb-8 max-w-md text-center text-xl font-bold leading-8 text-white sm:text-2xl">
+        <SectionShell className="bg-white px-4 py-10">
+          <div className="mx-auto max-w-sm rounded-lg bg-gradient-to-b from-[#3533cd] via-[#256fdf] to-[#00cfe0] px-4 pb-8 pt-5 text-white shadow-md sm:max-w-3xl sm:px-6 lg:max-w-4xl">
+            <h2 className="mx-auto mb-8 max-w-md text-center text-lg font-bold leading-7 text-white md:text-xl">
               {section.sectionTitle}
             </h2>
 
@@ -1150,7 +1168,7 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
         <SectionShell className="bg-white px-4 py-10">
           <div className="mx-auto max-w-sm space-y-9 sm:max-w-3xl">
             {isBeforeAfterSection && (
-              <h2 className="mx-auto max-w-sm text-center text-4xl font-extrabold uppercase leading-[1.08] text-gray-950 sm:max-w-2xl sm:text-5xl">
+              <h2 className="mx-auto max-w-sm text-center text-4xl font-extrabold uppercase leading-[1.08] text-gray-950 sm:max-w-2xl md:text-5xl">
                 {section.sectionTitle}
               </h2>
             )}
@@ -1186,7 +1204,7 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
                             <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${isBefore ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
                               {isBefore ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
                             </span>
-                            <p className="min-w-0 text-lg leading-7 text-[#07142d] sm:text-xl sm:leading-8">{line}</p>
+                            <p className="min-w-0 text-lg leading-7 text-[#07142d]">{line}</p>
                           </div>
                         ))}
                       </div>
@@ -1235,11 +1253,11 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
       return (
         <SectionShell className="bg-[#fbfaf9] px-4 py-12">
           <div className="mx-auto max-w-sm overflow-hidden rounded-none bg-gradient-to-r from-[#3533cd] to-[#00d9e8] px-5 py-9 text-center sm:max-w-3xl sm:px-8 sm:py-12">
-            <h2 className="mx-auto max-w-xs text-3xl font-extrabold leading-[1.12] text-white sm:max-w-lg sm:text-5xl sm:leading-tight">
+            <h2 className="mx-auto max-w-xs text-2xl font-bold leading-tight text-white sm:max-w-lg">
               {section.sectionTitle}
             </h2>
             {section.intro && (
-              <p className="mx-auto mt-6 max-w-sm whitespace-pre-line text-xl font-normal leading-7 text-white sm:max-w-xl sm:text-2xl sm:leading-9">
+              <p className="mx-auto mt-6 max-w-sm whitespace-pre-line text-base font-normal leading-relaxed text-white sm:max-w-xl">
                 {section.intro}
               </p>
             )}
@@ -1292,11 +1310,11 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
         <SectionShell dark className="bg-[#000047] px-4 py-12">
           <div className="mx-auto max-w-sm space-y-8 sm:max-w-3xl">
             <div className="mx-auto mb-14 max-w-md text-center sm:max-w-2xl">
-              <h2 className="text-4xl font-extrabold leading-tight text-white sm:text-5xl sm:leading-tight">
+              <h2 className="text-4xl font-extrabold leading-tight text-white md:text-5xl md:leading-tight">
                 {section.sectionTitle}
               </h2>
               {section.intro && (
-                <p className="mx-auto mt-7 max-w-md whitespace-pre-line text-xl font-normal leading-8 text-white/90 sm:text-2xl sm:leading-9">
+                <p className="mx-auto mt-7 max-w-md whitespace-pre-line text-xl font-normal leading-8 text-white/90 md:text-2xl md:leading-9">
                   {section.intro}
                 </p>
               )}
@@ -1311,7 +1329,7 @@ function AdSection({section, index, previousSectionHasMedia = false, previousSec
                   <div className="mx-auto flex h-16 w-20 items-center justify-center rounded-2xl bg-white text-center text-lg font-extrabold text-[#3533cd] shadow-lg">
                     {dayLabel}
                   </div>
-                  <h2 className="mx-auto mt-7 max-w-xs text-center text-2xl font-extrabold uppercase leading-8 text-white">
+                  <h2 className="mx-auto mt-7 max-w-xs text-center text-2xl font-extrabold uppercase leading-8 text-white md:text-3xl md:leading-tight">
                     {dayTitle}
                   </h2>
                   <div className="mt-7">
@@ -1452,10 +1470,10 @@ export default function AdPage({slugOverride, pathOverride}) {
       />
       <section className="relative overflow-hidden bg-[#fbfaf9] px-4 pb-8 pt-12 sm:pb-12 sm:pt-10">
         <div className="relative mx-auto max-w-6xl">
-          <h1 className="mx-auto mb-7 max-w-6xl bg-gradient-to-r from-[#000080] via-[#1e3a8a] to-[#1e40af] bg-clip-text text-center text-[2rem] font-black leading-[1.2] text-transparent md:text-4xl md:leading-tight lg:text-5xl">{page.headline}</h1>
+          <h1 className="mx-auto mb-7 max-w-6xl bg-gradient-to-r from-[#000080] via-[#1e3a8a] to-[#1e40af] bg-clip-text text-center text-3xl font-black leading-tight text-transparent md:text-4xl lg:text-5xl">{page.headline}</h1>
           {page.shortDescription && (
             <div className="mx-auto max-w-6xl rounded-xl border border-[#3533cd]/20 bg-gradient-to-r from-[#3533cd] to-[#00ffff] px-5 py-4 text-center shadow-lg">
-              <p className="text-[1.45rem] font-bold leading-[1.28] text-white sm:text-2xl sm:leading-8">{page.shortDescription}</p>
+              <p className="text-xl font-medium leading-normal text-white md:text-2xl">{page.shortDescription}</p>
             </div>
           )}
           <div className="mt-7 grid items-start gap-8 lg:mt-1 lg:grid-cols-[0.48fr_0.52fr]">
@@ -1469,7 +1487,7 @@ export default function AdPage({slugOverride, pathOverride}) {
                       <span className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-r from-[#342fd8] to-[#12e6e8] text-white">
                         <DetailIcon className="h-4 w-4" />
                       </span>
-                      <p className="mt-3 text-base font-normal leading-6 text-gray-700">{detail.label}</p>
+                      <p className="mt-3 text-sm font-normal leading-6 text-gray-700">{detail.label}</p>
                     </div>
                   )
                 })}
@@ -1667,41 +1685,28 @@ function AdCtaModal({page, cta, onClose}) {
     }
   }
 
+  const modalTitle = 'Register for MAGNA Program'
+  const submitText = isPayment ? 'Pay ₹1 & Register' : (cta.submitLabel || 'Register')
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#000047]/80 px-4 py-6 backdrop-blur-sm">
-      <div className="relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white shadow-2xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 px-4 py-6 backdrop-blur-sm">
+      <div className="relative max-h-[92vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white px-6 py-7 shadow-2xl sm:max-w-md sm:px-8">
         <button
           type="button"
           onClick={closeModal}
           disabled={submitting}
-          className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25 disabled:opacity-50"
+          className="absolute right-5 top-8 inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
           aria-label="Close form"
         >
-          <X className="h-5 w-5" />
+          <X className="h-6 w-6" strokeWidth={2.8} />
         </button>
-        <div className="bg-[#000047] px-6 py-7 text-white sm:px-8 sm:py-8">
-          <h2 className="pr-12 text-xl font-extrabold leading-tight sm:text-3xl">{cta.title || (isPayment ? 'Complete Registration' : 'Submit Your Details')}</h2>
-          {cta.description && <p className="mt-2 text-sm leading-6 text-white/80 sm:text-base">{cta.description}</p>}
-          {isPayment && <p className="mt-3 font-bold text-cyan">Amount: Rs {Number(cta.amount) > 0 ? Number(cta.amount) : 99}</p>}
-        </div>
-        <form onSubmit={handleFormSubmit} className="space-y-4 p-5 sm:space-y-5 sm:p-8">
-          <AdInput id="ad-cta-name" name="name" label="Name" value={formData.name} onChange={updateField} autoComplete="name" placeholder="Your full name" />
-          <AdInput id="ad-cta-contact" name="contactNo" label="Contact Number" type="tel" value={formData.contactNo} onChange={updateField} autoComplete="tel" placeholder="+91 98765 43210" />
-          <AdInput id="ad-cta-email" name="email" label="Email ID" type="email" value={formData.email} onChange={updateField} autoComplete="email" placeholder="you@example.com" />
-          {!isPayment && cta.showMessageField !== false && (
-            <div>
-              <label htmlFor="ad-cta-message" className="mb-2 block text-sm font-bold text-gray-800">Message</label>
-              <textarea
-                id="ad-cta-message"
-                name="message"
-                value={formData.message}
-                onChange={updateField}
-                rows={4}
-                placeholder="Tell us what you are looking for"
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-              />
-            </div>
-          )}
+        <h2 className="pr-10 text-2xl font-extrabold leading-tight text-gray-900 sm:text-3xl">
+          {modalTitle}
+        </h2>
+        <form onSubmit={handleFormSubmit} className="mt-7 space-y-4">
+          <AdInput id="ad-cta-name" name="name" label="Full Name" value={formData.name} onChange={updateField} autoComplete="name" placeholder="Enter your full name" />
+          <AdInput id="ad-cta-contact" name="contactNo" label="Mobile Number" type="tel" value={formData.contactNo} onChange={updateField} autoComplete="tel" placeholder="Enter 10-digit mobile number" />
+          <AdInput id="ad-cta-email" name="email" label="Email Address" type="email" value={formData.email} onChange={updateField} autoComplete="email" placeholder="Enter your email address" />
           {status.message && (
             <div className={`rounded-lg p-4 text-sm font-semibold ${status.type === 'success' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-red-50 text-red-700 ring-1 ring-red-100'}`}>
               {status.message}
@@ -1710,13 +1715,16 @@ function AdCtaModal({page, cta, onClose}) {
           <button
             type="submit"
             disabled={submitting || status.type === 'success'}
-            className="inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-lg bg-[#000047] px-6 py-4 text-center font-extrabold leading-snug text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-6 inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#3533cd] to-[#00d9e8] px-6 py-4 text-center text-lg font-extrabold leading-snug text-white shadow-lg shadow-cyan-500/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : isPayment ? <CreditCard className="h-5 w-5" /> : <ArrowRight className="h-5 w-5" />}
+            {submitting && <Loader2 className="h-5 w-5 animate-spin" />}
             <span className="min-w-0 break-words">
-              {submitting ? (isPayment ? 'Opening Payment...' : 'Submitting...') : isPayment ? `Pay Rs ${Number(cta.amount) > 0 ? Number(cta.amount) : 99}` : (cta.submitLabel || 'Submit')}
+              {submitting ? (isPayment ? 'Opening Payment...' : 'Submitting...') : submitText}
             </span>
           </button>
+          <p className="mx-auto max-w-xs text-center text-sm leading-5 text-gray-500">
+            By registering, you agree to our terms and conditions
+          </p>
         </form>
       </div>
     </div>
@@ -1726,7 +1734,7 @@ function AdCtaModal({page, cta, onClose}) {
 function AdInput({id, name, label, type = 'text', value, onChange, autoComplete, placeholder}) {
   return (
     <div>
-      <label htmlFor={id} className="mb-2 block text-sm font-bold text-gray-800">{label} *</label>
+      <label htmlFor={id} className="mb-2 block text-sm font-semibold text-gray-700">{label} *</label>
       <input
         id={id}
         name={name}
@@ -1736,7 +1744,7 @@ function AdInput({id, name, label, type = 'text', value, onChange, autoComplete,
         required
         autoComplete={autoComplete}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+        className="w-full rounded-lg border border-gray-300 px-4 py-3.5 text-base text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-[#3533cd] focus:ring-2 focus:ring-[#3533cd]/15"
       />
     </div>
   )

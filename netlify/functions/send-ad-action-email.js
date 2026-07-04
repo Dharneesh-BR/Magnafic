@@ -89,6 +89,41 @@ function selectTemplate(page, ctaKey) {
   return section?.cta?.confirmationEmail
 }
 
+function defaultPaymentTemplate(payload) {
+  const program = payload.program || payload.pageTitle || 'MAGNA Business Program'
+  const amountLine = payload.amount ? `Amount paid: Rs ${payload.amount}` : null
+  const paymentLine = payload.paymentId ? `Payment ID: ${payload.paymentId}` : null
+
+  return {
+    enabled: true,
+    fromName: 'Magnafic',
+    subject: `Registration confirmed for ${program}`,
+    body: [
+      `Hi {{First Name}},`,
+      '',
+      `Thank you for registering for ${program}.`,
+      '',
+      'Your payment has been received successfully and your seat is confirmed.',
+      amountLine,
+      paymentLine,
+      '',
+      'Our team will share the next steps with you shortly.',
+      '',
+      'Regards,',
+      'Team Magnafic',
+    ].filter((line) => line !== null).join('\n'),
+  }
+}
+
+function resolveTemplate(page, payload) {
+  const configuredTemplate = selectTemplate(page, payload.ctaKey)
+  const hasConfiguredContent = configuredTemplate?.enabled && configuredTemplate.subject && configuredTemplate.body
+
+  if (hasConfiguredContent) return configuredTemplate
+  if (payload.actionType === 'payment') return defaultPaymentTemplate(payload)
+  return configuredTemplate
+}
+
 async function fetchPage({pageId, pageSlug}) {
   return sanityClient.fetch(
     `*[_type == "adPages" && (_id == $pageId || slug.current == $pageSlug)][0]{
@@ -190,7 +225,7 @@ export async function handler(event) {
   }
 
   payload.pageTitle = payload.pageTitle || page.title || ''
-  const template = selectTemplate(page, payload.ctaKey)
+  const template = resolveTemplate(page, payload)
 
   if (!template?.enabled) {
     return jsonResponse(200, {success: true, confirmationSent: false, skipped: true, reason: 'Confirmation email is disabled.'})
