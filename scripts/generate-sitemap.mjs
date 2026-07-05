@@ -22,6 +22,9 @@ const staticRoutes = [
   { path: '/founder-community', priority: '0.6', changefreq: 'monthly' },
   { path: '/add', priority: '0.6', changefreq: 'monthly' },
   { path: '/contact', priority: '0.6', changefreq: 'monthly' },
+  { path: '/terms-and-conditions', priority: '0.4', changefreq: 'yearly' },
+  { path: '/privacy-policy', priority: '0.4', changefreq: 'yearly' },
+  { path: '/refund-cancellation-policy', priority: '0.4', changefreq: 'yearly' },
 ]
 
 const mentorClient = createClient({

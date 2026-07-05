@@ -24,6 +24,7 @@ import Contact from './pages/Contact'
 import DescribeProblem from './pages/DescribeProblem'
 import CapabilityDetail from './pages/CapabilityDetail'
 import ServiceDetail from './pages/ServiceDetail'
+import PolicyPage from './pages/PolicyPage'
 import SEO from './components/SEO'
 import ConsultantDashboard from './pages/ConsultantDashboard'
 import ClientDashboard from './pages/ClientDashboard'
@@ -94,6 +95,9 @@ function AppContent() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/capabilities/:id" element={<CapabilityDetail />} />
             <Route path="/services/:id" element={<ServiceDetail />} />
+            <Route path="/terms-and-conditions" element={<PolicyPage type="terms" />} />
+            <Route path="/privacy-policy" element={<PolicyPage type="privacy" />} />
+            <Route path="/refund-cancellation-policy" element={<PolicyPage type="refund" />} />
           </Routes>
         </ErrorBoundary>
       </main>

@@ -55,6 +55,21 @@ export const staticRouteSeo = {
     description:
       'Contact Magnafic to connect with expert consultants, fractional leaders, and AI-enabled growth systems.',
   },
+  '/terms-and-conditions': {
+    title: 'Terms & Conditions',
+    description:
+      'Read Magnafic terms and conditions for using our website, expert services, programs, products, workshops, dashboards, and payment flows.',
+  },
+  '/privacy-policy': {
+    title: 'Privacy Policy',
+    description:
+      'Read how Magnafic collects, uses, shares, protects, and retains personal information across our website, services, dashboards, and programs.',
+  },
+  '/refund-cancellation-policy': {
+    title: 'Refund & Cancellation Policy',
+    description:
+      'Read Magnafic refund and cancellation terms for workshops, programs, consulting services, digital products, and payment transactions.',
+  },
 }
 
 export function absoluteUrl(path = '/') {

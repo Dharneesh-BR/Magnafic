@@ -1723,7 +1723,14 @@ function AdCtaModal({page, cta, onClose}) {
             </span>
           </button>
           <p className="mx-auto max-w-xs text-center text-sm leading-5 text-gray-500">
-            By registering, you agree to our terms and conditions
+            By registering, you agree to our{' '}
+            <a href="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#3533cd] underline underline-offset-2">
+              terms
+            </a>{' '}
+            and{' '}
+            <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#3533cd] underline underline-offset-2">
+              privacy policy
+            </a>
           </p>
         </form>
       </div>
