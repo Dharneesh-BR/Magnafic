@@ -425,14 +425,20 @@ function formatOfferButtonLabel(label = '') {
   }
 }
 
+function getAdButtonLabel(action) {
+  if (!action?.label) return ''
+  return action.action === 'link' ? action.label : 'Submit'
+}
+
 function CtaButton({action, variant = 'primary', twoLine = false, fitContent = false, onOpenCta}) {
   if (!action?.label) return null
 
+  const displayLabel = getAdButtonLabel(action)
   const className = variant === 'secondary'
     ? 'inline-flex w-full min-w-0 items-center justify-center rounded-full border border-white/30 px-5 py-3.5 text-center text-lg font-extrabold leading-snug text-white transition hover:bg-white/10 sm:w-auto sm:px-7 sm:py-4 sm:text-base'
     : `inline-flex min-w-0 items-center justify-center rounded-2xl bg-gradient-to-r from-[#3533cd] to-[#00d9e8] px-10 text-center font-bold leading-7 text-white shadow-[0_16px_30px_rgba(37,99,235,0.25)] transition hover:-translate-y-0.5 ${twoLine ? 'w-full max-w-full py-5 text-xl' : fitContent ? 'w-full max-w-full py-5 text-xl' : 'w-full py-5 text-xl'}`
-  const labelLines = twoLine ? splitButtonLabel(action.label) : []
-  const offerLabel = formatOfferButtonLabel(action.label)
+  const labelLines = twoLine ? splitButtonLabel(displayLabel) : []
+  const offerLabel = formatOfferButtonLabel(displayLabel)
   const labelContent = offerLabel ? (
     <span className="flex min-w-0 flex-col items-center justify-center leading-tight">
       <span className="min-w-0 whitespace-nowrap text-xl font-extrabold leading-7">{offerLabel.main}</span>
@@ -445,7 +451,7 @@ function CtaButton({action, variant = 'primary', twoLine = false, fitContent = f
       ))}
     </span>
   ) : (
-    <span className="min-w-0 break-words">{action.label}</span>
+    <span className="min-w-0 break-words">{displayLabel}</span>
   )
 
   if (action.action === 'link' && action.url) {
@@ -629,6 +635,7 @@ function StickyRegistrationBar({action, settings, countdownCta, onOpenCta}) {
 
   if (settings?.enabled === false || !action?.label) return null
   const displayAction = {...action, label: settings?.buttonLabel || action.label}
+  const displayLabel = getAdButtonLabel(displayAction)
   const offerLabel = formatOfferButtonLabel(displayAction.label)
   const handleClick = () => {
     if (displayAction.action === 'link' && displayAction.url) {
@@ -664,13 +671,13 @@ function StickyRegistrationBar({action, settings, countdownCta, onOpenCta}) {
         <span className="relative z-10 flex min-w-0 flex-col items-center">
           <span className="flex min-w-0 items-center justify-center gap-2 whitespace-nowrap text-xl font-medium">
             <Rocket className="h-5 w-5 shrink-0 text-white" />
-            {offerLabel ? (
+            {offerLabel && displayLabel === displayAction.label ? (
               <>
                 <span className="shrink whitespace-nowrap">{offerLabel.main}</span>
                 <span className="shrink-0 whitespace-nowrap line-through decoration-white decoration-2">{offerLabel.oldPrice}</span>
               </>
             ) : (
-              <span className="min-w-0 whitespace-nowrap">{displayAction.label}</span>
+              <span className="min-w-0 whitespace-nowrap">{displayLabel}</span>
             )}
           </span>
           {durationSeconds > 0 && (
@@ -1686,7 +1693,7 @@ function AdCtaModal({page, cta, onClose}) {
   }
 
   const modalTitle = 'Register for MAGNA Program'
-  const submitText = isPayment ? 'Pay ₹1 & Register' : (cta.submitLabel || 'Register')
+  const submitText = 'Submit'
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 px-4 py-6 backdrop-blur-sm">
@@ -1719,7 +1726,7 @@ function AdCtaModal({page, cta, onClose}) {
           >
             {submitting && <Loader2 className="h-5 w-5 animate-spin" />}
             <span className="min-w-0 break-words">
-              {submitting ? (isPayment ? 'Opening Payment...' : 'Submitting...') : submitText}
+              {submitting ? 'Submitting...' : submitText}
             </span>
           </button>
           <p className="mx-auto max-w-xs text-center text-sm leading-5 text-gray-500">
