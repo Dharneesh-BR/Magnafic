@@ -18,12 +18,20 @@ const personalEmailDomains = new Set([
   'gmail.com',
   'googlemail.com',
   'yahoo.com',
+  'yahoo.co.in',
+  'yahoo.co.uk',
+  'yahoo.in',
   'ymail.com',
   'outlook.com',
+  'outlook.co.in',
+  'outlook.in',
   'hotmail.com',
+  'hotmail.co.in',
+  'hotmail.co.uk',
   'live.com',
   'msn.com',
   'icloud.com',
+  'icloud.in',
   'me.com',
   'mac.com',
   'aol.com',
@@ -34,6 +42,12 @@ const personalEmailDomains = new Set([
   'gmx.com',
   'rediffmail.com',
 ])
+
+function createPersonalEmailError() {
+  const error = new Error('Please use your business email ID. Personal email IDs are not allowed.')
+  error.code = 'auth/personal-email-not-allowed'
+  return error
+}
 
 function nameFromEmail(email = '') {
   const localPart = email.split('@')[0] || ''
@@ -96,8 +110,14 @@ async function getUserProfile(uid, email = '') {
 }
 
 export async function signupClient({ name, company, city, phone, email, password }) {
+  const normalizedEmail = email.trim().toLowerCase()
+
+  if (!isProfessionalEmail(normalizedEmail)) {
+    throw createPersonalEmailError()
+  }
+
   const generatedPassword = password || `Mg-${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}-Aa1!`
-  const credentials = await createUserWithEmailAndPassword(auth, email, generatedPassword)
+  const credentials = await createUserWithEmailAndPassword(auth, normalizedEmail, generatedPassword)
 
   await updateProfile(credentials.user, { displayName: name })
 
@@ -106,7 +126,7 @@ export async function signupClient({ name, company, city, phone, email, password
     company,
     city,
     phone,
-    email,
+    email: normalizedEmail,
     role: 'client',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),

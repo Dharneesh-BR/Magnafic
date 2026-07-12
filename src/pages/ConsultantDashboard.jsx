@@ -664,6 +664,8 @@ export default function ConsultantDashboard() {
             preferredConsultant?._id,
           ].filter(Boolean),
           context: {
+            routeToAdminEmail: true,
+            notificationSource: 'admin-dashboard',
             clientName: referralForm.clientName.trim(),
             company: referralForm.company.trim(),
             clientEmail: referralForm.businessEmail.trim(),

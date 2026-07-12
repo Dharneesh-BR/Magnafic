@@ -8,6 +8,7 @@ const corsHeaders = {
 }
 
 const DEFAULT_SENDER_EMAIL = 'consulting@magnafic.com'
+const ADMIN_NOTIFICATION_EMAIL = 'dharneesh@magnafic.com'
 const AUTHENTICATED_DOMAIN = 'magnafic.com'
 const ALLOWED_EVENT_TYPES = new Set([
   'expert-club-login-created',
@@ -66,6 +67,18 @@ function normalizePayload(body = {}) {
       .map((value) => String(value || '').trim())
       .filter(Boolean))],
     context: body.context && typeof body.context === 'object' ? body.context : {},
+  }
+}
+
+function shouldRouteToAdminEmail(context = {}) {
+  return context.routeToAdminEmail === true || context.notificationSource === 'admin-dashboard'
+}
+
+function getAdminRecipient() {
+  return {
+    id: 'admin-dashboard-notifications',
+    name: 'Dharneesh',
+    email: ADMIN_NOTIFICATION_EMAIL,
   }
 }
 
@@ -366,13 +379,15 @@ export async function handler(event) {
     return jsonResponse(400, {error: 'Notification event type is required.'})
   }
 
-  if (!payload.consultantIds.length) {
+  const routeToAdminEmail = shouldRouteToAdminEmail(payload.context)
+
+  if (!routeToAdminEmail && !payload.consultantIds.length) {
     return jsonResponse(400, {error: 'At least one consultant id is required.'})
   }
 
   try {
-    const sanityRecipients = await getSanityRecipients(payload.consultantIds)
-    const recipients = dedupeRecipients(sanityRecipients)
+    const sanityRecipients = routeToAdminEmail ? [] : await getSanityRecipients(payload.consultantIds)
+    const recipients = routeToAdminEmail ? [getAdminRecipient()] : dedupeRecipients(sanityRecipients)
 
     if (!recipients.length) {
       return jsonResponse(200, {success: true, sentCount: 0, skipped: true, reason: 'No consultant email recipients found.'})

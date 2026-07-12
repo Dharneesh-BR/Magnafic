@@ -1002,6 +1002,8 @@ export default function AdminDashboard() {
           eventType: 'client-assigned',
           consultantIds: [consultant.sanityExpertId].filter(Boolean),
           context: {
+            routeToAdminEmail: true,
+            notificationSource: 'admin-dashboard',
             clientName: brief.clientName || brief.company || 'Client',
             company: brief.company || '',
             clientEmail: brief.clientEmail || brief.businessEmail || '',
@@ -1372,6 +1374,8 @@ export default function AdminDashboard() {
           eventType: 'expert-club-login-created',
           consultantIds: [selectedExpert.id],
           context: {
+            routeToAdminEmail: true,
+            notificationSource: 'admin-dashboard',
             consultantName: selectedExpert.name,
           },
         })

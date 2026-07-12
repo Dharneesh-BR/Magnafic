@@ -5,6 +5,7 @@ import { mentorClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
 import MagnaLoader from '../components/MagnaLoader'
 import DescribeProblemCTA from '../components/DescribeProblemCTA'
+import InsightMeta from '../components/InsightMeta'
 
 function toPlainText(value) {
   if (value === undefined || value === null) return ''
@@ -80,6 +81,10 @@ export default function ServiceDetail() {
             _id,
             title,
             "slug": slug.current,
+            type,
+            category,
+            publishedAt,
+            readTime,
             "imageUrl": mainImage.asset->url
           }`
           const insightsData = await mentorClient.fetch(insightsQuery, { capabilityId: data.capability._id })
@@ -163,6 +168,7 @@ export default function ServiceDetail() {
                 )}
               </div>
               <div className="p-6">
+                <InsightMeta item={insight} className="mb-3" />
                 <h3 className="text-xl font-semibold text-gray-900 transition group-hover:text-primary-600">
                   {insight.title}
                 </h3>

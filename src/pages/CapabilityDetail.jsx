@@ -7,6 +7,7 @@ import { absoluteUrl } from '../lib/seo'
 import MagnaLoader from '../components/MagnaLoader'
 import DescribeProblemCTA from '../components/DescribeProblemCTA'
 import CopilotPromptPanel from '../components/CopilotPromptPanel'
+import InsightMeta from '../components/InsightMeta'
 
 function renderBlockText(block) {
   return block.children?.map(child => {
@@ -155,6 +156,10 @@ export default function CapabilityDetail() {
             _id,
             title,
             "slug": slug.current,
+            type,
+            category,
+            publishedAt,
+            readTime,
             "imageUrl": mainImage.asset->url
           }`
           const insightsData = await mentorClient.fetch(insightsQuery, { capabilityId: data._id })
@@ -270,6 +275,7 @@ export default function CapabilityDetail() {
                 )}
               </div>
               <div className="p-6">
+                <InsightMeta item={insight} className="mb-3" />
                 <h3 className="text-xl font-semibold text-gray-900 transition group-hover:text-primary-600">
                   {insight.title}
                 </h3>

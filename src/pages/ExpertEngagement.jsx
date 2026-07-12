@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import MagnaLoader from '../components/MagnaLoader'
 import SEO from '../components/SEO'
+import InsightMeta from '../components/InsightMeta'
 import { db } from '../lib/firebase'
 import { mentorClient } from '../lib/sanityClient'
 import { notifyConsultants } from '../lib/consultantNotifications'
@@ -451,6 +452,8 @@ function ExpertCallRequest({ expert }) {
           eventType: 'expert-call-request',
           consultantIds: [expert._id],
           context: {
+            routeToAdminEmail: true,
+            notificationSource: 'admin-dashboard',
             clientName: formData.name.trim(),
             clientEmail: formData.email.trim().toLowerCase(),
             contactNo: formData.contactNo.trim(),
@@ -747,6 +750,7 @@ function ExpertInsights({ insights }) {
         </div>
         <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-gray-100/80 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-sm">
           <h2 className="text-xl font-semibold leading-snug text-gray-950">{insight.title}</h2>
+          <InsightMeta item={insight} className="mt-3" />
         </div>
       </div>
       <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400" aria-hidden="true"></div>

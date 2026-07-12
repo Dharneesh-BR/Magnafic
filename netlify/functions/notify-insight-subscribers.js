@@ -70,10 +70,13 @@ function getInsightPayload(body = {}) {
 
   return {
     id: String(payload._id || '').replace(/^drafts\./, ''),
+    isDraft: String(payload._id || '').startsWith('drafts.'),
+    documentType: payload._type || '',
     title: payload.title,
-    excerpt: payload.excerpt || '',
+    excerpt: payload.excerpt || payload.description || '',
     status: payload.status,
     slug,
+    youtubeUrl: payload.youtubeUrl || '',
     publishedAt: payload.publishedAt || payload._updatedAt || new Date().toISOString(),
     updatedAt: payload._updatedAt || payload.updatedAt || payload.publishedAt || '',
   }
@@ -88,25 +91,31 @@ function addDocumentId(ids, value) {
   if (/^[A-Za-z0-9._-]+$/.test(normalizedId)) ids.add(normalizedId)
 }
 
-function collectCandidateDocumentIds(body = {}) {
-  const ids = new Set()
+function collectRawCandidateDocumentIds(body = {}) {
+  const ids = []
   const payload = body.result || body.document || body.after || body
 
-  addDocumentId(ids, payload?._id)
-  addDocumentId(ids, body.documentId)
+  ids.push(payload?._id, body.documentId)
 
   if (body.ids && typeof body.ids === 'object') {
-    Object.values(body.ids).flat().forEach((id) => addDocumentId(ids, id))
+    Object.values(body.ids).flat().forEach((id) => ids.push(id))
   }
 
   if (Array.isArray(body.mutations)) {
     for (const mutation of body.mutations) {
-      addDocumentId(ids, mutation?.create?._id)
-      addDocumentId(ids, mutation?.createOrReplace?._id)
-      addDocumentId(ids, mutation?.patch?.id)
-      addDocumentId(ids, mutation?.delete?.id)
+      ids.push(mutation?.create?._id)
+      ids.push(mutation?.createOrReplace?._id)
+      ids.push(mutation?.patch?.id)
+      ids.push(mutation?.delete?.id)
     }
   }
+
+  return ids.map((id) => String(id || '').trim()).filter(Boolean)
+}
+
+function collectCandidateDocumentIds(body = {}) {
+  const ids = new Set()
+  collectRawCandidateDocumentIds(body).forEach((id) => addDocumentId(ids, id))
 
   return [...ids]
 }
@@ -116,7 +125,10 @@ function isArchivedInsight(insight = {}) {
 }
 
 function canNotifyForInsight(insight = {}) {
-  return Boolean(insight.id && insight.title && !isArchivedInsight(insight))
+  const documentType = String(insight.documentType || '').trim()
+  const isSupportedType = !documentType || documentType === 'blog' || documentType === 'youtubeVideos'
+
+  return Boolean(insight.id && insight.title && isSupportedType && !insight.isDraft && !isArchivedInsight(insight))
 }
 
 async function resolveInsightPayload(body = {}) {
@@ -129,13 +141,24 @@ async function resolveInsightPayload(body = {}) {
   const ids = collectCandidateDocumentIds(body)
   if (!ids.length) return payloadInsight
 
+  const rawIds = collectRawCandidateDocumentIds(body)
+  const hasOnlyDraftIds = rawIds.length > 0 && rawIds.every((id) => id.startsWith('drafts.'))
+  if (hasOnlyDraftIds) {
+    return {
+      ...payloadInsight,
+      isDraft: true,
+    }
+  }
+
   const [sanityInsight] = await getSanityClient().fetch(
-    `*[_type == "blog" && _id in $ids] {
+    `*[_type in ["blog", "youtubeVideos"] && _id in $ids] {
       _id,
+      _type,
       title,
-      excerpt,
+      "excerpt": coalesce(excerpt, description, ""),
       status,
       "slug": slug.current,
+      youtubeUrl,
       publishedAt,
       _updatedAt
     }[0...1]`,
@@ -146,10 +169,13 @@ async function resolveInsightPayload(body = {}) {
 
   return {
     id: normalizeSanityId(sanityInsight._id),
+    isDraft: false,
+    documentType: sanityInsight._type || payloadInsight.documentType || '',
     title: sanityInsight.title || payloadInsight.title,
     excerpt: sanityInsight.excerpt || payloadInsight.excerpt || '',
     status: sanityInsight.status || payloadInsight.status,
     slug: sanityInsight.slug || payloadInsight.slug || '',
+    youtubeUrl: sanityInsight.youtubeUrl || payloadInsight.youtubeUrl || '',
     publishedAt: sanityInsight.publishedAt || sanityInsight._updatedAt || payloadInsight.publishedAt,
     updatedAt: sanityInsight._updatedAt || sanityInsight.publishedAt || payloadInsight.updatedAt || '',
   }
@@ -179,9 +205,10 @@ function getFromEmail() {
 }
 
 function buildSendgridPayload({ insight, subscriber }) {
-  const insightUrl = `${getSiteUrl()}/insights/${insight.slug || insight.id}`
+  const insightUrl = insight.youtubeUrl || `${getSiteUrl()}/insights/${insight.slug || insight.id}`
   const safeTitle = escapeHtml(insight.title)
   const safeExcerpt = escapeHtml(insight.excerpt)
+  const ctaLabel = insight.youtubeUrl ? 'Watch video' : 'Read insight'
 
   return {
     personalizations: [
@@ -208,12 +235,20 @@ function buildSendgridPayload({ insight, subscriber }) {
           <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
             <h1 style="font-size:24px;margin:0 0 12px">${safeTitle}</h1>
             ${safeExcerpt ? `<p style="margin:0 0 20px;color:#4b5563">${safeExcerpt}</p>` : ''}
-            <a href="${insightUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700">Read insight</a>
+            <a href="${insightUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700">${ctaLabel}</a>
           </div>
         `,
       },
     ],
   }
+}
+
+async function getActiveInsightSubscribers() {
+  return getSanityClient().fetch(
+    `*[_type == "insightSubscriber" && status == "active" && defined(email)] {
+      email
+    }`,
+  )
 }
 
 async function sendEmail(payload) {
@@ -309,8 +344,10 @@ export async function handler(event) {
       transaction.set(notificationRef, {
         insightId: insight.id,
         notificationId: getNotificationId(insight),
+        documentType: insight.documentType || '',
         title: insight.title,
         slug: insight.slug,
+        youtubeUrl: insight.youtubeUrl || '',
         publishedAt: insight.publishedAt || '',
         updatedAt: insight.updatedAt || '',
         status: 'sending',
@@ -327,13 +364,7 @@ export async function handler(event) {
       return jsonResponse(200, { skipped: true, reason: claim.reason })
     }
 
-    const subscribersSnapshot = await db
-      .collection('insightSubscribers')
-      .where('status', '==', 'active')
-      .get()
-
-    const subscribers = subscribersSnapshot.docs
-      .map((documentSnapshot) => documentSnapshot.data())
+    const subscribers = (await getActiveInsightSubscribers())
       .filter((subscriber) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(subscriber.email || ''))
 
     const results = []

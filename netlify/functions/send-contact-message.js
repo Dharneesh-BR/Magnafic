@@ -81,8 +81,7 @@ function getFromEmail() {
 }
 
 function getToEmail() {
-  const toEmail = normalizeEmail(process.env.CONTACT_TO_EMAIL || DEFAULT_CONTACT_EMAIL)
-  return isEmail(toEmail) ? toEmail : DEFAULT_CONTACT_EMAIL
+  return DEFAULT_CONTACT_EMAIL
 }
 
 function getSendgridApiKey() {

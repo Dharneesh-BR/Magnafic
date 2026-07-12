@@ -40,13 +40,7 @@ function getFromEmail() {
 }
 
 function getAdminEmail() {
-  const configuredEmail = normalizeEmail(
-    process.env.COMMUNITY_APPLICATION_TO_EMAIL ||
-    process.env.CONTACT_TO_EMAIL ||
-    DEFAULT_ADMIN_EMAIL
-  )
-
-  return isEmail(configuredEmail) ? configuredEmail : DEFAULT_ADMIN_EMAIL
+  return DEFAULT_ADMIN_EMAIL
 }
 
 function isExpertClubApplication(payload) {

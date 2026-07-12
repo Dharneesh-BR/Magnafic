@@ -1,9 +1,10 @@
-import { FileText, Lightbulb, Briefcase, Calendar, PlayCircle, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
+import { FileText, Lightbulb, Briefcase, PlayCircle, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { mentorClient } from '../lib/sanityClient'
 import MagnaLoader from '../components/MagnaLoader'
 import { subscribeToInsights } from '../lib/insightSubscriptions'
+import InsightMeta from '../components/InsightMeta'
 
 export default function Insights() {
   const [activeTab, setActiveTab] = useState('all')
@@ -130,16 +131,6 @@ export default function Insights() {
     return () => window.cancelAnimationFrame(animationFrameId)
   }, [isInsightScrollerPaused, remainingInsights.length])
 
-  const formatDate = (dateString) => {
-    if (!dateString) return ''
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
-  }
-
   const getGradientByType = (type) => {
     switch (type) {
       case 'research':
@@ -215,6 +206,7 @@ export default function Insights() {
         </div>
         <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-gray-100/80 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-sm">
           <h3 className="text-xl font-semibold leading-snug text-gray-950">{item.title}</h3>
+          <InsightMeta item={item} className="mt-3" />
         </div>
       </Link>
       <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400" aria-hidden="true"></div>
@@ -407,18 +399,13 @@ export default function Insights() {
 
                         <div className="p-6">
                           <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
-                            {video.publishedAt && (
-                              <span className="flex items-center">
-                                <Calendar className="h-4 w-4 mr-1" />
-                                {formatDate(video.publishedAt)}
-                              </span>
-                            )}
                             {video.capability?.title && (
                               <span className="rounded-full bg-primary-100 px-3 py-1 text-xs font-semibold text-primary-700">
                                 {video.capability.title}
                               </span>
                             )}
                           </div>
+                          <InsightMeta item={{ ...video, contentKind: 'video', readTime: video.duration }} className="mb-3" />
                           <h3 className="text-xl font-semibold text-gray-900 transition group-hover:text-primary-600">
                             {video.title}
                           </h3>

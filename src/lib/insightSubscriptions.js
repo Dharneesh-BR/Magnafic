@@ -1,6 +1,3 @@
-import {doc, serverTimestamp, setDoc} from 'firebase/firestore'
-import {db} from './firebase'
-
 function normalizeEmail(email = '') {
   return email.trim().toLowerCase()
 }
@@ -16,19 +13,19 @@ export async function subscribeToInsights(email) {
     throw new Error('Please enter a valid email address.')
   }
 
-  const subscriberId = encodeURIComponent(normalizedEmail)
-
-  await setDoc(
-    doc(db, 'insightSubscribers', subscriberId),
-    {
+  const response = await fetch('/.netlify/functions/subscribe-insight', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       email: normalizedEmail,
-      status: 'active',
       source: 'insights-page',
-      subscribedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    },
-    {merge: true},
-  )
+    }),
+  })
+
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}))
+    throw new Error(result.error || 'Unable to subscribe right now.')
+  }
 
   return normalizedEmail
 }

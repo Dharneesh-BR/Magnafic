@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Building2, Mail, MapPin, Phone, User } from 'lucide-react'
 import SEO from '../components/SEO'
-import { signupClient } from '../lib/auth'
+import { isProfessionalEmail, signupClient } from '../lib/auth'
 import { sendClientConfirmation } from '../lib/clientConfirmation'
 import { notifyConsultants } from '../lib/consultantNotifications'
 import { createProblemBriefFromStoredAnswers, PROBLEM_ANSWERS_KEY } from '../lib/dashboard'
@@ -13,6 +13,8 @@ function getSignupErrorMessage(error) {
       return 'This email is already registered. Please log in or use a different email.'
     case 'auth/invalid-email':
       return 'Firebase could not accept this email value.'
+    case 'auth/personal-email-not-allowed':
+      return 'Please use your business email ID. Personal email IDs like Gmail, Hotmail, Outlook, Proton, iCloud, Yahoo, and Rediffmail are not allowed.'
     case 'auth/operation-not-allowed':
       return 'Email submission is not enabled right now. Please try again later.'
     case 'permission-denied':
@@ -45,6 +47,11 @@ export default function ClientSignup() {
     setError('')
 
     try {
+      if (!isProfessionalEmail(form.email)) {
+        setError('Please use your business email ID. Personal email IDs like Gmail, Hotmail, Outlook, Proton, iCloud, Yahoo, and Rediffmail are not allowed.')
+        return
+      }
+
       const hasProblemAnswers = Boolean(localStorage.getItem(PROBLEM_ANSWERS_KEY))
       await signupClient(form)
       let problemBriefCreated = false
@@ -53,12 +60,14 @@ export default function ClientSignup() {
         const problemBrief = await createProblemBriefFromStoredAnswers()
         problemBriefCreated = hasProblemAnswers && Boolean(problemBrief?.briefId)
 
-        if (problemBriefCreated && problemBrief.matchedExpertIds?.length > 0) {
+        if (problemBriefCreated) {
           try {
             await notifyConsultants({
               eventType: 'client-assigned',
-              consultantIds: problemBrief.matchedExpertIds,
+              consultantIds: problemBrief.matchedExpertIds || [],
               context: {
+                routeToAdminEmail: true,
+                notificationSource: 'admin-dashboard',
                 clientName: form.name.trim(),
                 company: form.company.trim(),
                 clientEmail: form.email.trim(),
@@ -148,12 +157,12 @@ export default function ClientSignup() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Email ID</label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Business email ID</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <input
                   required
-                  type="text"
+                  type="email"
                   value={form.email}
                   onChange={event => updateField('email', event.target.value)}
                   className="w-full rounded-xl border border-gray-300 py-3 pl-12 pr-4 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"

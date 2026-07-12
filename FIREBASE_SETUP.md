@@ -280,27 +280,15 @@ await exampleLogout()
 
 ## Insight Subscribers
 
-The Insights page stores email subscribers in Firestore:
+The Insights page stores email subscribers in Sanity as `insightSubscriber` documents through the Netlify Function:
 
 ```text
-insightSubscribers/{encodedEmail}
+/.netlify/functions/subscribe-insight
 ```
 
-Each document contains `email`, `status`, `source`, `subscribedAt`, and `updatedAt`.
+Each Sanity document contains `email`, `status`, `source`, `subscribedAt`, and `updatedAt`.
 
-Allow public subscription writes with a narrow rule like:
-
-```js
-match /insightSubscribers/{subscriberId} {
-  allow create, update: if
-    request.resource.data.email is string &&
-    request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') &&
-    request.resource.data.status == 'active';
-  allow read, delete: if false;
-}
-```
-
-Subscriber notification is handled by the Netlify Function in `netlify/functions/notify-insight-subscribers.js`.
+Firestore is still used by `netlify/functions/notify-insight-subscribers.js` only for notification lock records in `insightNotifications`, so the same insight is not emailed repeatedly.
 
 ### Deploy Insight Notifications
 
@@ -308,20 +296,37 @@ Configure these Netlify environment variables:
 
 ```text
 SENDGRID_API_KEY=SENDGRID_API_KEY
-INSIGHTS_FROM_EMAIL=notifications@magnafic.com
 SITE_URL=https://magnafic.com
+SANITY_WRITE_TOKEN=token-with-write-access
+SANITY_READ_TOKEN=token-with-read-access
 SANITY_WEBHOOK_SECRET=choose-a-long-random-secret
 FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 FIREBASE_PROJECT_ID=magnafic-3eddc
 ```
 
-Create a Sanity webhook for published insights:
+Create a Sanity webhook for published insights and videos:
 
 - Dataset: `production`
-- Filter: `_type == "blog" && status == "published"`
-- Projection/body: full document payload is fine
+- Filter: `_type in ["blog", "youtubeVideos"] && !(_id in path("drafts.**"))`
+- Projection/body:
+
+```groq
+{
+  _id,
+  _type,
+  title,
+  excerpt,
+  description,
+  status,
+  "slug": slug.current,
+  youtubeUrl,
+  publishedAt,
+  _updatedAt
+}
+```
+
 - Method: `POST`
 - URL: `https://YOUR_NETLIFY_SITE.netlify.app/.netlify/functions/notify-insight-subscribers`
 - Header: `x-sanity-webhook-secret: choose-a-long-random-secret`
 
-The function reads active documents from `insightSubscribers`, sends emails via SendGrid, and records one document per sent insight in `insightNotifications/{insightId}`. That prevents the same insight from being emailed twice.
+The function reads active Sanity `insightSubscriber` documents, sends emails via SendGrid, and records one document per sent insight in Firestore `insightNotifications/{insightId}`.

@@ -430,6 +430,29 @@ function getAdButtonLabel(action) {
   return action.action === 'link' ? action.label : 'Submit'
 }
 
+async function sendAdminContactNotification({page, cta, formData}) {
+  try {
+    await fetch('/.netlify/functions/send-contact-message', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        name: formData.name,
+        email: formData.email,
+        contactNo: formData.contactNo,
+        message: [
+          formData.message || 'Ad page form submitted.',
+          '',
+          `Page: ${page.title || page.slug || page._id}`,
+          `CTA: ${cta.sourceLabel || cta.title || 'Ad page form'}`,
+        ].filter(Boolean).join('\n'),
+        sourcePath: `/ads/${page.slug || page._id}`,
+      }),
+    })
+  } catch (emailError) {
+    console.warn('Ad page admin notification email failed:', emailError)
+  }
+}
+
 function CtaButton({action, variant = 'primary', twoLine = false, fitContent = false, onOpenCta}) {
   if (!action?.label) return null
 
@@ -1676,6 +1699,7 @@ function AdCtaModal({page, cta, onClose}) {
         updatedAt: serverTimestamp(),
       })
 
+      await sendAdminContactNotification({page, cta, formData})
       await sendAdActionEmail({
         page,
         cta,

@@ -7,6 +7,7 @@ import { absoluteUrl } from '../lib/seo'
 import MagnaLoader from '../components/MagnaLoader'
 import DescribeProblemCTA from '../components/DescribeProblemCTA'
 import { subscribeToInsights } from '../lib/insightSubscriptions'
+import InsightMeta from '../components/InsightMeta'
 
 function formatDate(dateString) {
   if (!dateString) return ''
@@ -637,6 +638,7 @@ function MoreInsightCard({ insight, isDuplicate = false }) {
         </div>
         <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-gray-100/80 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-sm">
           <h3 className="text-xl font-semibold leading-snug text-gray-950">{insight.title}</h3>
+          <InsightMeta item={insight} className="mt-3" />
         </div>
       </div>
       <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400" aria-hidden="true"></div>
@@ -799,6 +801,8 @@ export default function BlogDetail() {
             "slug": slug.current,
             category,
             type,
+            publishedAt,
+            readTime,
             "imageUrl": mainImage.asset->url,
             capability->{
               title,
