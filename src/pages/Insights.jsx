@@ -1,9 +1,8 @@
-import { FileText, Lightbulb, Briefcase, Calendar, Clock, Share2, Facebook, Linkedin, Twitter, PlayCircle, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
+import { FileText, Lightbulb, Briefcase, Calendar, PlayCircle, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { mentorClient } from '../lib/sanityClient'
 import MagnaLoader from '../components/MagnaLoader'
-import { absoluteUrl } from '../lib/seo'
 import { subscribeToInsights } from '../lib/insightSubscriptions'
 
 export default function Insights() {
@@ -11,7 +10,6 @@ export default function Insights() {
   const [blogs, setBlogs] = useState([])
   const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(true)
-  const [shareMenuOpen, setShareMenuOpen] = useState(null)
   const [subscriberEmail, setSubscriberEmail] = useState('')
   const [subscribing, setSubscribing] = useState(false)
   const [subscriptionStatus, setSubscriptionStatus] = useState({ type: '', message: '' })
@@ -167,50 +165,6 @@ export default function Insights() {
       .join(' ')
   }
 
-  const getTypeLabel = (type) => {
-    switch (type) {
-      case 'research':
-        return 'Research'
-      case 'case-study':
-        return 'Case Study'
-      case 'article':
-        return 'Article'
-      default:
-        return 'Insight'
-    }
-  }
-
-  const handleShare = (platform, item) => {
-    const url = absoluteUrl(`/insights/${item.slug || item._id}`)
-    const linkedinUrl = `${url}?share=${encodeURIComponent((item._updatedAt || item.publishedAt || '').slice(0, 10) || 'latest')}`
-    const title = item.title
-    const text = item.excerpt
-
-    let shareUrl = ''
-
-    switch (platform) {
-      case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`
-        break
-      case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`
-        break
-      case 'linkedin':
-        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(linkedinUrl)}`
-        break
-      case 'copy':
-        navigator.clipboard.writeText(url)
-        alert('Link copied to clipboard!')
-        setShareMenuOpen(null)
-        return
-      default:
-        return
-    }
-
-    window.open(shareUrl, '_blank', 'width=600,height=400')
-    setShareMenuOpen(null)
-  }
-
   const handleSubscribe = async (event) => {
     event.preventDefault()
     setSubscribing(true)
@@ -236,7 +190,7 @@ export default function Insights() {
 
   const InsightCard = ({ item, className = '', isDuplicate = false }) => (
     <article aria-hidden={isDuplicate} className={`group relative overflow-hidden rounded-[1.5rem] bg-white pb-1.5 shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/12 ${className}`}>
-      <Link tabIndex={isDuplicate ? -1 : undefined} to={`/insights/${item.slug || item._id}`} className={`relative block min-h-[28rem] overflow-hidden ${getGradientByType(item.type)}`}>
+      <Link tabIndex={isDuplicate ? -1 : undefined} to={`/insights/${item.slug || item._id}`} className={`relative block aspect-[4/5] overflow-hidden ${getGradientByType(item.type)}`}>
         {getImageUrl(item.imageUrl) ? (
           <img
             src={getImageUrl(item.imageUrl)}
@@ -259,42 +213,10 @@ export default function Insights() {
             <span className="truncate">{item.capability?.title || formatCategory(item.category)}</span>
           </span>
         </div>
-        <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-gray-100/70 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-sm">
+        <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-gray-100/80 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-sm">
           <h3 className="text-xl font-semibold leading-snug text-gray-950">{item.title}</h3>
         </div>
       </Link>
-      {item.experts?.length > 0 && (
-        <div className="border-x border-b border-gray-100 bg-gray-50 px-5 py-4">
-          {item.experts.map((expert) => (
-            <div key={expert._id} className="min-w-0">
-              <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-extrabold uppercase tracking-[0.14em]">
-                <span className="text-gray-900">Author</span>
-                <span className="text-gray-300">|</span>
-                <span className="text-gray-700">{getTypeLabel(item.type)}</span>
-                {item.publishedAt && <span className="text-gray-700">{formatDate(item.publishedAt)}</span>}
-                {item.readTime && <span className="text-gray-700">{item.readTime}</span>}
-              </div>
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-sm font-bold text-primary-700 ring-1 ring-primary-100">
-                  {expert.imageUrl ? (
-                    <img src={expert.imageUrl} alt={expert.fullName} className="h-full w-full object-cover object-center" />
-                  ) : (
-                    <span>{expert.fullName?.split(' ').map((name) => name[0]).join('').slice(0, 2).toUpperCase()}</span>
-                  )}
-                </div>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold text-gray-950">{expert.fullName}</span>
-                  {(expert.headline || expert.currentDesignation || expert.designation) && (
-                    <span className="mt-1 block line-clamp-2 text-xs font-medium leading-5 text-gray-600">
-                      {expert.headline || expert.currentDesignation || expert.designation}
-                    </span>
-                  )}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
       <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400" aria-hidden="true"></div>
     </article>
   )

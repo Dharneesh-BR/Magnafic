@@ -566,7 +566,6 @@ export default function ExpertDetail() {
   const [areProjectsExpanded, setAreProjectsExpanded] = useState(false)
   const [expandedProjectDescriptions, setExpandedProjectDescriptions] = useState({})
   const [shareStatus, setShareStatus] = useState('')
-  const [relatedInsights, setRelatedInsights] = useState([])
 
   useEffect(() => {
     const fetchExpert = async () => {
@@ -668,49 +667,6 @@ export default function ExpertDetail() {
         const data = await mentorClient.fetch(query, { slug })
         setExpert(data)
 
-        if (data?._id) {
-          const insightsQuery = `*[_type == "blog" && status != "archived" && $expertId in experts[]._ref] | order(publishedAt desc, _updatedAt desc) {
-            _id,
-            title,
-            "slug": slug.current,
-            excerpt,
-            type,
-            publishedAt,
-            _updatedAt,
-            readTime,
-            "contentKind": "written",
-            "imageUrl": mainImage.asset->url,
-            capability->{
-              title,
-              "slug": slug.current
-            }
-          }`
-          const videosQuery = `*[_type == "youtubeVideos" && $expertId in experts[]._ref] | order(publishedAt desc, _updatedAt desc) {
-            _id,
-            title,
-            youtubeUrl,
-            "excerpt": description,
-            "type": "video",
-            publishedAt,
-            _updatedAt,
-            "readTime": duration,
-            "contentKind": "video",
-            "imageUrl": thumbnail.asset->url,
-            capability->{
-              title,
-              "slug": slug.current
-            }
-          }`
-          const [insightsData, videosData] = await Promise.all([
-            mentorClient.fetch(insightsQuery, { expertId: data._id }),
-            mentorClient.fetch(videosQuery, { expertId: data._id }),
-          ])
-          const allInsights = [...(insightsData || []), ...(videosData || [])]
-            .sort((a, b) => new Date(b.publishedAt || b._updatedAt || 0) - new Date(a.publishedAt || a._updatedAt || 0))
-          setRelatedInsights(allInsights)
-        } else {
-          setRelatedInsights([])
-        }
       } catch (fetchError) {
         console.error('Error fetching expert:', fetchError)
         setError('We could not load this expert profile right now.')
@@ -931,8 +887,8 @@ export default function ExpertDetail() {
                 <nav className="mt-4 grid grid-cols-3 gap-1.5 sm:max-w-2xl sm:gap-2">
                   {[
                     { id: 'call', label: '1:1 Call', icon: CalendarDays },
-                    { id: 'programs', label: 'Sessions', icon: GraduationCap },
                     { id: 'insights', label: 'Insights', icon: FileText },
+                    { id: 'programs', label: 'Session', icon: GraduationCap },
                   ].map((item) => (
                     <Link
                       key={item.id}
@@ -1216,61 +1172,6 @@ export default function ExpertDetail() {
               </Section>
             )}
 
-            {relatedInsights.length > 0 && (
-              <Section title="Related Insights">
-                <div className="mb-5 flex flex-wrap gap-2">
-                  {assignedCapabilities.map(capability => (
-                    <Link
-                      key={capability._id}
-                      to={`/capabilities/${capability.slug || capability._id}`}
-                      className="rounded-full bg-primary-50 px-3 py-1.5 text-xs font-bold text-primary-700 transition hover:bg-primary-100"
-                    >
-                      {capability.title}
-                    </Link>
-                  ))}
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {relatedInsights.map((insight) => {
-                    const cardClassName = 'group overflow-hidden rounded-lg border border-gray-200 bg-white transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-900/10'
-                    const cardContent = (
-                      <>
-                      <div className="flex aspect-[16/9] items-center justify-center bg-gradient-to-br from-primary-700 to-cyan-500 text-white">
-                        {insight.imageUrl ? (
-                          <img
-                            src={insight.imageUrl}
-                            alt={insight.title}
-                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          insight.contentKind === 'video'
-                            ? <PlayCircle className="h-10 w-10 text-white/80" />
-                            : <FileText className="h-10 w-10 text-white/80" />
-                        )}
-                      </div>
-                      <div className="p-4">
-                        <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-primary-600">
-                          {insight.capability?.title || (insight.contentKind === 'video' ? 'Video' : insight.type || 'Insight')}
-                        </p>
-                        <h3 className="line-clamp-2 font-semibold leading-6 text-gray-950 transition group-hover:text-primary-600">
-                          {insight.title}
-                        </h3>
-                      </div>
-                      </>
-                    )
-
-                    return insight.contentKind === 'video' ? (
-                      <a key={insight._id} href={insight.youtubeUrl} target="_blank" rel="noreferrer" className={cardClassName}>
-                        {cardContent}
-                      </a>
-                    ) : (
-                      <Link key={insight._id} to={`/insights/${insight.slug || insight._id}`} className={cardClassName}>
-                        {cardContent}
-                      </Link>
-                    )
-                  })}
-                </div>
-              </Section>
-            )}
           </main>
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">

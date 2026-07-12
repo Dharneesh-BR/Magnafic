@@ -25,7 +25,7 @@ export default function Home() {
       <AboutMagna />
       <DescribeProblemCTA />
       <HomeInsightsCarousel />
-      <FaqSection />
+      <FaqSection showImage title={"Frequently\nAsked Questions"} intro={"We've got the answers\nyou're looking for."} imageSrc="/faq.png" imageAlt="FAQ illustration" />
     </div>
   )
 }

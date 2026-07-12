@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Bell, Copy, Facebook, FileText, Linkedin, Mail, Share2, Twitter } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Bell, Copy, Facebook, FileText, Linkedin, Mail, Share2, Twitter, User } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
 import { absoluteUrl } from '../lib/seo'
@@ -546,45 +546,175 @@ async function createInsightShareCard({ blog }) {
   })
 }
 
-function ExpertInsightCard({ expert, blog }) {
+function RelatedExpertCard({ expert }) {
   const headline = expert.headline || expert.currentDesignation || expert.designation || 'Expert Mentor'
   const profilePath = expert.slug ? `/experts/${expert.slug}` : `/experts/${expert._id}`
 
   return (
     <Link
       to={profilePath}
-      className="group block overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:border-cyan-200 hover:shadow-xl hover:shadow-primary-900/10"
+      className="group relative flex h-[22rem] w-[17rem] shrink-0 snap-start flex-col overflow-hidden rounded-3xl bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/10 sm:h-[23rem] sm:w-[18rem] lg:w-[calc((100%_-_4rem)/5)]"
     >
-      <div className="px-5 py-4 sm:px-6">
-        <div className="mb-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-extrabold uppercase tracking-[0.14em]">
-          <span className="text-gray-900">Author</span>
-          <span className="text-gray-300">|</span>
-          <span className="text-gray-700">Insight</span>
-          {blog?.readTime && <span className="text-gray-700">{blog.readTime}</span>}
-        </div>
-        <div className="flex min-w-0 items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-sm font-bold text-primary-700 ring-1 ring-primary-100">
-            {expert.imageUrl ? (
-              <img src={expert.imageUrl} alt={expert.fullName} className="h-full w-full object-cover object-center" />
-            ) : (
-              <span>{initials(expert.fullName)}</span>
-            )}
+      <div className="relative h-24 overflow-visible bg-gradient-to-br from-primary-900 via-primary-700 to-cyan-500 sm:h-28">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.22),transparent_30%)]"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,255,255,0.18),transparent_45%,rgba(255,255,255,0.16))]"></div>
+        <img
+          src="/favicon.png"
+          alt=""
+          aria-hidden="true"
+          className="absolute right-3 top-3 h-8 w-8 p-1"
+        />
+        {expert.imageUrl ? (
+          <img
+            src={expert.imageUrl}
+            alt={expert.fullName}
+            className="absolute left-1/2 bottom-4 h-24 w-24 -translate-x-1/2 translate-y-1/2 rounded-full border-4 border-white bg-white object-cover shadow-xl shadow-primary-900/20 transition duration-300 group-hover:scale-105 sm:h-28 sm:w-28"
+          />
+        ) : (
+          <div className="absolute left-1/2 bottom-4 flex h-24 w-24 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-primary-100 shadow-xl shadow-primary-900/20 sm:h-28 sm:w-28">
+            <User className="h-10 w-10 text-primary-600" />
           </div>
-          <span className="min-w-0">
-            <span className="block truncate text-base font-bold text-gray-950">{expert.fullName}</span>
-            {headline && (
-              <span className="mt-1 block line-clamp-3 text-sm font-medium leading-6 text-gray-600">
-                {headline}
-              </span>
-            )}
-          </span>
-        </div>
-        <span className="mt-5 inline-flex w-fit items-center rounded-full bg-primary-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary-900/10 transition group-hover:bg-primary-700">
-          View profile
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col p-4 pt-14 pb-6 text-center sm:p-4 sm:pt-16">
+        <h3 className="line-clamp-2 min-h-[2.75rem] text-lg font-bold leading-tight text-gray-950">{expert.fullName}</h3>
+        {headline ? (
+          <p className="mt-0 line-clamp-3 min-h-[3.35rem] text-[12px] font-medium leading-[18px] text-primary-600">{headline}</p>
+        ) : (
+          <span className="mt-0.5 block min-h-[3.35rem]" aria-hidden="true"></span>
+        )}
+        {expert.totalYearsOfExperience ? (
+          <p className="mt-2 line-clamp-1 min-h-[1rem] text-xs font-bold text-primary-700">
+            {expert.totalYearsOfExperience}+ years experience
+          </p>
+        ) : (
+          <span className="mt-2 block min-h-[1rem]" aria-hidden="true"></span>
+        )}
+        {(expert.location || expert.city) ? (
+          <p className="mt-2 mb-3 line-clamp-1 min-h-[1rem] text-xs font-bold text-primary-700">{expert.location || expert.city}</p>
+        ) : (
+          <span className="mt-2 mb-3 block min-h-[1rem]" aria-hidden="true"></span>
+        )}
+        <span className="mx-auto mt-auto inline-flex items-center justify-center rounded-full bg-[#000047] px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-primary-900/20 transition group-hover:bg-primary-600 group-hover:shadow-primary-600/30">
+          View Profile
+          <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-0.5" />
         </span>
       </div>
-      <div className="h-2 bg-gradient-to-r from-[#3534cd] to-[#00ffff]" aria-hidden="true"></div>
+      <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400"></div>
     </Link>
+  )
+}
+
+function MoreInsightCard({ insight, isDuplicate = false }) {
+  return (
+    <Link
+      aria-hidden={isDuplicate}
+      tabIndex={isDuplicate ? -1 : undefined}
+      to={`/insights/${insight.slug || insight._id}`}
+      className="group relative block w-[86vw] max-w-[23rem] shrink-0 overflow-hidden rounded-[1.5rem] bg-white pb-1.5 shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/12 sm:w-[22rem]"
+    >
+      <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-indigo-500 to-blue-500">
+        {insight.imageUrl ? (
+          <img
+            src={insight.imageUrl}
+            alt={insight.title}
+            className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <FileText className="h-16 w-16 text-white/80" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/5 to-black/35"></div>
+        <div className="absolute right-5 top-5 h-12 w-12">
+          <img src="/favicon.png" alt="" className="h-full w-full object-contain" />
+        </div>
+        <div className="absolute left-5 right-20 top-5">
+          <span className="inline-flex max-w-full items-center justify-center rounded-[1.35rem] border border-white bg-gray-950/65 px-6 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-black/20 backdrop-blur-sm">
+            <span className="truncate">{insight.capability?.title || formatShareCategory(insight.category)}</span>
+          </span>
+        </div>
+        <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-gray-100/80 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-sm">
+          <h3 className="text-xl font-semibold leading-snug text-gray-950">{insight.title}</h3>
+        </div>
+      </div>
+      <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400" aria-hidden="true"></div>
+    </Link>
+  )
+}
+
+function MoreInsightsCarousel({ insights }) {
+  const scrollerRef = useRef(null)
+  const [isPaused, setIsPaused] = useState(false)
+  const shouldAutoScroll = insights.length > 1
+
+  useEffect(() => {
+    if (!shouldAutoScroll || isPaused) return undefined
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+
+    let animationFrameId
+    let previousTimestamp
+
+    const moveCarousel = (timestamp) => {
+      const scroller = scrollerRef.current
+      if (!scroller) return
+
+      if (previousTimestamp === undefined) previousTimestamp = timestamp
+      const elapsedSeconds = Math.min((timestamp - previousTimestamp) / 1000, 0.1)
+      previousTimestamp = timestamp
+
+      const loopWidth = scroller.scrollWidth / 2
+      scroller.scrollLeft += elapsedSeconds * 32
+
+      if (loopWidth > 0 && scroller.scrollLeft >= loopWidth) {
+        scroller.scrollLeft -= loopWidth
+      }
+
+      animationFrameId = window.requestAnimationFrame(moveCarousel)
+    }
+
+    animationFrameId = window.requestAnimationFrame(moveCarousel)
+    return () => window.cancelAnimationFrame(animationFrameId)
+  }, [isPaused, shouldAutoScroll])
+
+  if (!insights.length) return null
+
+  return (
+    <section className="px-4 pb-12 pt-2 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-primary-600">More Insights</p>
+            <h2 className="mt-2 text-2xl font-bold text-gray-950">Continue reading</h2>
+          </div>
+          <Link to="/insights" className="hidden rounded-full bg-primary-50 px-5 py-2.5 text-sm font-bold text-primary-700 transition hover:bg-primary-100 sm:inline-flex">
+            View all insights
+          </Link>
+        </div>
+        <div
+          ref={scrollerRef}
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+          onFocus={() => setIsPaused(true)}
+          onBlur={() => setIsPaused(false)}
+          className="flex overflow-x-auto pb-5 [scrollbar-width:thin] [scrollbar-color:#3533cd_#e8e7fc]"
+        >
+          <div className="flex shrink-0 gap-6 pr-6">
+            {insights.map((insight) => (
+              <MoreInsightCard key={insight._id} insight={insight} />
+            ))}
+          </div>
+          {shouldAutoScroll && (
+            <div className="flex shrink-0 gap-6 pr-6" aria-hidden="true">
+              {insights.map((insight) => (
+                <MoreInsightCard key={`${insight._id}-duplicate`} insight={insight} isDuplicate />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -599,6 +729,7 @@ export default function BlogDetail() {
   const [subscriberEmail, setSubscriberEmail] = useState('')
   const [subscribing, setSubscribing] = useState(false)
   const [subscriptionStatus, setSubscriptionStatus] = useState({ type: '', message: '' })
+  const [moreInsights, setMoreInsights] = useState([])
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -618,8 +749,23 @@ export default function BlogDetail() {
           readTime,
           "imageUrl": mainImage.asset->url,
           capability->{
+            _id,
             title,
-            "slug": slug.current
+            "slug": slug.current,
+            orderedExperts[]->{
+              _id,
+              "slug": slug.current,
+              fullName,
+              "imageUrl": profileImage.asset->url,
+              headline,
+              currentDesignation,
+              designation,
+              currentCompany,
+              company,
+              location,
+              city,
+              totalYearsOfExperience
+            }
           },
           experts[]->{
             _id,
@@ -632,7 +778,8 @@ export default function BlogDetail() {
             currentCompany,
             company,
             location,
-            city
+            city,
+            totalYearsOfExperience
           },
           "content": coalesce(
             content[]{..., asset->{url}},
@@ -645,6 +792,24 @@ export default function BlogDetail() {
 
         const data = await mentorClient.fetch(query, { slug })
         setBlog(data)
+        if (data?._id) {
+          const moreInsightsQuery = `*[_type == "blog" && status != "archived" && _id != $currentId] | order(publishedAt desc, _updatedAt desc)[0...12] {
+            _id,
+            title,
+            "slug": slug.current,
+            category,
+            type,
+            "imageUrl": mainImage.asset->url,
+            capability->{
+              title,
+              "slug": slug.current
+            }
+          }`
+          const moreInsightsData = await mentorClient.fetch(moreInsightsQuery, { currentId: data._id })
+          setMoreInsights(moreInsightsData || [])
+        } else {
+          setMoreInsights([])
+        }
       } catch (fetchError) {
         console.error('Error fetching blog:', fetchError)
         setError('We could not load this insight right now.')
@@ -657,6 +822,15 @@ export default function BlogDetail() {
   }, [slug])
 
   const content = useMemo(() => renderContent(blog?.content), [blog?.content])
+  const relatedExperts = useMemo(() => {
+    const capabilityExperts = Array.isArray(blog?.capability?.orderedExperts) ? blog.capability.orderedExperts : []
+    const fallbackExperts = Array.isArray(blog?.experts) ? blog.experts : []
+    const sourceExperts = capabilityExperts.length > 0 ? capabilityExperts : fallbackExperts
+
+    return sourceExperts.filter((expert, index, experts) => (
+      expert?._id && experts.findIndex((item) => item?._id === expert._id) === index
+    ))
+  }, [blog?.capability?.orderedExperts, blog?.experts])
   const canNativeShare = typeof navigator !== 'undefined' && Boolean(navigator.share)
 
   const handleSubscribe = async (event) => {
@@ -884,16 +1058,6 @@ export default function BlogDetail() {
 
       <section className="px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
-          {blog.experts?.length > 0 && (
-            <section className="mb-10">
-              <div className="grid gap-5">
-                {blog.experts.map((expert) => (
-                  <ExpertInsightCard key={expert._id} expert={expert} blog={blog} />
-                ))}
-              </div>
-            </section>
-          )}
-
           <div className="rounded-3xl bg-white px-5 py-8 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:px-10 sm:py-10 lg:px-14">
             <div className="mx-auto max-w-3xl">
               {content.length > 0 ? (
@@ -954,7 +1118,26 @@ export default function BlogDetail() {
         </div>
       </section>
 
+      {relatedExperts.length > 0 && (
+        <section className="px-4 pb-10 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-5">
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-primary-600">Related Experts</p>
+            </div>
+            <div className="expert-scroller overflow-x-auto pb-7">
+              <div className="flex snap-x snap-mandatory gap-4">
+                {relatedExperts.map((expert) => (
+                  <RelatedExpertCard key={expert._id} expert={expert} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <DescribeProblemCTA />
+
+      <MoreInsightsCarousel insights={moreInsights} />
 
       <section className="px-4 pb-16 text-center sm:px-6 lg:px-8">
         <Link to="/insights" className="inline-flex items-center rounded-full bg-primary-600 px-6 py-3 font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700">

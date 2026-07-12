@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { collection, doc, getDocs, query, serverTimestamp, where, writeBatch } from 'firebase/firestore'
 import { Link, useParams } from 'react-router-dom'
 import {
@@ -24,8 +24,8 @@ import { notifyConsultants } from '../lib/consultantNotifications'
 
 const tabs = [
   { id: 'call', label: '1:1 Call', icon: CalendarDays },
-  { id: 'programs', label: 'Sessions', icon: GraduationCap },
   { id: 'insights', label: 'Insights', icon: FileText },
+  { id: 'programs', label: 'Session', icon: GraduationCap },
 ]
 
 function formatDate(value) {
@@ -125,6 +125,11 @@ export default function ExpertEngagement() {
             currentDesignation,
             designation,
             "imageUrl": profileImage.asset->url,
+            "capabilities": *[_type == "capabilities" && ^._id in orderedExperts[]._ref] | order(coalesce(displayOrder, 9999) asc, title asc) {
+              _id,
+              title,
+              "slug": slug.current
+            },
             recommendations[]{
               name,
               designation,
@@ -139,6 +144,7 @@ export default function ExpertEngagement() {
 
         if (!expertData) throw new Error('Expert not found.')
 
+        const capabilityIds = (expertData.capabilities || []).map((capability) => capability?._id).filter(Boolean)
         const [programData, insightData, videoData] = await Promise.all([
           mentorClient.fetch(
             `*[_type == "programs" && status == "published" && $expertId in mentors[]._ref] | order(featured desc, startDate desc) {
@@ -155,7 +161,7 @@ export default function ExpertEngagement() {
             { expertId: expertData._id }
           ),
           mentorClient.fetch(
-            `*[_type == "blog" && status != "archived" && $expertId in experts[]._ref] | order(publishedAt desc, _updatedAt desc) {
+            `*[_type == "blog" && status != "archived" && ($expertId in experts[]._ref || capability._ref in $capabilityIds)] | order(publishedAt desc, _updatedAt desc) {
               _id,
               title,
               "slug": slug.current,
@@ -165,12 +171,17 @@ export default function ExpertEngagement() {
               _updatedAt,
               readTime,
               "contentKind": "written",
-              "imageUrl": mainImage.asset->url
+              "imageUrl": mainImage.asset->url,
+              capability->{
+                _id,
+                title,
+                "slug": slug.current
+              }
             }`,
-            { expertId: expertData._id }
+            { expertId: expertData._id, capabilityIds }
           ),
           mentorClient.fetch(
-            `*[_type == "youtubeVideos" && $expertId in experts[]._ref] | order(publishedAt desc, _updatedAt desc) {
+            `*[_type == "youtubeVideos" && ($expertId in experts[]._ref || capability._ref in $capabilityIds)] | order(publishedAt desc, _updatedAt desc) {
               _id,
               title,
               youtubeUrl,
@@ -180,9 +191,14 @@ export default function ExpertEngagement() {
               _updatedAt,
               "readTime": duration,
               "contentKind": "video",
-              "imageUrl": thumbnail.asset->url
+              "imageUrl": thumbnail.asset->url,
+              capability->{
+                _id,
+                title,
+                "slug": slug.current
+              }
             }`,
-            { expertId: expertData._id }
+            { expertId: expertData._id, capabilityIds }
           ),
         ])
 
@@ -190,6 +206,7 @@ export default function ExpertEngagement() {
         setExpert(expertData)
         setPrograms(programData || [])
         setInsights([...(insightData || []), ...(videoData || [])]
+          .filter((insight, index, insights) => insight?._id && insights.findIndex((item) => item?._id === insight._id) === index)
           .sort((a, b) => new Date(b.publishedAt || b._updatedAt || 0) - new Date(a.publishedAt || a._updatedAt || 0)))
       } catch (loadError) {
         console.error('Expert engagement page failed:', loadError)
@@ -668,43 +685,120 @@ function ExpertTestimonials({ testimonials = [] }) {
 }
 
 function ExpertInsights({ insights }) {
-  if (!insights.length) return <EmptyState title="No insights published yet" copy="Insights authored by this expert will appear here." />
+  const scrollerRef = useRef(null)
+  const [isPaused, setIsPaused] = useState(false)
+  const shouldAutoScroll = insights.length > 1
+
+  useEffect(() => {
+    if (!shouldAutoScroll || isPaused) return undefined
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+
+    let animationFrameId
+    let previousTimestamp
+
+    const moveCarousel = (timestamp) => {
+      const scroller = scrollerRef.current
+      if (!scroller) return
+
+      if (previousTimestamp === undefined) previousTimestamp = timestamp
+      const elapsedSeconds = Math.min((timestamp - previousTimestamp) / 1000, 0.1)
+      previousTimestamp = timestamp
+
+      const loopWidth = scroller.scrollWidth / 2
+      scroller.scrollLeft += elapsedSeconds * 32
+
+      if (loopWidth > 0 && scroller.scrollLeft >= loopWidth) {
+        scroller.scrollLeft -= loopWidth
+      }
+
+      animationFrameId = window.requestAnimationFrame(moveCarousel)
+    }
+
+    animationFrameId = window.requestAnimationFrame(moveCarousel)
+    return () => window.cancelAnimationFrame(animationFrameId)
+  }, [isPaused, shouldAutoScroll])
+
+  if (!insights.length) return <EmptyState title="No insights published yet" copy="Insights connected to this expert's capabilities will appear here." />
+
+  const renderInsightCard = (insight, isDuplicate = false) => {
+    const cardClassName = 'group relative block w-[86vw] max-w-[23rem] shrink-0 overflow-hidden rounded-[1.5rem] bg-white pb-1.5 shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/12 sm:w-[22rem]'
+    const cardContent = (
+      <>
+      <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-indigo-500 to-blue-500">
+        {insight.imageUrl ? (
+          <img src={insight.imageUrl} alt={insight.title} className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+        ) : insight.contentKind === 'video' ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <PlayCircle className="h-16 w-16 text-white/80" />
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <FileText className="h-16 w-16 text-white/80" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/5 to-black/35"></div>
+        <div className="absolute right-5 top-5 h-12 w-12">
+          <img src="/favicon.png" alt="" className="h-full w-full object-contain" />
+        </div>
+        <div className="absolute left-5 right-20 top-5">
+          <span className="inline-flex max-w-full items-center justify-center rounded-[1.35rem] border border-white bg-gray-950/65 px-6 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-black/20 backdrop-blur-sm">
+            <span className="truncate">{insight.capability?.title || formatProgramType(insight.type || 'insight')}</span>
+          </span>
+        </div>
+        <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-gray-100/80 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-sm">
+          <h2 className="text-xl font-semibold leading-snug text-gray-950">{insight.title}</h2>
+        </div>
+      </div>
+      <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400" aria-hidden="true"></div>
+      </>
+    )
+
+    return insight.contentKind === 'video' ? (
+      <a
+        key={isDuplicate ? `${insight._id}-duplicate` : insight._id}
+        aria-hidden={isDuplicate}
+        tabIndex={isDuplicate ? -1 : undefined}
+        href={insight.youtubeUrl}
+        target="_blank"
+        rel="noreferrer"
+        className={cardClassName}
+      >
+        {cardContent}
+      </a>
+    ) : (
+      <Link
+        key={isDuplicate ? `${insight._id}-duplicate` : insight._id}
+        aria-hidden={isDuplicate}
+        tabIndex={isDuplicate ? -1 : undefined}
+        to={`/insights/${insight.slug || insight._id}`}
+        className={cardClassName}
+      >
+        {cardContent}
+      </Link>
+    )
+  }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {insights.map((insight) => {
-        const cardClassName = 'group overflow-hidden rounded-lg bg-white shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 transition hover:-translate-y-1'
-        const cardContent = (
-          <>
-          <div className="aspect-[16/10] bg-gradient-to-br from-primary-700 to-cyan-500">
-            {insight.imageUrl ? (
-              <img src={insight.imageUrl} alt={insight.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-            ) : insight.contentKind === 'video' ? (
-              <PlayCircle className="mx-auto h-full w-14 text-white/70" />
-            ) : (
-              <FileText className="mx-auto h-full w-14 text-white/70" />
-            )}
+    <section>
+      <h2 className="mb-6 text-2xl font-bold text-gray-900">Articles & Insights</h2>
+      <div
+        ref={scrollerRef}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onFocus={() => setIsPaused(true)}
+        onBlur={() => setIsPaused(false)}
+        className="flex overflow-x-auto pb-5 [scrollbar-width:thin] [scrollbar-color:#3533cd_#e8e7fc]"
+      >
+        <div className="flex shrink-0 gap-6 pr-6">
+          {insights.map((insight) => renderInsightCard(insight))}
+        </div>
+        {shouldAutoScroll && (
+          <div className="flex shrink-0 gap-6 pr-6" aria-hidden="true">
+            {insights.map((insight) => renderInsightCard(insight, true))}
           </div>
-          <div className="p-5">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-primary-600">{formatProgramType(insight.type || 'insight')}</p>
-            <h2 className="mt-2 text-xl font-black text-gray-950">{insight.title}</h2>
-            <p className="mt-3 line-clamp-3 leading-7 text-gray-600">{insight.excerpt}</p>
-            <p className="mt-4 text-sm font-bold text-gray-500">{[formatDate(insight.publishedAt), insight.readTime].filter(Boolean).join(' | ')}</p>
-          </div>
-          </>
-        )
-
-        return insight.contentKind === 'video' ? (
-          <a key={insight._id} href={insight.youtubeUrl} target="_blank" rel="noreferrer" className={cardClassName}>
-            {cardContent}
-          </a>
-        ) : (
-          <Link key={insight._id} to={`/insights/${insight.slug || insight._id}`} className={cardClassName}>
-            {cardContent}
-          </Link>
-        )
-      })}
-    </div>
+        )}
+      </div>
+    </section>
   )
 }
 

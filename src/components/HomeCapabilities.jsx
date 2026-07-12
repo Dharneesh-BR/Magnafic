@@ -73,6 +73,9 @@ export default function HomeCapabilities() {
             <h2 className="text-3xl font-extrabold leading-tight text-blue-900 sm:text-4xl">
               Explore Expert Capabilities
             </h2>
+            <p className="mx-auto my-8 max-w-2xl text-xl font-semibold leading-7 text-gray-700 sm:text-xl lg:text-2xl">
+              Magnafic gives brands on-demand access to experienced CPG Leaders, Fractional CXOs & Agentic AI systems tailored to their exact stage of growth. 
+            </p>
           </div>
         </div>
 
