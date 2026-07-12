@@ -5,10 +5,11 @@ Insight subscribers are now stored in Sanity as `insightSubscriber` documents.
 ## Required Netlify environment variables
 
 - `SANITY_WRITE_TOKEN`: Sanity token with write access. Used by `/.netlify/functions/subscribe-insight`.
-- `SANITY_READ_TOKEN` or `SANITY_API_READ_TOKEN`: Optional if the dataset is public, but recommended. Used by notification functions.
+- `SANITY_READ_TOKEN` or `SANITY_API_READ_TOKEN`: Optional if the dataset is public, but recommended.
 - `SENDGRID_API_KEY`: Sends subscriber notification emails.
-- `FIREBASE_SERVICE_ACCOUNT_KEY`: Still used by `notify-insight-subscribers` to keep notification locks in Firestore and avoid duplicate sends.
 - `SANITY_WEBHOOK_SECRET`: Optional shared secret for the Sanity webhook.
+
+`notify-insight-subscribers` uses Sanity `insightNotification` documents for duplicate-send prevention and delivery history. Firebase is not required for this insight notification flow.
 
 ## Sanity webhook
 

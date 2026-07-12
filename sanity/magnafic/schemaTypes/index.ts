@@ -15,6 +15,7 @@ import { researchSessionSchema } from './researchSession'
 import { usageTrackingSchema } from './usageTracking'
 import { workflowSchema } from './workflow'
 import { insightSubscriberSchema } from './insightSubscriber'
+import { insightNotificationSchema } from './insightNotification'
 
 export const schemaTypes = [
   mentorSchema,
@@ -33,5 +34,6 @@ export const schemaTypes = [
   usageTrackingSchema,
   workflowSchema,
   insightSubscriberSchema,
+  insightNotificationSchema,
   homePageSettingsSchema,
 ]

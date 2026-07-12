@@ -288,7 +288,7 @@ The Insights page stores email subscribers in Sanity as `insightSubscriber` docu
 
 Each Sanity document contains `email`, `status`, `source`, `subscribedAt`, and `updatedAt`.
 
-Firestore is still used by `netlify/functions/notify-insight-subscribers.js` only for notification lock records in `insightNotifications`, so the same insight is not emailed repeatedly.
+The notification function also stores delivery lock/history records in Sanity as `insightNotification` documents, so Firebase is not required for this flow.
 
 ### Deploy Insight Notifications
 
@@ -300,8 +300,6 @@ SITE_URL=https://magnafic.com
 SANITY_WRITE_TOKEN=token-with-write-access
 SANITY_READ_TOKEN=token-with-read-access
 SANITY_WEBHOOK_SECRET=choose-a-long-random-secret
-FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
-FIREBASE_PROJECT_ID=magnafic-3eddc
 ```
 
 Create a Sanity webhook for published insights and videos:
@@ -329,4 +327,4 @@ Create a Sanity webhook for published insights and videos:
 - URL: `https://YOUR_NETLIFY_SITE.netlify.app/.netlify/functions/notify-insight-subscribers`
 - Header: `x-sanity-webhook-secret: choose-a-long-random-secret`
 
-The function reads active Sanity `insightSubscriber` documents, sends emails via SendGrid, and records one document per sent insight in Firestore `insightNotifications/{insightId}`.
+The function reads active Sanity `insightSubscriber` documents, sends emails via SendGrid, and records one Sanity `insightNotification` document per sent insight.

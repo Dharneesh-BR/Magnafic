@@ -1,5 +1,3 @@
-import { cert, getApps, initializeApp } from 'firebase-admin/app'
-import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { createClient } from '@sanity/client'
 
 const DEFAULT_SENDER_EMAIL = 'dharneesh@magnafic.com'
@@ -15,6 +13,13 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
+function getSanityToken() {
+  return process.env.SANITY_WRITE_TOKEN ||
+    process.env.SANITY_API_WRITE_TOKEN ||
+    process.env.SANITY_API_TOKEN ||
+    ''
+}
+
 function jsonResponse(statusCode, body) {
   return {
     statusCode,
@@ -23,44 +28,13 @@ function jsonResponse(statusCode, body) {
   }
 }
 
-function getServiceAccount() {
-  const rawKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-
-  if (!rawKey) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY is not configured.')
-  }
-
-  const serviceAccount = rawKey.trim().startsWith('{')
-    ? JSON.parse(rawKey)
-    : JSON.parse(Buffer.from(rawKey, 'base64').toString('utf8'))
-
-  if (serviceAccount.private_key) {
-    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n')
-  }
-
-  return serviceAccount
-}
-
-function getDb() {
-  if (!getApps().length) {
-    const serviceAccount = getServiceAccount()
-
-    initializeApp({
-      credential: cert(serviceAccount),
-      projectId: serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID,
-    })
-  }
-
-  return getFirestore()
-}
-
 function getSanityClient() {
   return createClient({
     projectId: process.env.SANITY_PROJECT_ID || SANITY_PROJECT_ID,
     dataset: process.env.SANITY_DATASET || SANITY_DATASET,
     apiVersion: '2024-01-01',
     useCdn: false,
-    token: process.env.SANITY_READ_TOKEN || process.env.SANITY_API_READ_TOKEN || process.env.SANITY_API_TOKEN,
+    token: getSanityToken(),
   })
 }
 
@@ -184,7 +158,7 @@ async function resolveInsightPayload(body = {}) {
 function getNotificationId(insight = {}) {
   const version = insight.updatedAt || insight.publishedAt || ''
   const key = version ? `${insight.id}-${version}` : insight.id
-  return key.replace(/[^A-Za-z0-9._-]/g, '-').slice(0, 140)
+  return `insightNotification.${key.replace(/[^A-Za-z0-9._-]/g, '-').slice(0, 120)}`
 }
 
 function escapeHtml(value = '') {
@@ -251,6 +225,62 @@ async function getActiveInsightSubscribers() {
   )
 }
 
+function toDate(value) {
+  if (!value) return null
+  const date = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function getNowIso() {
+  return new Date().toISOString()
+}
+
+async function claimNotification({ sanity, notificationId, insight }) {
+  const existing = await sanity.getDocument(notificationId)
+  const attempts = Number(existing?.attempts || 0)
+  const updatedAt = toDate(existing?.updatedAt)
+  const lockExpired = !updatedAt ||
+    Date.now() - updatedAt.getTime() > SENDING_LOCK_MINUTES * 60 * 1000
+
+  if (existing?.status === 'sent') return { shouldSend: false, reason: 'Already notified' }
+  if (existing?.status === 'sending' && !lockExpired) {
+    return { shouldSend: false, reason: 'Notification already in progress' }
+  }
+  if (attempts >= MAX_SEND_ATTEMPTS) {
+    return { shouldSend: false, reason: 'Maximum delivery attempts reached' }
+  }
+
+  const now = getNowIso()
+  await sanity.createOrReplace({
+    _id: notificationId,
+    _type: 'insightNotification',
+    notificationId,
+    insightId: insight.id,
+    documentType: insight.documentType || '',
+    title: insight.title,
+    slug: insight.slug,
+    youtubeUrl: insight.youtubeUrl || '',
+    publishedAt: insight.publishedAt || '',
+    status: 'sending',
+    attempts: attempts + 1,
+    lastError: '',
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+  })
+
+  return { shouldSend: true, attempts: attempts + 1 }
+}
+
+async function updateNotificationResult({ sanity, notificationId, patch }) {
+  await sanity
+    .patch(notificationId)
+    .set({
+      ...patch,
+      updatedAt: getNowIso(),
+    })
+    .commit()
+}
+
 async function sendEmail(payload) {
   const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
@@ -289,7 +319,7 @@ export async function handler(event) {
 
   const missingConfiguration = [
     !process.env.SENDGRID_API_KEY && 'SENDGRID_API_KEY',
-    !process.env.FIREBASE_SERVICE_ACCOUNT_KEY && 'FIREBASE_SERVICE_ACCOUNT_KEY',
+    !getSanityToken() && 'SANITY_WRITE_TOKEN',
   ].filter(Boolean)
 
   if (missingConfiguration.length) {
@@ -320,45 +350,11 @@ export async function handler(event) {
     })
   }
 
-  let notificationRef = null
+  const sanity = getSanityClient()
+  const notificationId = getNotificationId(insight)
 
   try {
-    const db = getDb()
-    notificationRef = db.collection('insightNotifications').doc(getNotificationId(insight))
-    const claim = await db.runTransaction(async (transaction) => {
-      const notificationSnapshot = await transaction.get(notificationRef)
-      const existing = notificationSnapshot.exists ? notificationSnapshot.data() : {}
-      const attempts = Number(existing.attempts || 0)
-      const updatedAt = existing.updatedAt?.toDate?.()
-      const lockExpired = !updatedAt ||
-        Date.now() - updatedAt.getTime() > SENDING_LOCK_MINUTES * 60 * 1000
-
-      if (existing.status === 'sent') return { shouldSend: false, reason: 'Already notified' }
-      if (existing.status === 'sending' && !lockExpired) {
-        return { shouldSend: false, reason: 'Notification already in progress' }
-      }
-      if (attempts >= MAX_SEND_ATTEMPTS) {
-        return { shouldSend: false, reason: 'Maximum delivery attempts reached' }
-      }
-
-      transaction.set(notificationRef, {
-        insightId: insight.id,
-        notificationId: getNotificationId(insight),
-        documentType: insight.documentType || '',
-        title: insight.title,
-        slug: insight.slug,
-        youtubeUrl: insight.youtubeUrl || '',
-        publishedAt: insight.publishedAt || '',
-        updatedAt: insight.updatedAt || '',
-        status: 'sending',
-        attempts: attempts + 1,
-        lastError: '',
-        createdAt: existing.createdAt || FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      }, { merge: true })
-
-      return { shouldSend: true, attempts: attempts + 1 }
-    })
+    const claim = await claimNotification({ sanity, notificationId, insight })
 
     if (!claim.shouldSend) {
       return jsonResponse(200, { skipped: true, reason: claim.reason })
@@ -385,15 +381,18 @@ export async function handler(event) {
     const failures = results.filter((result) => result.status === 'rejected')
     const failedCount = failures.length
 
-    await notificationRef.set({
-      status: failedCount > 0 ? 'sent_with_errors' : 'sent',
-      subscriberCount: subscribers.length,
-      sentCount,
-      failedCount,
-      failures: failures.slice(0, 25),
-      sentAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true })
+    await updateNotificationResult({
+      sanity,
+      notificationId,
+      patch: {
+        status: failedCount > 0 ? 'sent_with_errors' : 'sent',
+        subscriberCount: subscribers.length,
+        sentCount,
+        failedCount,
+        failures: failures.slice(0, 25),
+        sentAt: getNowIso(),
+      },
+    })
 
     return jsonResponse(200, {
       insightId: insight.id,
@@ -405,12 +404,15 @@ export async function handler(event) {
   } catch (error) {
     console.error('Insight subscriber notification failed:', error)
 
-    if (notificationRef) {
-      await notificationRef.set({
-        status: 'failed',
-        lastError: error?.message || String(error),
-        updatedAt: FieldValue.serverTimestamp(),
-      }, { merge: true }).catch(() => {})
+    if (notificationId) {
+      await updateNotificationResult({
+        sanity,
+        notificationId,
+        patch: {
+          status: 'failed',
+          lastError: error?.message || String(error),
+        },
+      }).catch(() => {})
     }
 
     return jsonResponse(500, {
