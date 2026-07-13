@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, ChevronDown, FileText, Lightbulb, User } from 'lucide-react'
+import { ArrowRight, Briefcase, ChevronDown, FileText, Lightbulb, User } from 'lucide-react'
 import { mentorClient } from '../lib/sanityClient'
 import SEO from '../components/SEO'
 import { absoluteUrl } from '../lib/seo'
@@ -94,6 +94,34 @@ function renderTextParagraphs(text = '') {
     .split(/\n{2,}/)
     .map(paragraph => paragraph.trim())
     .filter(Boolean)
+}
+
+function formatInsightCategory(category) {
+  if (!category) return 'Insight'
+
+  return category
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function getInsightGradient(type) {
+  switch (type) {
+    case 'research':
+      return 'bg-gradient-to-br from-blue-500 to-purple-500'
+    case 'article':
+      return 'bg-gradient-to-br from-green-500 to-teal-500'
+    case 'case-study':
+      return 'bg-gradient-to-br from-orange-500 to-red-500'
+    default:
+      return 'bg-gradient-to-br from-indigo-500 to-blue-500'
+  }
+}
+
+function InsightFallbackIcon({ type }) {
+  if (type === 'research') return <Lightbulb className="h-16 w-16 text-white/80" />
+  if (type === 'case-study') return <Briefcase className="h-16 w-16 text-white/80" />
+  return <FileText className="h-16 w-16 text-white/80" />
 }
 
 export default function CapabilityDetail() {
@@ -258,29 +286,35 @@ export default function CapabilityDetail() {
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {insights.map((insight) => (
-            <Link
-              key={insight._id}
-              to={`/insights/${insight.slug || insight._id}`}
-              className="group overflow-hidden rounded-2xl bg-white shadow-lg transition hover:-translate-y-1 hover:shadow-xl"
-            >
-              <div className="flex h-48 items-center justify-center bg-gradient-to-br from-primary-700 to-cyan-500">
+            <article key={insight._id} className="group relative overflow-hidden rounded-[1.5rem] bg-white pb-1.5 shadow-lg shadow-primary-900/5 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-900/12">
+              <Link to={`/insights/${insight.slug || insight._id}`} className={`relative block aspect-[4/5] overflow-hidden ${getInsightGradient(insight.type)}`}>
                 {insight.imageUrl ? (
                   <img
                     src={insight.imageUrl}
                     alt={insight.title}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   />
                 ) : (
-                  <FileText className="h-16 w-16 text-white/80" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <InsightFallbackIcon type={insight.type} />
+                  </div>
                 )}
-              </div>
-              <div className="p-6">
-                <InsightMeta item={insight} className="mb-3" />
-                <h3 className="text-xl font-semibold text-gray-900 transition group-hover:text-primary-600">
-                  {insight.title}
-                </h3>
-              </div>
-            </Link>
+                <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/5 to-black/35"></div>
+                <div className="absolute right-5 top-5 h-12 w-12">
+                  <img src="/favicon.png" alt="" className="h-full w-full object-contain" />
+                </div>
+                <div className="absolute left-5 right-20 top-5">
+                  <span className="inline-flex max-w-full items-center justify-center rounded-[1.35rem] border border-white bg-gray-950/65 px-6 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-black/20 backdrop-blur-sm">
+                    <span className="truncate">{formatInsightCategory(insight.category)}</span>
+                  </span>
+                </div>
+                <div className="absolute bottom-6 left-5 right-5 rounded-[1.5rem] bg-gray-100/80 p-5 text-gray-950 shadow-2xl shadow-primary-950/15 backdrop-blur-sm">
+                  <h3 className="text-xl font-semibold leading-snug text-gray-950">{insight.title}</h3>
+                  <InsightMeta item={insight} className="mt-3" />
+                </div>
+              </Link>
+              <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-cyan-400" aria-hidden="true"></div>
+            </article>
           ))}
         </div>
       </div>

@@ -257,6 +257,7 @@ export default function AdminDashboard() {
   const [schedulePlatformDrafts, setSchedulePlatformDrafts] = useState({})
   const [allocationDrafts, setAllocationDrafts] = useState({})
   const [questionnaireDetails, setQuestionnaireDetails] = useState(null)
+  const [selectedContactMessage, setSelectedContactMessage] = useState(null)
   const [paymentDraft, setPaymentDraft] = useState(null)
   const [savingPayment, setSavingPayment] = useState(false)
   const [credentialDraft, setCredentialDraft] = useState(null)
@@ -554,6 +555,8 @@ export default function AdminDashboard() {
         actor: message.email || message.contactNo || '',
         createdAt: message.createdAt,
         viewId: 'notifications',
+        contactMessageId: message.id,
+        contactMessage: message,
       })
     })
 
@@ -774,6 +777,19 @@ export default function AdminDashboard() {
   const openAdminView = (viewId) => {
     setActiveView(viewId)
     if (viewId === 'notifications') markNotificationsSeen()
+    navigate('/admin')
+  }
+
+  const openContactMessageDetails = (activity) => {
+    const contactMessage = activity.contactMessage || contactMessages.find((message) => message.id === activity.contactMessageId)
+    if (!contactMessage) {
+      openAdminView(activity.viewId)
+      return
+    }
+
+    setSelectedContactMessage(contactMessage)
+    setActiveView('notifications')
+    markNotificationsSeen()
     navigate('/admin')
   }
 
@@ -2078,7 +2094,11 @@ export default function AdminDashboard() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => openAdminView(activity.viewId)}
+                            onClick={() => (
+                              activity.type === 'contact'
+                                ? openContactMessageDetails(activity)
+                                : openAdminView(activity.viewId)
+                            )}
                             className="inline-flex w-fit items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-bold text-primary-700 ring-1 ring-primary-100 transition hover:bg-primary-50"
                           >
                             View
@@ -3100,6 +3120,65 @@ export default function AdminDashboard() {
                 ))}
               </div>
             )}
+          </section>
+        </div>
+      )}
+      {selectedContactMessage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/60 px-4 py-6">
+          <section className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl shadow-primary-950/30 sm:p-7">
+            <div className="mb-6 flex flex-col gap-4 border-b border-gray-100 pb-5 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-600">Contact Form Message</p>
+                <h2 className="mt-2 break-words text-2xl font-bold text-gray-950">{selectedContactMessage.name || 'Website visitor'}</h2>
+                <p className="mt-1 text-sm font-medium text-gray-500">{formatDateTime(selectedContactMessage.createdAt)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedContactMessage(null)}
+                className="inline-flex items-center justify-center rounded-xl bg-gray-100 px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid gap-3 text-sm font-medium text-gray-700 sm:grid-cols-2">
+              <p className="rounded-2xl bg-blue-50 p-4 ring-1 ring-blue-100">
+                <span className="block font-bold text-blue-950">Name</span>
+                {selectedContactMessage.name || 'Not provided'}
+              </p>
+              <p className="rounded-2xl bg-cyan-50 p-4 ring-1 ring-cyan-100">
+                <span className="block font-bold text-cyan-950">Email</span>
+                <span className="break-words">{selectedContactMessage.email || 'Not provided'}</span>
+              </p>
+              <p className="rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
+                <span className="block font-bold text-emerald-950">Contact Number</span>
+                {selectedContactMessage.contactNo || 'Not provided'}
+              </p>
+              <p className="rounded-2xl bg-indigo-50 p-4 ring-1 ring-indigo-100">
+                <span className="block font-bold text-indigo-950">Submitted From</span>
+                {selectedContactMessage.sourcePath || '/contact'}
+              </p>
+              <p className="rounded-2xl bg-purple-50 p-4 ring-1 ring-purple-100">
+                <span className="block font-bold text-purple-950">Admin Email Sent To</span>
+                <span className="break-words">{selectedContactMessage.toEmail || 'Not recorded'}</span>
+              </p>
+              <p className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
+                <span className="block font-bold text-amber-950">User Confirmation</span>
+                {selectedContactMessage.clientConfirmationSent ? 'Sent' : 'Not sent or not recorded'}
+              </p>
+            </div>
+
+            <div className="mt-5 rounded-2xl bg-gray-50 p-5 ring-1 ring-gray-100">
+              <span className="block text-sm font-bold text-gray-950">Message</span>
+              <p className="mt-3 whitespace-pre-wrap break-words text-base font-medium leading-7 text-gray-700">
+                {selectedContactMessage.message || 'No message provided.'}
+              </p>
+            </div>
+
+            <div className="mt-5 grid gap-3 text-xs font-bold uppercase tracking-[0.12em] text-gray-500 sm:grid-cols-2">
+              <p className="rounded-2xl border border-gray-100 p-4">Status: {selectedContactMessage.status || 'sent'}</p>
+              <p className="rounded-2xl border border-gray-100 p-4">Channel: {selectedContactMessage.channel || 'not recorded'}</p>
+            </div>
           </section>
         </div>
       )}

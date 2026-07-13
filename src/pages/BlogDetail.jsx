@@ -1060,7 +1060,13 @@ export default function BlogDetail() {
         </div>
       </section>
 
-      <section className="px-4 py-14 sm:px-6 lg:px-8">
+      <section className="bg-white px-4 py-4 shadow-sm shadow-primary-900/5 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <InsightMeta item={blog} className="justify-center text-[11px]" />
+        </div>
+      </section>
+
+      <section className="px-4 pt-6 pb-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
           <div className="rounded-3xl bg-white px-5 py-8 shadow-xl shadow-primary-900/5 ring-1 ring-gray-100 sm:px-10 sm:py-10 lg:px-14">
             <div className="mx-auto max-w-3xl">

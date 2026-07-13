@@ -37,13 +37,13 @@ export default function InsightMeta({ item, className = '', tone = 'light' }) {
 
   if (!items.length) return null
 
-  const textClass = tone === 'dark' ? 'text-white/85' : 'text-gray-600'
+  const textClass = tone === 'dark' ? 'text-black' : 'text-black'
   const summary = items.join(' | ').toUpperCase()
 
   return (
-    <div title={summary} className={`flex min-w-0 max-w-full flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap text-xs font-black uppercase tracking-[0.18em] ${textClass} ${className}`}>
+    <div title={summary} className={`flex min-w-0 max-w-full flex-nowrap items-center gap-2 overflow-hidden whitespace-nowrap text-[10px] font-black uppercase tracking-[0.14em] ${textClass} ${className}`}>
       {items.map((value) => (
-        <span key={value} className="min-w-0 truncate after:ml-3 after:text-gray-300 after:content-['|'] last:after:hidden">
+        <span key={value} className="min-w-0 truncate after:ml-2 after:text-gray-300 after:content-['|'] last:after:hidden">
           {value}
         </span>
       ))}
