@@ -269,7 +269,7 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
   const websiteDisplay = 'www.magnafic.com'
   const websiteUrl = 'https://www.magnafic.com'
   const safeWebsiteUrl = escapeHtmlAttribute(websiteUrl)
-  const safeLogoUrl = escapeHtmlAttribute(`${siteUrl}/favicon.ico`)
+  const safeLogoUrl = escapeHtmlAttribute(`${siteUrl}/M_logo.png`)
   const metaItems = getInsightMetaItems(insight)
   const emailBodyParagraphs = splitTextParagraphs(insight.emailBody)
 
