@@ -367,16 +367,14 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
     <div class="insight-email-shell" style="margin:0;background:#f3f7fb;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;color:#102033">
       <div class="insight-email-container" style="max-width:640px;margin:0 auto">
         <div class="insight-email-header" style="padding:0 0 16px;text-align:center">
-          <img src="${safeLogoUrl}" alt="${SITE_NAME}" width="34" height="34" style="display:block;width:34px;height:34px;margin:0 auto 10px;border:0" />
+          <img src="${safeLogoUrl}" alt="${SITE_NAME}" width="34" height="34" draggable="false" style="display:block;width:34px;height:34px;margin:0 auto 10px;border:0;pointer-events:none;user-select:none;-webkit-user-drag:none" />
           <div class="insight-email-eyebrow" style="font-size:14px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;color:#007f9f">${SITE_NAME} Insights</div>
           <div class="insight-email-subtitle" style="margin-top:4px;font-size:14px;line-height:1.5;color:#5d6b7a">Fresh thinking for consumer brands, growth, AI, and execution.</div>
         </div>
 
         <div class="insight-email-card" style="overflow:hidden;border:1px solid #dbe7ef;border-radius:18px;background:#ffffff;box-shadow:0 14px 32px rgba(16,32,51,0.08)">
           ${safeImageUrl ? `
-            <a href="${safeUrl}" style="display:block;text-decoration:none">
-              <img src="${safeImageUrl}" alt="${safeImageAlt}" style="display:block;width:100%;max-width:640px;height:auto;border:0" />
-            </a>
+            <img src="${safeImageUrl}" alt="${safeImageAlt}" draggable="false" style="display:block;width:100%;max-width:640px;height:auto;border:0;pointer-events:none;user-select:none;-webkit-user-drag:none" />
           ` : ''}
 
           <div class="insight-email-body" style="padding:28px">
@@ -389,7 +387,7 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
             <h1 class="insight-email-title" style="margin:0 0 14px;font-size:28px;line-height:1.18;color:#102033">${safeTitle}</h1>
             ${safeExcerpt ? `<p class="insight-email-excerpt" style="margin:0 0 24px;font-size:16px;line-height:1.65;color:#516070">${safeExcerpt}</p>` : ''}
             ${safeEmailImageUrl ? `
-              <img class="insight-email-custom-image" src="${safeEmailImageUrl}" alt="${safeEmailImageAlt}" style="display:block;width:100%;max-width:560px;height:auto;margin:0 0 24px;border:0;border-radius:14px" />
+              <img class="insight-email-custom-image" src="${safeEmailImageUrl}" alt="${safeEmailImageAlt}" draggable="false" style="display:block;width:100%;max-width:560px;height:auto;margin:0 0 24px;border:0;border-radius:14px;pointer-events:none;user-select:none;-webkit-user-drag:none" />
             ` : ''}
             ${emailBodyParagraphs.length ? `
               <div class="insight-email-custom-body" style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#334155">
@@ -400,7 +398,7 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
             <a class="insight-email-button" href="${safeUrl}" style="display:inline-block;border-radius:999px;background:#000047;color:#ffffff;font-size:15px;font-weight:800;line-height:1;text-decoration:none;padding:15px 22px">${escapeHtml(ctaLabel)}</a>
 
             <div class="insight-email-footer" style="margin-top:26px;padding-top:20px;border-top:1px solid #e6eef4;font-size:12px;line-height:1.6;color:#6b7785;text-align:center">
-              <img class="insight-email-footer-logo" src="${safeLogoUrl}" alt="${SITE_NAME}" width="34" height="34" style="display:block;width:34px;height:34px;margin:0 auto 10px;border:0" />
+              <img class="insight-email-footer-logo" src="${safeLogoUrl}" alt="${SITE_NAME}" width="34" height="34" draggable="false" style="display:block;width:34px;height:34px;margin:0 auto 10px;border:0;pointer-events:none;user-select:none;-webkit-user-drag:none" />
               <div style="font-size:15px;font-weight:800;line-height:1.3;color:#102033">${SITE_NAME}</div>
               <div style="margin-top:2px;font-size:12px;line-height:1.5;color:#516070">Top 1% Business Consulting</div>
               <a href="${safeWebsiteUrl}" style="display:inline-block;margin-top:6px;color:#007f9f;font-size:12px;font-weight:700;text-decoration:none">${escapeHtml(websiteDisplay)}</a>
