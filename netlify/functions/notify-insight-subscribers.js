@@ -421,9 +421,9 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel, subscriber }) {
 
             <div class="insight-email-footer" style="margin-top:26px;padding-top:20px;border-top:1px solid #e6eef4;font-size:12px;line-height:1.6;color:#6b7785;text-align:center">
               <img class="insight-email-footer-logo" src="${safeLogoUrl}" alt="${SITE_NAME}" width="34" height="34" draggable="false" style="display:block;width:34px;height:34px;margin:0 auto 10px;border:0;pointer-events:none;user-select:none;-webkit-user-drag:none" />
-              <div style="font-size:15px;font-weight:800;line-height:1.3;color:#102033">${SITE_NAME}</div>
+              <div style="font-size:15px;font-weight:800;line-height:1.3;color:#000047">${SITE_NAME}</div>
               <div style="margin-top:2px;font-size:12px;line-height:1.5;color:#516070">Top 1% Business Consulting</div>
-              <a href="${safeWebsiteUrl}" style="display:inline-block;margin-top:6px;color:#007f9f;font-size:12px;font-weight:700;text-decoration:none">${escapeHtml(websiteDisplay)}</a>
+              <a href="${safeWebsiteUrl}" style="display:inline-block;margin-top:6px;color:#000047;font-size:12px;font-weight:700;text-decoration:none">${escapeHtml(websiteDisplay)}</a>
               <div style="margin-top:12px;font-size:11px;line-height:1.7;color:#8a95a3">
                 ${footerLinks.map((link) => `<a href="${escapeHtmlAttribute(link.url)}" style="color:#000047;text-decoration:underline">${escapeHtml(link.label)}</a>`).join(' <span style="color:#c3ccd6">|</span> ')}
               </div>
