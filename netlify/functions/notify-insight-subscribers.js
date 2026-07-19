@@ -200,6 +200,14 @@ function getFromEmail() {
   return DEFAULT_SENDER_EMAIL
 }
 
+function encodeUnsubscribeToken(email = '') {
+  return Buffer.from(String(email || '').trim().toLowerCase()).toString('base64url')
+}
+
+function getUnsubscribeUrl(email = '') {
+  return `${getSiteUrl()}/.netlify/functions/unsubscribe-insight?token=${encodeURIComponent(encodeUnsubscribeToken(email))}`
+}
+
 function titleCase(value = '') {
   return String(value || '')
     .replace(/[-_]+/g, ' ')
@@ -233,9 +241,10 @@ function splitTextParagraphs(value = '') {
     .filter(Boolean)
 }
 
-function buildPlainTextEmail({ insight, insightUrl, ctaLabel }) {
+function buildPlainTextEmail({ insight, insightUrl, ctaLabel, subscriber }) {
   const meta = getInsightMetaItems(insight).join(' - ')
   const siteUrl = getSiteUrl()
+  const unsubscribeUrl = getUnsubscribeUrl(subscriber.email)
 
   return [
     `${SITE_NAME} Insights`,
@@ -254,10 +263,15 @@ function buildPlainTextEmail({ insight, insightUrl, ctaLabel }) {
     SITE_NAME,
     'Top 1% Business Consulting',
     siteUrl,
+    `${siteUrl}/experts`,
+    `${siteUrl}/founder-community`,
+    `${siteUrl}/join-experts-hub`,
+    '',
+    `Unsubscribe: ${unsubscribeUrl}`,
   ].filter(Boolean).join('\n')
 }
 
-function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
+function buildHtmlEmail({ insight, insightUrl, ctaLabel, subscriber }) {
   const safeTitle = escapeHtml(insight.title)
   const safeExcerpt = escapeHtml(insight.excerpt)
   const safeUrl = escapeHtmlAttribute(insightUrl)
@@ -269,7 +283,13 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
   const websiteDisplay = 'www.magnafic.com'
   const websiteUrl = 'https://www.magnafic.com'
   const safeWebsiteUrl = escapeHtmlAttribute(websiteUrl)
-  const safeLogoUrl = escapeHtmlAttribute(`${siteUrl}/M_logo.png`)
+  const footerLinks = [
+    { label: 'Expert Service', url: `${siteUrl}/experts` },
+    { label: 'Join Founder Community', url: `${siteUrl}/founder-community` },
+    { label: 'Top 1% Expert Club', url: `${siteUrl}/join-experts-hub` },
+  ]
+  const safeLogoUrl = escapeHtmlAttribute(`${siteUrl}/logo%20copy.png`)
+  const safeUnsubscribeUrl = escapeHtmlAttribute(getUnsubscribeUrl(subscriber.email))
   const metaItems = getInsightMetaItems(insight)
   const emailBodyParagraphs = splitTextParagraphs(insight.emailBody)
 
@@ -395,13 +415,21 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
               </div>
             ` : ''}
 
-            <a class="insight-email-button" href="${safeUrl}" style="display:inline-block;border-radius:999px;background:#000047;color:#ffffff;font-size:15px;font-weight:800;line-height:1;text-decoration:none;padding:15px 22px">${escapeHtml(ctaLabel)}</a>
+            <div style="text-align:center">
+              <a class="insight-email-button" href="${safeUrl}" style="display:inline-block;border-radius:999px;background:#000047;color:#ffffff;font-size:15px;font-weight:800;line-height:1;text-decoration:none;padding:15px 22px">${escapeHtml(ctaLabel)}</a>
+            </div>
 
             <div class="insight-email-footer" style="margin-top:26px;padding-top:20px;border-top:1px solid #e6eef4;font-size:12px;line-height:1.6;color:#6b7785;text-align:center">
               <img class="insight-email-footer-logo" src="${safeLogoUrl}" alt="${SITE_NAME}" width="34" height="34" draggable="false" style="display:block;width:34px;height:34px;margin:0 auto 10px;border:0;pointer-events:none;user-select:none;-webkit-user-drag:none" />
               <div style="font-size:15px;font-weight:800;line-height:1.3;color:#102033">${SITE_NAME}</div>
               <div style="margin-top:2px;font-size:12px;line-height:1.5;color:#516070">Top 1% Business Consulting</div>
               <a href="${safeWebsiteUrl}" style="display:inline-block;margin-top:6px;color:#007f9f;font-size:12px;font-weight:700;text-decoration:none">${escapeHtml(websiteDisplay)}</a>
+              <div style="margin-top:12px;font-size:11px;line-height:1.7;color:#8a95a3">
+                ${footerLinks.map((link) => `<a href="${escapeHtmlAttribute(link.url)}" style="color:#000047;text-decoration:underline">${escapeHtml(link.label)}</a>`).join(' <span style="color:#c3ccd6">|</span> ')}
+              </div>
+              <div style="margin-top:12px;font-size:11px;line-height:1.5;color:#8a95a3">
+                <a href="${safeUnsubscribeUrl}" style="color:#8a95a3;text-decoration:underline">Unsubscribe</a>
+              </div>
             </div>
           </div>
         </div>
@@ -418,18 +446,18 @@ function buildSendgridPayload({ insight, subscriber }) {
     personalizations: [
       {
         to: [{ email: subscriber.email }],
-        subject: `New Magnafic insight: ${insight.title}`,
+        subject: `${insight.title}`,
       },
     ],
     from: { email: getFromEmail() },
     content: [
       {
         type: 'text/plain',
-        value: buildPlainTextEmail({ insight, insightUrl, ctaLabel }),
+        value: buildPlainTextEmail({ insight, insightUrl, ctaLabel, subscriber }),
       },
       {
         type: 'text/html',
-        value: buildHtmlEmail({ insight, insightUrl, ctaLabel }),
+        value: buildHtmlEmail({ insight, insightUrl, ctaLabel, subscriber }),
       },
     ],
   }

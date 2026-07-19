@@ -43,6 +43,11 @@ export const insightSubscriberSchema = defineType({
       type: 'datetime',
       initialValue: () => new Date().toISOString(),
     }),
+    defineField({
+      name: 'unsubscribedAt',
+      title: 'Unsubscribed At',
+      type: 'datetime',
+    }),
   ],
   preview: {
     select: {
