@@ -2,6 +2,7 @@ import { createClient } from '@sanity/client'
 
 const DEFAULT_SENDER_EMAIL = 'dharneesh@magnafic.com'
 const AUTHENTICATED_DOMAIN = 'magnafic.com'
+const SITE_NAME = 'Magnafic'
 const MAX_SEND_ATTEMPTS = 3
 const SENDING_LOCK_MINUTES = 15
 const SANITY_PROJECT_ID = '8pf5fxwy'
@@ -53,6 +54,10 @@ function getInsightPayload(body = {}) {
     youtubeUrl: payload.youtubeUrl || '',
     publishedAt: payload.publishedAt || payload._updatedAt || new Date().toISOString(),
     updatedAt: payload._updatedAt || payload.updatedAt || payload.publishedAt || '',
+    insightType: payload.type || (payload._type === 'youtubeVideos' ? 'video' : ''),
+    readTime: payload.readTime || payload.duration || '',
+    imageUrl: payload.imageUrl || payload.mainImage?.asset?.url || payload.thumbnail?.asset?.url || '',
+    imageAlt: payload.imageAlt || payload.mainImage?.alt || payload.thumbnail?.alt || payload.title || '',
   }
 }
 
@@ -108,10 +113,6 @@ function canNotifyForInsight(insight = {}) {
 async function resolveInsightPayload(body = {}) {
   const payloadInsight = getInsightPayload(body)
 
-  if (payloadInsight.id && payloadInsight.title && payloadInsight.status) {
-    return payloadInsight
-  }
-
   const ids = collectCandidateDocumentIds(body)
   if (!ids.length) return payloadInsight
 
@@ -134,7 +135,11 @@ async function resolveInsightPayload(body = {}) {
       "slug": slug.current,
       youtubeUrl,
       publishedAt,
-      _updatedAt
+      _updatedAt,
+      "insightType": coalesce(type, select(_type == "youtubeVideos" => "video", "")),
+      "readTime": coalesce(readTime, duration, ""),
+      "imageUrl": coalesce(mainImage.asset->url, thumbnail.asset->url, ""),
+      "imageAlt": coalesce(mainImage.alt, thumbnail.alt, title)
     }[0...1]`,
     { ids },
   )
@@ -152,6 +157,10 @@ async function resolveInsightPayload(body = {}) {
     youtubeUrl: sanityInsight.youtubeUrl || payloadInsight.youtubeUrl || '',
     publishedAt: sanityInsight.publishedAt || sanityInsight._updatedAt || payloadInsight.publishedAt,
     updatedAt: sanityInsight._updatedAt || sanityInsight.publishedAt || payloadInsight.updatedAt || '',
+    insightType: sanityInsight.insightType || payloadInsight.insightType || '',
+    readTime: sanityInsight.readTime || payloadInsight.readTime || '',
+    imageUrl: sanityInsight.imageUrl || payloadInsight.imageUrl || '',
+    imageAlt: sanityInsight.imageAlt || payloadInsight.imageAlt || sanityInsight.title || payloadInsight.title || '',
   }
 }
 
@@ -170,6 +179,10 @@ function escapeHtml(value = '') {
     .replace(/'/g, '&#039;')
 }
 
+function escapeHtmlAttribute(value = '') {
+  return escapeHtml(value).replace(/`/g, '&#096;')
+}
+
 function getSiteUrl() {
   return (process.env.SITE_URL || 'https://magnafic.com').replace(/\/$/, '')
 }
@@ -178,10 +191,96 @@ function getFromEmail() {
   return DEFAULT_SENDER_EMAIL
 }
 
-function buildSendgridPayload({ insight, subscriber }) {
-  const insightUrl = insight.youtubeUrl || `${getSiteUrl()}/insights/${insight.slug || insight.id}`
+function titleCase(value = '') {
+  return String(value || '')
+    .replace(/[-_]+/g, ' ')
+    .trim()
+    .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+}
+
+function formatPublishedDate(value = '') {
+  const date = value ? new Date(value) : null
+  if (!date || Number.isNaN(date.getTime())) return ''
+
+  return new Intl.DateTimeFormat('en', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
+function getInsightMetaItems(insight = {}) {
+  return [
+    titleCase(insight.insightType || (insight.documentType === 'youtubeVideos' ? 'video' : 'insight')),
+    formatPublishedDate(insight.publishedAt),
+    insight.readTime,
+  ].filter(Boolean)
+}
+
+function buildPlainTextEmail({ insight, insightUrl, ctaLabel }) {
+  const meta = getInsightMetaItems(insight).join(' • ')
+
+  return [
+    `${SITE_NAME} Insights`,
+    '',
+    meta,
+    insight.title,
+    '',
+    insight.excerpt,
+    '',
+    `${ctaLabel}: ${insightUrl}`,
+  ].filter(Boolean).join('\n')
+}
+
+function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
   const safeTitle = escapeHtml(insight.title)
   const safeExcerpt = escapeHtml(insight.excerpt)
+  const safeUrl = escapeHtmlAttribute(insightUrl)
+  const safeImageUrl = escapeHtmlAttribute(insight.imageUrl)
+  const safeImageAlt = escapeHtmlAttribute(insight.imageAlt || insight.title)
+  const metaItems = getInsightMetaItems(insight)
+
+  return `
+    <div style="margin:0;background:#f3f7fb;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;color:#102033">
+      <div style="max-width:640px;margin:0 auto">
+        <div style="padding:0 0 16px">
+          <div style="font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#007f9f">${SITE_NAME} Insights</div>
+          <div style="margin-top:4px;font-size:14px;line-height:1.5;color:#5d6b7a">Fresh thinking for consumer brands, growth, AI, and execution.</div>
+        </div>
+
+        <div style="overflow:hidden;border:1px solid #dbe7ef;border-radius:18px;background:#ffffff;box-shadow:0 14px 32px rgba(16,32,51,0.08)">
+          ${safeImageUrl ? `
+            <a href="${safeUrl}" style="display:block;text-decoration:none">
+              <img src="${safeImageUrl}" alt="${safeImageAlt}" style="display:block;width:100%;max-width:640px;height:auto;border:0" />
+            </a>
+          ` : ''}
+
+          <div style="padding:28px">
+            ${metaItems.length ? `
+              <div style="margin:0 0 14px;font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#007f9f">
+                ${metaItems.map(escapeHtml).join(' &bull; ')}
+              </div>
+            ` : ''}
+
+            <h1 style="margin:0 0 14px;font-size:28px;line-height:1.18;color:#102033">${safeTitle}</h1>
+            ${safeExcerpt ? `<p style="margin:0 0 24px;font-size:16px;line-height:1.65;color:#516070">${safeExcerpt}</p>` : ''}
+
+            <a href="${safeUrl}" style="display:inline-block;border-radius:999px;background:#000047;color:#ffffff;font-size:15px;font-weight:800;line-height:1;text-decoration:none;padding:15px 22px">${escapeHtml(ctaLabel)}</a>
+          </div>
+        </div>
+
+        <div style="padding:18px 4px 0;font-size:12px;line-height:1.6;color:#6b7785">
+          You are receiving this because you subscribed to ${SITE_NAME} Insights.
+          <br />
+          ${SITE_NAME} - Expert consulting for FMCG and consumer brand growth.
+        </div>
+      </div>
+    </div>
+  `
+}
+
+function buildSendgridPayload({ insight, subscriber }) {
+  const insightUrl = insight.youtubeUrl || `${getSiteUrl()}/insights/${insight.slug || insight.id}`
   const ctaLabel = insight.youtubeUrl ? 'Watch video' : 'Read insight'
 
   return {
@@ -195,23 +294,11 @@ function buildSendgridPayload({ insight, subscriber }) {
     content: [
       {
         type: 'text/plain',
-        value: [
-          insight.title,
-          '',
-          insight.excerpt,
-          '',
-          `Read it here: ${insightUrl}`,
-        ].filter(Boolean).join('\n'),
+        value: buildPlainTextEmail({ insight, insightUrl, ctaLabel }),
       },
       {
         type: 'text/html',
-        value: `
-          <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
-            <h1 style="font-size:24px;margin:0 0 12px">${safeTitle}</h1>
-            ${safeExcerpt ? `<p style="margin:0 0 20px;color:#4b5563">${safeExcerpt}</p>` : ''}
-            <a href="${insightUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700">${ctaLabel}</a>
-          </div>
-        `,
+        value: buildHtmlEmail({ insight, insightUrl, ctaLabel }),
       },
     ],
   }
@@ -261,6 +348,9 @@ async function claimNotification({ sanity, notificationId, insight }) {
     slug: insight.slug,
     youtubeUrl: insight.youtubeUrl || '',
     publishedAt: insight.publishedAt || '',
+    insightType: insight.insightType || '',
+    readTime: insight.readTime || '',
+    imageUrl: insight.imageUrl || '',
     status: 'sending',
     attempts: attempts + 1,
     lastError: '',
