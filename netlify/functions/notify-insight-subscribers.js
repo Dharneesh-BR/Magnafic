@@ -322,19 +322,19 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
 
         .insight-email-title {
           margin-bottom: 12px !important;
-          font-size: 19px !important;
+          font-size: 14px !important;
           line-height: 1.25 !important;
         }
 
         .insight-email-excerpt {
           margin-bottom: 20px !important;
-          font-size: 13px !important;
+          font-size: 12px !important;
           line-height: 1.55 !important;
         }
 
         .insight-email-custom-body {
           margin-bottom: 20px !important;
-          font-size: 13px !important;
+          font-size: 12px !important;
           line-height: 1.55 !important;
         }
 
@@ -384,13 +384,13 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
               </div>
             ` : ''}
 
-            <h1 class="insight-email-title" style="margin:0 0 14px;font-size:24px;line-height:1.22;color:#102033">${safeTitle}</h1>
-            ${safeExcerpt ? `<p class="insight-email-excerpt" style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#516070">${safeExcerpt}</p>` : ''}
+            <h1 class="insight-email-title" style="margin:0 0 14px;font-size:14px;line-height:1.25;color:#102033">${safeTitle}</h1>
+            ${safeExcerpt ? `<p class="insight-email-excerpt" style="margin:0 0 24px;font-size:12px;line-height:1.55;color:#516070">${safeExcerpt}</p>` : ''}
             ${safeEmailImageUrl ? `
               <img class="insight-email-custom-image" src="${safeEmailImageUrl}" alt="${safeEmailImageAlt}" draggable="false" style="display:block;width:100%;max-width:560px;height:auto;margin:0 0 24px;border:0;border-radius:14px;pointer-events:none;user-select:none;-webkit-user-drag:none" />
             ` : ''}
             ${emailBodyParagraphs.length ? `
-              <div class="insight-email-custom-body" style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#334155">
+              <div class="insight-email-custom-body" style="margin:0 0 24px;font-size:12px;line-height:1.55;color:#334155">
                 ${emailBodyParagraphs.map((paragraph) => `<p style="margin:0 0 12px">${escapeHtml(paragraph).replace(/\n/g, '<br />')}</p>`).join('')}
               </div>
             ` : ''}
