@@ -322,19 +322,19 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
 
         .insight-email-title {
           margin-bottom: 12px !important;
-          font-size: 21px !important;
+          font-size: 19px !important;
           line-height: 1.25 !important;
         }
 
         .insight-email-excerpt {
           margin-bottom: 20px !important;
-          font-size: 14px !important;
+          font-size: 13px !important;
           line-height: 1.55 !important;
         }
 
         .insight-email-custom-body {
           margin-bottom: 20px !important;
-          font-size: 14px !important;
+          font-size: 13px !important;
           line-height: 1.55 !important;
         }
 
@@ -368,11 +368,11 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
       <div class="insight-email-container" style="max-width:640px;margin:0 auto">
         <div class="insight-email-header" style="padding:0 0 16px;text-align:center">
           <img src="${safeLogoUrl}" alt="${SITE_NAME}" width="34" height="34" draggable="false" style="display:block;width:34px;height:34px;margin:0 auto 10px;border:0;pointer-events:none;user-select:none;-webkit-user-drag:none" />
-          <div class="insight-email-eyebrow" style="font-size:14px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;color:#007f9f">${SITE_NAME} Insights</div>
+          <div class="insight-email-eyebrow" style="font-size:14px;font-weight:800;letter-spacing:0;text-transform:none;color:#000047">${SITE_NAME} Insights</div>
           <div class="insight-email-subtitle" style="margin-top:4px;font-size:14px;line-height:1.5;color:#5d6b7a">Fresh thinking for consumer brands, growth, AI, and execution.</div>
         </div>
 
-        <div class="insight-email-card" style="overflow:hidden;border:1px solid #dbe7ef;border-radius:18px;background:#ffffff;box-shadow:0 14px 32px rgba(16,32,51,0.08)">
+        <div class="insight-email-card" style="overflow:hidden;border:0;border-radius:18px;background:#ffffff;box-shadow:none">
           ${safeImageUrl ? `
             <img src="${safeImageUrl}" alt="${safeImageAlt}" draggable="false" style="display:block;width:100%;max-width:640px;height:auto;border:0;pointer-events:none;user-select:none;-webkit-user-drag:none" />
           ` : ''}
@@ -384,13 +384,13 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
               </div>
             ` : ''}
 
-            <h1 class="insight-email-title" style="margin:0 0 14px;font-size:28px;line-height:1.18;color:#102033">${safeTitle}</h1>
-            ${safeExcerpt ? `<p class="insight-email-excerpt" style="margin:0 0 24px;font-size:16px;line-height:1.65;color:#516070">${safeExcerpt}</p>` : ''}
+            <h1 class="insight-email-title" style="margin:0 0 14px;font-size:24px;line-height:1.22;color:#102033">${safeTitle}</h1>
+            ${safeExcerpt ? `<p class="insight-email-excerpt" style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#516070">${safeExcerpt}</p>` : ''}
             ${safeEmailImageUrl ? `
               <img class="insight-email-custom-image" src="${safeEmailImageUrl}" alt="${safeEmailImageAlt}" draggable="false" style="display:block;width:100%;max-width:560px;height:auto;margin:0 0 24px;border:0;border-radius:14px;pointer-events:none;user-select:none;-webkit-user-drag:none" />
             ` : ''}
             ${emailBodyParagraphs.length ? `
-              <div class="insight-email-custom-body" style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#334155">
+              <div class="insight-email-custom-body" style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#334155">
                 ${emailBodyParagraphs.map((paragraph) => `<p style="margin:0 0 12px">${escapeHtml(paragraph).replace(/\n/g, '<br />')}</p>`).join('')}
               </div>
             ` : ''}
