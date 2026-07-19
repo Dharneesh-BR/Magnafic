@@ -58,6 +58,9 @@ function getInsightPayload(body = {}) {
     readTime: payload.readTime || payload.duration || '',
     imageUrl: payload.imageUrl || payload.mainImage?.asset?.url || payload.thumbnail?.asset?.url || '',
     imageAlt: payload.imageAlt || payload.mainImage?.alt || payload.thumbnail?.alt || payload.title || '',
+    emailBody: payload.emailBody || payload.emailContent?.body || '',
+    emailImageUrl: payload.emailImageUrl || payload.emailContent?.image?.asset?.url || '',
+    emailImageAlt: payload.emailImageAlt || payload.emailContent?.image?.alt || payload.emailContent?.image?.caption || payload.title || '',
   }
 }
 
@@ -139,7 +142,10 @@ async function resolveInsightPayload(body = {}) {
       "insightType": coalesce(type, select(_type == "youtubeVideos" => "video", "")),
       "readTime": coalesce(readTime, duration, ""),
       "imageUrl": coalesce(mainImage.asset->url, thumbnail.asset->url, ""),
-      "imageAlt": coalesce(mainImage.alt, thumbnail.alt, title)
+      "imageAlt": coalesce(mainImage.alt, thumbnail.alt, title),
+      "emailBody": coalesce(emailContent.body, ""),
+      "emailImageUrl": coalesce(emailContent.image.asset->url, ""),
+      "emailImageAlt": coalesce(emailContent.image.alt, emailContent.image.caption, title)
     }[0...1]`,
     { ids },
   )
@@ -161,6 +167,9 @@ async function resolveInsightPayload(body = {}) {
     readTime: sanityInsight.readTime || payloadInsight.readTime || '',
     imageUrl: sanityInsight.imageUrl || payloadInsight.imageUrl || '',
     imageAlt: sanityInsight.imageAlt || payloadInsight.imageAlt || sanityInsight.title || payloadInsight.title || '',
+    emailBody: sanityInsight.emailBody || payloadInsight.emailBody || '',
+    emailImageUrl: sanityInsight.emailImageUrl || payloadInsight.emailImageUrl || '',
+    emailImageAlt: sanityInsight.emailImageAlt || payloadInsight.emailImageAlt || sanityInsight.title || payloadInsight.title || '',
   }
 }
 
@@ -217,8 +226,16 @@ function getInsightMetaItems(insight = {}) {
   ].filter(Boolean)
 }
 
+function splitTextParagraphs(value = '') {
+  return String(value || '')
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+}
+
 function buildPlainTextEmail({ insight, insightUrl, ctaLabel }) {
-  const meta = getInsightMetaItems(insight).join(' • ')
+  const meta = getInsightMetaItems(insight).join(' - ')
+  const siteUrl = getSiteUrl()
 
   return [
     `${SITE_NAME} Insights`,
@@ -228,7 +245,15 @@ function buildPlainTextEmail({ insight, insightUrl, ctaLabel }) {
     '',
     insight.excerpt,
     '',
+    insight.emailBody,
+    '',
+    insight.emailImageUrl ? `Email image: ${insight.emailImageUrl}` : '',
+    '',
     `${ctaLabel}: ${insightUrl}`,
+    '',
+    SITE_NAME,
+    'Top 1% Business Consulting',
+    siteUrl,
   ].filter(Boolean).join('\n')
 }
 
@@ -238,41 +263,145 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel }) {
   const safeUrl = escapeHtmlAttribute(insightUrl)
   const safeImageUrl = escapeHtmlAttribute(insight.imageUrl)
   const safeImageAlt = escapeHtmlAttribute(insight.imageAlt || insight.title)
+  const safeEmailImageUrl = escapeHtmlAttribute(insight.emailImageUrl)
+  const safeEmailImageAlt = escapeHtmlAttribute(insight.emailImageAlt || insight.title)
+  const siteUrl = getSiteUrl()
+  const safeSiteUrl = escapeHtmlAttribute(siteUrl)
+  const safeLogoUrl = escapeHtmlAttribute(`${siteUrl}/M_logo.png`)
   const metaItems = getInsightMetaItems(insight)
+  const emailBodyParagraphs = splitTextParagraphs(insight.emailBody)
 
   return `
-    <div style="margin:0;background:#f3f7fb;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;color:#102033">
-      <div style="max-width:640px;margin:0 auto">
-        <div style="padding:0 0 16px">
-          <div style="font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#007f9f">${SITE_NAME} Insights</div>
-          <div style="margin-top:4px;font-size:14px;line-height:1.5;color:#5d6b7a">Fresh thinking for consumer brands, growth, AI, and execution.</div>
+    <style>
+      @media only screen and (max-width: 480px) {
+        .insight-email-shell {
+          padding: 18px 10px !important;
+        }
+
+        .insight-email-container {
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 auto !important;
+        }
+
+        .insight-email-header,
+        .insight-email-body,
+        .insight-email-footer {
+          text-align: center !important;
+        }
+
+        .insight-email-header {
+          padding-bottom: 12px !important;
+        }
+
+        .insight-email-eyebrow {
+          font-size: 11px !important;
+        }
+
+        .insight-email-subtitle {
+          font-size: 12px !important;
+          line-height: 1.45 !important;
+        }
+
+        .insight-email-card {
+          border-radius: 14px !important;
+        }
+
+        .insight-email-body {
+          padding: 20px 16px 22px !important;
+        }
+
+        .insight-email-meta {
+          margin-bottom: 12px !important;
+          font-size: 10px !important;
+          line-height: 1.5 !important;
+          letter-spacing: 0.06em !important;
+        }
+
+        .insight-email-title {
+          margin-bottom: 12px !important;
+          font-size: 21px !important;
+          line-height: 1.25 !important;
+        }
+
+        .insight-email-excerpt {
+          margin-bottom: 20px !important;
+          font-size: 14px !important;
+          line-height: 1.55 !important;
+        }
+
+        .insight-email-custom-body {
+          margin-bottom: 20px !important;
+          font-size: 14px !important;
+          line-height: 1.55 !important;
+        }
+
+        .insight-email-custom-image {
+          margin: 0 auto 20px !important;
+          border-radius: 12px !important;
+        }
+
+        .insight-email-button {
+          display: block !important;
+          width: auto !important;
+          max-width: 220px !important;
+          margin: 0 auto !important;
+          padding: 13px 18px !important;
+          font-size: 14px !important;
+          text-align: center !important;
+        }
+
+        .insight-email-footer {
+          padding-top: 14px !important;
+          font-size: 11px !important;
+        }
+
+        .insight-email-footer-logo {
+          margin: 0 auto 8px !important;
+        }
+      }
+    </style>
+    <div class="insight-email-shell" style="margin:0;background:#f3f7fb;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;color:#102033">
+      <div class="insight-email-container" style="max-width:640px;margin:0 auto">
+        <div class="insight-email-header" style="padding:0 0 16px">
+          <div class="insight-email-eyebrow" style="font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#007f9f">${SITE_NAME} Insights</div>
+          <div class="insight-email-subtitle" style="margin-top:4px;font-size:14px;line-height:1.5;color:#5d6b7a">Fresh thinking for consumer brands, growth, AI, and execution.</div>
         </div>
 
-        <div style="overflow:hidden;border:1px solid #dbe7ef;border-radius:18px;background:#ffffff;box-shadow:0 14px 32px rgba(16,32,51,0.08)">
+        <div class="insight-email-card" style="overflow:hidden;border:1px solid #dbe7ef;border-radius:18px;background:#ffffff;box-shadow:0 14px 32px rgba(16,32,51,0.08)">
           ${safeImageUrl ? `
             <a href="${safeUrl}" style="display:block;text-decoration:none">
               <img src="${safeImageUrl}" alt="${safeImageAlt}" style="display:block;width:100%;max-width:640px;height:auto;border:0" />
             </a>
           ` : ''}
 
-          <div style="padding:28px">
+          <div class="insight-email-body" style="padding:28px">
             ${metaItems.length ? `
-              <div style="margin:0 0 14px;font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#007f9f">
+              <div class="insight-email-meta" style="margin:0 0 14px;font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#007f9f">
                 ${metaItems.map(escapeHtml).join(' &bull; ')}
               </div>
             ` : ''}
 
-            <h1 style="margin:0 0 14px;font-size:28px;line-height:1.18;color:#102033">${safeTitle}</h1>
-            ${safeExcerpt ? `<p style="margin:0 0 24px;font-size:16px;line-height:1.65;color:#516070">${safeExcerpt}</p>` : ''}
+            <h1 class="insight-email-title" style="margin:0 0 14px;font-size:28px;line-height:1.18;color:#102033">${safeTitle}</h1>
+            ${safeExcerpt ? `<p class="insight-email-excerpt" style="margin:0 0 24px;font-size:16px;line-height:1.65;color:#516070">${safeExcerpt}</p>` : ''}
+            ${safeEmailImageUrl ? `
+              <img class="insight-email-custom-image" src="${safeEmailImageUrl}" alt="${safeEmailImageAlt}" style="display:block;width:100%;max-width:560px;height:auto;margin:0 0 24px;border:0;border-radius:14px" />
+            ` : ''}
+            ${emailBodyParagraphs.length ? `
+              <div class="insight-email-custom-body" style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#334155">
+                ${emailBodyParagraphs.map((paragraph) => `<p style="margin:0 0 12px">${escapeHtml(paragraph).replace(/\n/g, '<br />')}</p>`).join('')}
+              </div>
+            ` : ''}
 
-            <a href="${safeUrl}" style="display:inline-block;border-radius:999px;background:#000047;color:#ffffff;font-size:15px;font-weight:800;line-height:1;text-decoration:none;padding:15px 22px">${escapeHtml(ctaLabel)}</a>
+            <a class="insight-email-button" href="${safeUrl}" style="display:inline-block;border-radius:999px;background:#000047;color:#ffffff;font-size:15px;font-weight:800;line-height:1;text-decoration:none;padding:15px 22px">${escapeHtml(ctaLabel)}</a>
           </div>
         </div>
 
-        <div style="padding:18px 4px 0;font-size:12px;line-height:1.6;color:#6b7785">
-          You are receiving this because you subscribed to ${SITE_NAME} Insights.
-          <br />
-          ${SITE_NAME} - Expert consulting for FMCG and consumer brand growth.
+        <div class="insight-email-footer" style="padding:20px 4px 0;font-size:12px;line-height:1.6;color:#6b7785;text-align:center">
+          <img class="insight-email-footer-logo" src="${safeLogoUrl}" alt="${SITE_NAME}" width="34" height="34" style="display:block;width:34px;height:34px;margin:0 auto 10px;border:0" />
+          <div style="font-size:15px;font-weight:800;line-height:1.3;color:#102033">${SITE_NAME}</div>
+          <div style="margin-top:2px;font-size:12px;line-height:1.5;color:#516070">Top 1% Business Consulting</div>
+          <a href="${safeSiteUrl}" style="display:inline-block;margin-top:6px;color:#007f9f;font-size:12px;font-weight:700;text-decoration:none">${escapeHtml(siteUrl.replace(/^https?:\/\//i, ''))}</a>
         </div>
       </div>
     </div>
@@ -351,6 +480,8 @@ async function claimNotification({ sanity, notificationId, insight }) {
     insightType: insight.insightType || '',
     readTime: insight.readTime || '',
     imageUrl: insight.imageUrl || '',
+    emailBody: insight.emailBody || '',
+    emailImageUrl: insight.emailImageUrl || '',
     status: 'sending',
     attempts: attempts + 1,
     lastError: '',

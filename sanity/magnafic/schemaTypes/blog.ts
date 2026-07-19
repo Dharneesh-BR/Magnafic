@@ -158,6 +158,45 @@ export const blogSchema = defineType({
       initialValue: false,
     }),
     defineField({
+      name: 'emailContent',
+      title: 'Email Content',
+      type: 'object',
+      description:
+        'Optional content used only in subscriber emails. Leave blank to send the standard insight excerpt and main image.',
+      fields: [
+        defineField({
+          name: 'body',
+          title: 'Email Body',
+          type: 'text',
+          rows: 6,
+          description: 'Short email-only body copy. Use this to add context that should appear in the email.',
+          validation: (Rule) => Rule.max(1200),
+        }),
+        defineField({
+          name: 'image',
+          title: 'Email Body Image',
+          type: 'image',
+          options: {
+            hotspot: true,
+            accept: 'image/*',
+          },
+          fields: [
+            defineField({
+              name: 'alt',
+              title: 'Alternative Text',
+              type: 'string',
+            }),
+            defineField({
+              name: 'caption',
+              title: 'Caption',
+              type: 'string',
+            }),
+          ],
+          description: 'Optional image shown inside the email body below the excerpt.',
+        }),
+      ],
+    }),
+    defineField({
       name: 'status',
       title: 'Status',
       type: 'string',
