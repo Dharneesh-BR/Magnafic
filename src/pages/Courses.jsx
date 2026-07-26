@@ -88,7 +88,7 @@ export default function Courses() {
           <div className="mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
             <p className="text-base font-black text-cyan sm:text-lg">Magnafic Academy</p>
             <h1 className="mt-4 text-3xl font-black leading-tight text-white sm:text-4xl lg:text-5xl">
-              Your Journey to Top1% Starts here.
+              Your Journey to Top 1% Starts here.
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-cyan-50 sm:text-lg sm:leading-8 lg:mx-0">
               Master real-world strategies and AI-powered skills through self-paced courses that transform professionals into high-impact leaders.
