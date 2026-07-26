@@ -3,5 +3,8 @@ Allow: /
 Disallow: /login
 Disallow: /signup
 Disallow: /dashboard
+Disallow: /programs/login
+Disallow: /programs/dashboard
+Disallow: /programs/courses/*/lessons/
 
 Sitemap: https://magnafic.com/sitemap.xml

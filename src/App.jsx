@@ -18,6 +18,13 @@ import ClientSignup from './pages/ClientSignup'
 import ClientAccountSignup from './pages/ClientAccountSignup'
 import Academy from './pages/Academy'
 import Programs from './pages/Programs'
+import Courses from './pages/Courses'
+import CourseLanding from './pages/CourseLanding'
+import LmsCourse from './pages/LmsCourse'
+import LmsDashboard from './pages/LmsDashboard'
+import LmsLesson from './pages/LmsLesson'
+import LmsLogin from './pages/LmsLogin'
+import CertificateVerification from './pages/CertificateVerification'
 import Products from './pages/Products'
 import AdPage from './pages/AdPage'
 import Contact from './pages/Contact'
@@ -31,6 +38,7 @@ import ClientDashboard from './pages/ClientDashboard'
 import DashboardRedirect from './pages/DashboardRedirect'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminDashboard from './pages/AdminDashboard'
+import { LmsAuthProvider } from './lib/lmsAuth'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -86,6 +94,13 @@ function AppContent() {
             <Route path="/dashboard/consultant/enquiry/:enquiryId" element={<ProtectedRoute role="consultant"><ConsultantDashboard /></ProtectedRoute>} />
             <Route path="/academy" element={<Academy />} />
             <Route path="/programs" element={<Programs />} />
+            <Route path="/courses" element={<Courses />} />
+            <Route path="/courses/:courseId" element={<CourseLanding />} />
+            <Route path="/programs/login" element={<LmsLogin />} />
+            <Route path="/programs/dashboard" element={<LmsDashboard />} />
+            <Route path="/programs/courses/:courseId" element={<LmsCourse />} />
+            <Route path="/programs/courses/:courseId/lessons/:lessonId" element={<LmsLesson />} />
+            <Route path="/certificates/verify/:certificateNumber" element={<CertificateVerification />} />
             <Route path="/programs/:slug" element={<Programs />} />
             <Route path="/products" element={<Products />} />
             <Route path="/products/:slug" element={<Products />} />
@@ -108,10 +123,12 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      <ScrollToTop />
-      <AppContent />
-    </Router>
+    <LmsAuthProvider>
+      <Router>
+        <ScrollToTop />
+        <AppContent />
+      </Router>
+    </LmsAuthProvider>
   )
 }
 

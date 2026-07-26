@@ -1252,13 +1252,13 @@ export default function Programs() {
 
   return (
     <div className="min-h-screen bg-[#f7f9ff]">
-      <SEO title="Programs | Magnafic" description="Explore Magnafic programs, courses, live sessions, online sessions, meetups, and mentor-led learning experiences." path="/programs" />
+      <SEO title="Live Programs & Workshops | Magnafic" description="Explore Magnafic live programs, workshops, meetups, and mentor-led cohort experiences." path="/programs" />
       <section className="bg-[#000047] px-4 pt-28 pb-16 text-white sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <p className="mb-4 text-sm font-black uppercase tracking-[0.22em] text-cyan-200">Programs</p>
-          <h1 className="max-w-4xl text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">Mentor-led programs for consumer brand growth</h1>
+          <h1 className="max-w-4xl text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">Live programs and workshops for consumer brand growth</h1>
           <p className="mt-6 max-w-3xl text-lg leading-8 text-cyan-50">
-            Explore live sessions, online programs, meetups, courses, workshops, and cohort experiences led by Magnafic mentors.
+            Explore live sessions, workshops, meetups, and cohort experiences led by Magnafic mentors.
           </p>
         </div>
       </section>

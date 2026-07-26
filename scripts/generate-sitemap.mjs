@@ -8,6 +8,7 @@ const rootDir = resolve(__dirname, '..')
 const publicDir = resolve(rootDir, 'public')
 const siteUrl = (process.env.VITE_SITE_URL || process.env.SITE_URL || 'https://magnafic.com').replace(/\/$/, '')
 const today = new Date().toISOString().slice(0, 10)
+const lmsApiOrigin = (process.env.LMS_API_ORIGIN || 'http://localhost:4000').replace(/\/$/, '')
 
 const staticRoutes = [
   { path: '/', priority: '1.0', changefreq: 'weekly' },
@@ -17,6 +18,7 @@ const staticRoutes = [
   { path: '/about', priority: '0.7', changefreq: 'monthly' },
   { path: '/academy', priority: '0.7', changefreq: 'monthly' },
   { path: '/programs', priority: '0.7', changefreq: 'monthly' },
+  { path: '/courses', priority: '0.7', changefreq: 'weekly' },
   { path: '/products', priority: '0.8', changefreq: 'monthly' },
   { path: '/join-experts-hub', priority: '0.6', changefreq: 'monthly' },
   { path: '/founder-community', priority: '0.6', changefreq: 'monthly' },
@@ -107,8 +109,25 @@ async function fetchDynamicRoutes() {
   }
 }
 
-const dynamicRoutes = await fetchDynamicRoutes()
-const routes = [...staticRoutes, ...dynamicRoutes]
+async function fetchCourseRoutes() {
+  try {
+    const response = await fetch(`${lmsApiOrigin}/api/courses`)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const payload = await response.json()
+
+    return (payload.courses || []).map((course) => ({
+      path: `/courses/${course._id}`,
+      priority: '0.7',
+      changefreq: 'weekly',
+    }))
+  } catch (error) {
+    console.warn(`Could not fetch LMS course routes for sitemap: ${error.message}`)
+    return []
+  }
+}
+
+const [dynamicRoutes, courseRoutes] = await Promise.all([fetchDynamicRoutes(), fetchCourseRoutes()])
+const routes = [...staticRoutes, ...dynamicRoutes, ...courseRoutes]
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${routes.map(toUrl).join('\n')}
@@ -120,6 +139,9 @@ Allow: /
 Disallow: /login
 Disallow: /signup
 Disallow: /dashboard
+Disallow: /programs/login
+Disallow: /programs/dashboard
+Disallow: /programs/courses/*/lessons/
 
 Sitemap: ${siteUrl}/sitemap.xml
 `

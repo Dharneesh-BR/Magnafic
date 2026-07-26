@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   BarChart3,
+  BookOpen,
   Bot,
   BrainCircuit,
   BriefcaseBusiness,
@@ -50,6 +51,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isCapabilitiesOpen, setIsCapabilitiesOpen] = useState(false)
   const [isProductsOpen, setIsProductsOpen] = useState(false)
+  const [isProgramsOpen, setIsProgramsOpen] = useState(false)
   const [authUser, setAuthUserState] = useState(() => getAuthUser())
   const [capabilities, setCapabilities] = useState([])
   const [products, setProducts] = useState([])
@@ -115,6 +117,12 @@ export default function Header() {
     setIsMenuOpen(false)
   }
 
+  const handleProgramSelect = (path) => {
+    navigate(path)
+    setIsProgramsOpen(false)
+    setIsMenuOpen(false)
+  }
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -124,11 +132,14 @@ export default function Header() {
       if (isProductsOpen && !event.target.closest('.products-dropdown')) {
         setIsProductsOpen(false)
       }
+      if (isProgramsOpen && !event.target.closest('.programs-dropdown')) {
+        setIsProgramsOpen(false)
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isCapabilitiesOpen, isProductsOpen])
+  }, [isCapabilitiesOpen, isProductsOpen, isProgramsOpen])
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white z-50 border-b border-gray-200 shadow-sm">
@@ -184,6 +195,7 @@ export default function Header() {
                 onClick={() => {
                   setIsCapabilitiesOpen(!isCapabilitiesOpen)
                   setIsProductsOpen(false)
+                  setIsProgramsOpen(false)
                 }}
                 className="flex items-center space-x-1 text-gray-900 hover:text-primary transition-colors font-medium"
               >
@@ -224,6 +236,7 @@ export default function Header() {
                 onClick={() => {
                   setIsProductsOpen(!isProductsOpen)
                   setIsCapabilitiesOpen(false)
+                  setIsProgramsOpen(false)
                 }}
                 className="flex items-center space-x-1 text-gray-900 hover:text-primary transition-colors font-medium"
               >
@@ -253,20 +266,55 @@ export default function Header() {
                 </div>
               )}
             </div>
-            <Link to="/programs" className="text-gray-900 hover:text-primary transition-colors font-medium">Programs</Link>
+            <div className="relative programs-dropdown">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProgramsOpen(!isProgramsOpen)
+                  setIsCapabilitiesOpen(false)
+                  setIsProductsOpen(false)
+                }}
+                className="flex items-center space-x-1 font-medium text-gray-900 transition-colors hover:text-primary"
+                aria-expanded={isProgramsOpen}
+              >
+                <span>Academy</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isProgramsOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isProgramsOpen && (
+                <div className="absolute left-1/2 z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-lg bg-white p-2 shadow-xl shadow-gray-200/50 ring-1 ring-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => handleProgramSelect('/courses')}
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left font-semibold text-gray-900 transition hover:bg-primary-50 hover:text-primary-700"
+                  >
+                    <BookOpen className="h-5 w-5 shrink-0 text-primary-600" aria-hidden="true" />
+                    <span>Self Paced Courses</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleProgramSelect('/programs')}
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left font-semibold text-gray-900 transition hover:bg-primary-50 hover:text-primary-700"
+                  >
+                    <CalendarDays className="h-5 w-5 shrink-0 text-primary-600" aria-hidden="true" />
+                    <span>Live &amp; Workshops</span>
+                  </button>
+                </div>
+              )}
+            </div>
             <Link to="/insights" className="text-gray-900 hover:text-primary transition-colors font-medium">Insights</Link>
             <Link to="/about" className="text-gray-900 hover:text-primary transition-colors font-medium">About</Link>
             <Link
               to="/founder-community"
               className="max-w-28 rounded-full border border-primary-200 bg-primary-50 px-3 py-2 text-center text-xs font-extrabold leading-tight text-primary-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary-300 hover:bg-white hover:shadow-glow-blue xl:max-w-32 xl:px-4 xl:text-sm"
             >
-              Join Founder<br />Community
+              Join as<br />Founder
             </Link>
             <Link
               to="/join-experts-hub"
               className="max-w-28 rounded-full border border-primary-200 bg-primary-50 px-3 py-2 text-center text-xs font-extrabold leading-tight text-primary-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary-300 hover:bg-white hover:shadow-glow-blue xl:max-w-32 xl:px-4 xl:text-sm"
             >
-              Top 1%<br />Expert Club
+              Join as<br />Consultant
             </Link>
 
             {authUser ? (
@@ -299,7 +347,7 @@ export default function Header() {
         </div>
 
         {isMenuOpen && (
-          <div className="space-y-3 border-t border-gray-100 bg-white py-4 md:hidden">
+          <div className="max-h-[calc(100dvh-4rem)] space-y-2 overflow-x-hidden overflow-y-auto border-t border-gray-100 bg-white py-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:hidden">
             {showHomeLink && (
               <Link onClick={() => setIsMenuOpen(false)} to="/" className="flex items-center gap-3 rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">
                 <Home className="h-5 w-5 shrink-0 text-primary-600" />
@@ -311,6 +359,7 @@ export default function Header() {
                 onClick={() => {
                   setIsCapabilitiesOpen(!isCapabilitiesOpen)
                   setIsProductsOpen(false)
+                  setIsProgramsOpen(false)
                 }}
                 className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium"
               >
@@ -334,7 +383,7 @@ export default function Header() {
                       >
                         <div className="flex items-center gap-3">
                           <Icon className="h-5 w-5 shrink-0 text-primary-600" aria-hidden="true" />
-                          <span className="whitespace-nowrap font-medium">{capability.title}</span>
+                          <span className="min-w-0 break-words font-medium">{capability.title}</span>
                         </div>
                       </button>
                     )
@@ -350,6 +399,7 @@ export default function Header() {
                 onClick={() => {
                   setIsProductsOpen(!isProductsOpen)
                   setIsCapabilitiesOpen(false)
+                  setIsProgramsOpen(false)
                 }}
                 className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium"
               >
@@ -380,10 +430,45 @@ export default function Header() {
                 </div>
               )}
             </div>
-            <Link onClick={() => setIsMenuOpen(false)} to="/programs" className="flex items-center gap-3 rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">
-              <CalendarDays className="h-5 w-5 shrink-0 text-primary-600" />
-              <span>Programs</span>
-            </Link>
+            <div className="programs-dropdown">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProgramsOpen(!isProgramsOpen)
+                  setIsCapabilitiesOpen(false)
+                  setIsProductsOpen(false)
+                }}
+                className="flex w-full items-center justify-between rounded-xl px-2 py-2 font-medium text-gray-900 hover:bg-gray-50 hover:text-primary"
+                aria-expanded={isProgramsOpen}
+              >
+                <span className="flex items-center gap-3">
+                  <CalendarDays className="h-5 w-5 shrink-0 text-primary-600" />
+                  <span>Academy</span>
+                </span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isProgramsOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isProgramsOpen && (
+                <div className="ml-4 mt-2 grid gap-1 border-l border-gray-200 pl-3">
+                  <button
+                    type="button"
+                    onClick={() => handleProgramSelect('/programs')}
+                    className="flex items-center gap-3 rounded-md px-2 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-700"
+                  >
+                    <CalendarDays className="h-5 w-5 shrink-0 text-primary-600" aria-hidden="true" />
+                    <span>Live &amp; Workshops</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleProgramSelect('/courses')}
+                    className="flex items-center gap-3 rounded-md px-2 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-700"
+                  >
+                    <BookOpen className="h-5 w-5 shrink-0 text-primary-600" aria-hidden="true" />
+                    <span>Courses</span>
+                  </button>
+                </div>
+              )}
+            </div>
             <Link onClick={() => setIsMenuOpen(false)} to="/insights" className="flex items-center gap-3 rounded-xl px-2 py-2 text-gray-900 hover:bg-gray-50 hover:text-primary font-medium">
               <Newspaper className="h-5 w-5 shrink-0 text-primary-600" />
               <span>Insights</span>
@@ -398,7 +483,7 @@ export default function Header() {
               className="flex items-center justify-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-center font-extrabold text-primary-700 shadow-sm"
             >
               <Users className="h-5 w-5 shrink-0" />
-              <span>Join Founder Community</span>
+              <span>Join as Founder</span>
             </Link>
             <Link
               onClick={() => setIsMenuOpen(false)}
@@ -406,7 +491,7 @@ export default function Header() {
               className="flex items-center justify-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-center font-extrabold text-primary-700 shadow-sm"
             >
               <Crown className="h-5 w-5 shrink-0" />
-              <span>Join Top 1% Expert Club</span>
+              <span>Join as Consultant</span>
             </Link>
 
             {authUser ? (
