@@ -449,7 +449,7 @@ function buildSendgridPayload({ insight, subscriber }) {
         subject: `${insight.title}`,
       },
     ],
-    from: { email: getFromEmail() },
+    from: { email: getFromEmail(), name: `${SITE_NAME} Insights` },
     content: [
       {
         type: 'text/plain',
