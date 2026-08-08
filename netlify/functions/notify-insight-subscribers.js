@@ -1,6 +1,6 @@
 import { createClient } from '@sanity/client'
 
-const DEFAULT_SENDER_EMAIL = 'dharneesh@magnafic.com'
+const DEFAULT_SENDER_EMAIL = 'insights@magnafic.com'
 const AUTHENTICATED_DOMAIN = 'magnafic.com'
 const SITE_NAME = 'Magnafic'
 const MAX_SEND_ATTEMPTS = 3
