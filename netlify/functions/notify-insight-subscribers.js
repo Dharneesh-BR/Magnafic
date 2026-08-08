@@ -317,7 +317,7 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel, subscriber }) {
         }
 
         .insight-email-eyebrow {
-          font-size: 13px !important;
+          font-size: 18px !important;
         }
 
         .insight-email-subtitle {
@@ -387,8 +387,8 @@ function buildHtmlEmail({ insight, insightUrl, ctaLabel, subscriber }) {
     <div class="insight-email-shell" style="margin:0;background:#f3f7fb;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;color:#102033">
       <div class="insight-email-container" style="max-width:640px;margin:0 auto">
         <div class="insight-email-header" style="padding:0 0 16px;text-align:center">
-          <img src="${safeLogoUrl}" alt="${SITE_NAME}" width="34" height="34" draggable="false" style="display:block;width:34px;height:34px;margin:0 auto 10px;border:0;pointer-events:none;user-select:none;-webkit-user-drag:none" />
-          <div class="insight-email-eyebrow" style="font-size:14px;font-weight:800;letter-spacing:0;text-transform:none;color:#000047">${SITE_NAME} Insights</div>
+          <img src="${safeLogoUrl}" alt="${SITE_NAME}" width="58" height="58" draggable="false" style="display:block;width:58px;height:58px;margin:0 auto 12px;border:0;pointer-events:none;user-select:none;-webkit-user-drag:none" />
+          <div class="insight-email-eyebrow" style="font-size:20px;font-weight:800;letter-spacing:0;text-transform:none;color:#000047">${SITE_NAME} Insights</div>
           <div class="insight-email-subtitle" style="margin-top:4px;font-size:14px;line-height:1.5;color:#5d6b7a">Fresh thinking for consumer brands, growth, AI, and execution.</div>
         </div>
 
