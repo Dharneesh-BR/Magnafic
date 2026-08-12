@@ -40,7 +40,7 @@ export default function About() {
     },
     {
       title: 'Fair Value',
-      description: 'High standards with low overhead: Catalant provides a far better value for the investment.'
+      description: 'High standards with low overhead: Magnafic provides far better value for the investment.'
     }
   ]
 
@@ -48,8 +48,11 @@ export default function About() {
     <div className="px-2 pt-24 pb-16 sm:px-6 sm:pb-20 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16 pt-8">
+          <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.22em] text-primary-600">About Magnafic</p>
           <h1 className="mb-4 text-4xl font-bold text-[#000047] sm:text-4xl">Redefining how <br className="sm:hidden" />CPG leaders overcome their most important challenges with smarter, modern solutions.</h1>
-          
+          <p className="mx-auto max-w-3xl text-lg leading-8 text-gray-600">
+            Magnafic is the Top 1% expert consulting platform for FMCG and CPG growth, built for consumer businesses that need elite operators, fractional leaders, and AI-enabled execution.
+          </p>
         </div>
 
         <div className="mb-16 grid gap-5 md:grid-cols-3 md:gap-6">
@@ -121,7 +124,7 @@ export default function About() {
             <div className="grid md:grid-cols-[35%_65%] gap-8">
               <div className="flex flex-col justify-center">
                 <div className="rounded-2xl border-2 border-primary-200 bg-primary-50 p-6">
-                  <div className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">Hello ! <br/>Our Name Means...</div>
+                  <div className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">Hello! <br/>Our Name Means...</div>
                   <div className="text-2xl sm:text-4xl font-extrabold bg-gradient-primary text-white mb-4">Magna-fication</div>
                   <div className="space-y-3">
                     <div className="text-2xl sm:text-4xl font-bold text-gray-900">Magnate</div>
@@ -135,11 +138,14 @@ export default function About() {
                   <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan to-transparent sm:hidden" />
                   <div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-primary-300 to-transparent sm:hidden" />
                 <p className="text-gray-600 text-xl mb-4">
-                  “Magna” comes from Magnate, Magnification, and Magnitude — representing greatness, scale, power, and transformational impact.
-                  “Fication” represents the process of creating, transforming, and amplifying businesses into their highest potential.
+                  "Magna" comes from Magnate, Magnification, and Magnitude, representing greatness, scale, power, and transformational impact.
+                  "Fication" represents the process of creating, transforming, and amplifying businesses into their highest potential.
                 </p>
                 <p className="text-gray-600 text-xl mb-4">
-                  Mag-nah-fic is more than just a name — it’s our mission. We act as a strategic magnifier for consumer brands, helping businesses simplify complexity, unlock massive growth, and access elite independent expertise to move faster and scale smarter.
+                  Mag-nah-fic is more than just a name. It is our mission. We act as a strategic magnifier for consumer brands, helping businesses simplify complexity, unlock massive growth, and access elite independent expertise to move faster and scale smarter.
+                </p>
+                <p className="text-gray-600 text-xl">
+                  When people search for Magnafic, they are looking for this brand: Magnafic - Top 1% expert consulting platform for FMCG & CPG Growth.
                 </p>
                 
               </div>

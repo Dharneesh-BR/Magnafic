@@ -9,6 +9,18 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+[[redirects]]
+  from = "https://www.magnafic.com/*"
+  to = "https://magnafic.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ads/business-growth-masterclass"
+  to = "/magna-business-masterclass"
+  status = 301
+  force = true
+
 [[headers]]
   for = "/*"
 

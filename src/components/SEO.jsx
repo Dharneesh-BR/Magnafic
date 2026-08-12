@@ -1,13 +1,17 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import {
+  BRAND_KEYWORDS,
   DEFAULT_DESCRIPTION,
   DEFAULT_IMAGE,
   SITE_NAME,
   SITE_URL,
   absoluteUrl,
+  breadcrumbJsonLd,
   buildTitle,
+  organizationJsonLd,
   staticRouteSeo,
+  websiteJsonLd,
 } from '../lib/seo'
 
 function upsertMeta(selector, attributes) {
@@ -64,14 +68,41 @@ export default function SEO({ title, description, path, image, type = 'website',
   const routeSeo = staticRouteSeo[location.pathname] || {}
   const pageTitle = buildTitle(title || routeSeo.title)
   const pageDescription = description || routeSeo.description || DEFAULT_DESCRIPTION
-  const canonical = absoluteUrl(path || location.pathname)
+  const canonicalPath = path || location.pathname
+  const canonical = absoluteUrl(canonicalPath)
   const pageImage = image ? absoluteUrl(image) : DEFAULT_IMAGE
   const isDefaultImage = pageImage === DEFAULT_IMAGE
+  const normalizedPath = canonicalPath.split('?')[0].replace(/\/$/, '') || '/'
+  const pageJsonLd = {
+    '@type': 'WebPage',
+    '@id': `${canonical}#webpage`,
+    url: canonical,
+    name: pageTitle,
+    description: pageDescription,
+    isPartOf: {
+      '@id': `${SITE_URL}/#website`,
+    },
+    about: {
+      '@id': `${SITE_URL}/#organization`,
+    },
+    primaryImageOfPage: {
+      '@type': 'ImageObject',
+      url: pageImage,
+    },
+    breadcrumb: {
+      '@id': `${absoluteUrl(normalizedPath)}#breadcrumb`,
+    },
+    inLanguage: 'en',
+  }
 
   useEffect(() => {
     document.title = pageTitle
 
     upsertMeta('meta[name="description"]', { name: 'description', content: pageDescription })
+    upsertMeta('meta[name="keywords"]', { name: 'keywords', content: BRAND_KEYWORDS.join(', ') })
+    upsertMeta('meta[name="application-name"]', { name: 'application-name', content: SITE_NAME })
+    upsertMeta('meta[name="apple-mobile-web-app-title"]', { name: 'apple-mobile-web-app-title', content: SITE_NAME })
+    upsertMeta('meta[name="theme-color"]', { name: 'theme-color', content: '#000047' })
     upsertMeta('meta[name="robots"]', {
       name: 'robots',
       content: noIndex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large',
@@ -102,27 +133,28 @@ export default function SEO({ title, description, path, image, type = 'website',
 
     upsertJsonLd('site-json-ld', {
       '@context': 'https://schema.org',
-      '@type': 'Organization',
-      name: SITE_NAME,
-      url: SITE_URL,
-      logo: absoluteUrl('/Magnafic.png'),
-      image: DEFAULT_IMAGE,
-      description: DEFAULT_DESCRIPTION,
-    })
-
-    upsertJsonLd('website-json-ld', {
-      '@context': 'https://schema.org',
-      '@type': 'WebSite',
-      name: SITE_NAME,
-      url: SITE_URL,
+      '@graph': [
+        organizationJsonLd,
+        websiteJsonLd,
+        pageJsonLd,
+        breadcrumbJsonLd(normalizedPath),
+      ],
     })
 
     if (jsonLd) {
-      upsertJsonLd('page-json-ld', jsonLd)
+      const pageData = Array.isArray(jsonLd) ? jsonLd : [jsonLd]
+      upsertJsonLd('page-json-ld', {
+        '@context': 'https://schema.org',
+        '@graph': pageData.map(item => ({
+          ...item,
+          '@context': undefined,
+          isPartOf: item.isPartOf || { '@id': `${SITE_URL}/#website` },
+        })),
+      })
     } else {
       removeJsonLd('page-json-ld')
     }
-  }, [canonical, isDefaultImage, jsonLd, noIndex, pageDescription, pageImage, pageTitle, type])
+  }, [canonical, isDefaultImage, jsonLd, noIndex, normalizedPath, pageDescription, pageImage, pageJsonLd, pageTitle, type])
 
   return null
 }

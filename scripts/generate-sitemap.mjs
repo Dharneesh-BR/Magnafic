@@ -23,6 +23,7 @@ const staticRoutes = [
   { path: '/join-experts-hub', priority: '0.6', changefreq: 'monthly' },
   { path: '/founder-community', priority: '0.6', changefreq: 'monthly' },
   { path: '/add', priority: '0.6', changefreq: 'monthly' },
+  { path: '/magna-business-masterclass', priority: '0.6', changefreq: 'monthly' },
   { path: '/contact', priority: '0.6', changefreq: 'monthly' },
   { path: '/terms-and-conditions', priority: '0.4', changefreq: 'yearly' },
   { path: '/privacy-policy', priority: '0.4', changefreq: 'yearly' },
@@ -58,7 +59,7 @@ function toUrl(route) {
 
 async function fetchDynamicRoutes() {
   try {
-    const [blogs, experts, programs, products] = await Promise.all([
+    const [blogs, experts, programs, products, capabilities, services] = await Promise.all([
       mentorClient.fetch(`*[_type == "blog" && status != "archived" && defined(slug.current)]{
         "slug": slug.current,
         "updatedAt": coalesce(_updatedAt, publishedAt)
@@ -72,6 +73,14 @@ async function fetchDynamicRoutes() {
         "updatedAt": coalesce(_updatedAt, startDate)
       }`),
       mentorClient.fetch(`*[_type == "products" && status == "published" && defined(slug.current)]{
+        "slug": slug.current,
+        "updatedAt": _updatedAt
+      }`),
+      mentorClient.fetch(`*[_type == "capabilities" && defined(slug.current)]{
+        "slug": slug.current,
+        "updatedAt": _updatedAt
+      }`),
+      mentorClient.fetch(`*[_type == "services" && defined(slug.current)]{
         "slug": slug.current,
         "updatedAt": _updatedAt
       }`),
@@ -100,6 +109,18 @@ async function fetchDynamicRoutes() {
         path: `/products/${item.slug}`,
         lastmod: item.updatedAt?.slice(0, 10) || today,
         priority: '0.8',
+        changefreq: 'weekly',
+      })),
+      ...capabilities.map(item => ({
+        path: `/capabilities/${item.slug}`,
+        lastmod: item.updatedAt?.slice(0, 10) || today,
+        priority: '0.8',
+        changefreq: 'weekly',
+      })),
+      ...services.map(item => ({
+        path: `/services/${item.slug}`,
+        lastmod: item.updatedAt?.slice(0, 10) || today,
+        priority: '0.7',
         changefreq: 'weekly',
       })),
     ]

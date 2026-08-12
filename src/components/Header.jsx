@@ -155,7 +155,7 @@ export default function Header() {
           </button>
 
           <Link to="/" className="flex items-center justify-center space-x-2 md:justify-start">
-            <img src="/Magnafic.png" alt="Mind Magna Logo" className="h-6 w-auto brightness-125 sm:h-7" />
+            <img src="/Magnafic.png" alt="Magnafic official logo" className="h-6 w-auto brightness-125 sm:h-7" />
           </Link>
 
           {hasDashboardAccess ? (
